@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
 use camino_tempfile::Utf8TempDir;
-use heck::ToLowerCamelCase;
+use heck::{ToLowerCamelCase, ToSnakeCase};
 use include_dir::{Dir, include_dir};
 use lazy_static::lazy_static;
 use log::{debug, info};
@@ -13,6 +13,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use topologic::AcyclicDependencyGraph;
 use wit_component::{ComponentEncoder, StringEncoding};
 use wit_parser::{PackageId, Resolve, WorldId};
+
+/// An example generator that embeds and exports a script (arbitrary string) into a MoonBit component.
+#[cfg(feature = "get-script")]
+pub mod get_script;
 
 static MOONBIT_CORE: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/core");
 
@@ -151,26 +155,113 @@ impl MoonBitComponent {
         Ok(component)
     }
 
+    /// Defines the MoonBit packages implementing the WIT bindings
+    pub fn define_bindgen_packages(&mut self) -> anyhow::Result<()> {
+        let moonbit_root_package = self.moonbit_root_package()?;
+        let world_name = self.world_name()?;
+        let world_snake = world_name.to_snake_case();
+
+        self.define_package(MoonBitPackage {
+            name: format!("{moonbit_root_package}/ffi"),
+            mbt_files: vec![Utf8Path::new("ffi").join("top.mbt")],
+            warning_control: vec![WarningControl::Disable(Warning::Specific(44))],
+            output: Utf8Path::new("target")
+                .join("wasm")
+                .join("release")
+                .join("build")
+                .join("ffi")
+                .join("ffi.core"),
+            dependencies: vec![],
+            package_sources: vec![(
+                format!("{moonbit_root_package}/ffi"),
+                Utf8Path::new("ffi").to_path_buf(),
+            )],
+        });
+
+        self.define_package(MoonBitPackage {
+            name: format!("{moonbit_root_package}/gen/world/{world_name}"),
+            mbt_files: vec![
+                Utf8Path::new("gen")
+                    .join("world")
+                    .join(&world_name)
+                    .join("stub.mbt"),
+            ],
+            warning_control: vec![],
+            output: Utf8Path::new("target")
+                .join("wasm")
+                .join("release")
+                .join("build")
+                .join("gen")
+                .join("world")
+                .join(&world_name)
+                .join(format!("{world_name}.core")),
+
+            dependencies: vec![],
+            package_sources: vec![(
+                format!("{moonbit_root_package}/gen/world/{world_name}"),
+                Utf8Path::new("gen").join("world").join(&world_name),
+            )],
+        });
+
+        self.define_package(MoonBitPackage {
+            name: format!("{moonbit_root_package}/gen"),
+            mbt_files: vec![
+                Utf8Path::new("gen").join(format!("world_{world_snake}_export.mbt")),
+                Utf8Path::new("gen").join("ffi.mbt"),
+            ],
+            warning_control: vec![],
+            output: Utf8Path::new("target")
+                .join("wasm")
+                .join("release")
+                .join("build")
+                .join("gen")
+                .join("gen.core"),
+            dependencies: vec![
+                (
+                    Utf8Path::new("target")
+                        .join("wasm")
+                        .join("release")
+                        .join("build")
+                        .join("ffi")
+                        .join("ffi.mi"),
+                    "ffi".to_string(),
+                ),
+                (
+                    Utf8Path::new("target")
+                        .join("wasm")
+                        .join("release")
+                        .join("build")
+                        .join("gen")
+                        .join("world")
+                        .join(&world_name)
+                        .join(format!("{world_name}.mi")),
+                    world_name.clone(),
+                ),
+            ],
+            package_sources: vec![(
+                format!("{moonbit_root_package}/gen"),
+                Utf8Path::new("gen").to_path_buf(),
+            )],
+        });
+
+        Ok(())
+    }
+
+    /// Defines a custom MoonBit package
     pub fn define_package(&mut self, package: MoonBitPackage) {
         debug!("Adding MoonBit package: {}", package.name);
         self.packages.insert(package.name.clone(), package);
     }
 
     pub fn write_world_stub(&self, moonbit_source: &str) -> anyhow::Result<()> {
-        let world_name = self
-            .resolve
-            .as_ref()
-            .and_then(|r| r.worlds.get(self.world_id?))
-            .map(|w| w.name.to_string())
-            .ok_or_else(|| anyhow::anyhow!("Could not find world"))?
-            .to_lower_camel_case();
+        let world_name = self.world_name()?;
         let path = self
             .dir
             .join("gen")
             .join("world")
             .join(world_name)
             .join("stub.mbt");
-        info!("Writing world stub to {}", path);
+        info!("Writing world stub to {path}");
         std::fs::write(path, moonbit_source)?;
         Ok(())
     }
@@ -296,6 +387,7 @@ impl MoonBitComponent {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn link_core(
         &self,
         core_files: &[Utf8PathBuf],
@@ -358,12 +450,7 @@ impl MoonBitComponent {
 
         let mut wasm = std::fs::read(self.module_wasm())?;
 
-        wit_component::embed_component_metadata(
-            &mut wasm,
-            &resolve,
-            *world,
-            StringEncoding::UTF16,
-        )?;
+        wit_component::embed_component_metadata(&mut wasm, resolve, *world, StringEncoding::UTF16)?;
 
         std::fs::write(self.module_with_embed_wasm(), wasm)?;
 
@@ -371,7 +458,7 @@ impl MoonBitComponent {
     }
 
     fn create_component(&self, target: &Utf8Path) -> anyhow::Result<()> {
-        info!("Creating the final WASM component at {}", target);
+        info!("Creating the final WASM component at {target}");
 
         let wasm = std::fs::read(self.module_with_embed_wasm())?;
         let mut encoder = ComponentEncoder::default()
@@ -407,7 +494,7 @@ impl MoonBitComponent {
                     let relevant_path = &path_components[4..path_components.len() - 1];
                     format!("{}/{}", root_package, relevant_path.join("/"))
                 } else {
-                    format!("{}/{}", root_package, dep)
+                    format!("{root_package}/{dep}")
                 };
 
                 graph.depend_on(package.name.clone(), full_dep)?;
@@ -460,7 +547,7 @@ impl MoonBitComponent {
     fn extract_wasm_linker_config(
         package_json_path: &Utf8Path,
     ) -> anyhow::Result<WasmLinkerConfig> {
-        debug!("Extracting Wasm linker config from {}", package_json_path);
+        debug!("Extracting Wasm linker config from {package_json_path}");
         let json_str = std::fs::read_to_string(package_json_path)?;
         let pkg: PackageJsonWithWasmLinkerConfig = serde_json::from_str(&json_str)?;
 
@@ -479,6 +566,16 @@ impl MoonBitComponent {
             "{}/{}",
             root_package.name.namespace, root_package.name.name
         ))
+    }
+
+    fn world_name(&self) -> anyhow::Result<String> {
+        Ok(self
+            .resolve
+            .as_ref()
+            .and_then(|r| r.worlds.get(self.world_id?))
+            .map(|w| w.name.to_string())
+            .ok_or_else(|| anyhow::anyhow!("Could not find world"))?
+            .to_lower_camel_case())
     }
 }
 
@@ -539,132 +636,5 @@ impl Display for WarningControl {
     }
 }
 
-// pub fn test() -> anyhow::Result<()> {
-//     moonc_wasm::initialize_v8()?;
-//     moonc_wasm::run_wasmoo(vec!["--help".to_string()])?;
-//     Ok(())
-// }
-
 #[cfg(test)]
 test_r::enable!();
-
-#[cfg(test)]
-mod tests {
-    use crate::{MoonBitComponent, MoonBitPackage, Warning, WarningControl};
-    use camino::Utf8Path;
-    use indoc::indoc;
-    use log::LevelFilter;
-    use pretty_env_logger::env_logger::WriteStyle;
-    use std::fmt::Write;
-    use test_r::{test, test_dep};
-    use wit_bindgen_core::uwriteln;
-
-    struct Trace;
-
-    #[test_dep]
-    fn initialize_trace() -> Trace {
-        pretty_env_logger::formatted_builder()
-            .filter_level(LevelFilter::Debug)
-            .write_style(WriteStyle::Always)
-            .init();
-        Trace
-    }
-
-    #[test]
-    fn generate_get_script_component(_trace: &Trace) -> anyhow::Result<()> {
-        let mut component = MoonBitComponent::empty_from_wit(
-            r#"
-            package golem:script-source;
-
-            world script-source {
-                export get-script: func() -> string;
-            }
-            "#,
-            Some("script-source"),
-        )?;
-        component.disable_cleanup();
-
-        // TODO: this can be automated in from_wit mode by getting the root package name from the WIT resolve
-        component.define_package(MoonBitPackage {
-            name: "golem/script-source/ffi".to_string(),
-            mbt_files: vec![Utf8Path::new("ffi/top.mbt").to_path_buf()],
-            warning_control: vec![WarningControl::Disable(Warning::Specific(44))],
-            output: Utf8Path::new("target/wasm/release/build/ffi/ffi.core").to_path_buf(), // TODO: this can be generated from the package name
-            dependencies: vec![],
-            package_sources: vec![
-                // TODO these too?
-                (
-                    "golem/script-source/ffi".to_string(),
-                    Utf8Path::new("ffi").to_path_buf(),
-                ),
-            ],
-        });
-
-        // TODO: this too, using the world name
-        component.define_package(MoonBitPackage {
-            name: "golem/script-source/gen/world/scriptSource".to_string(),
-            mbt_files: vec![Utf8Path::new("gen/world/scriptSource/stub.mbt").to_path_buf()],
-            warning_control: vec![],
-            output: Utf8Path::new(
-                "target/wasm/release/build/gen/world/scriptSource/scriptSource.core",
-            )
-            .to_path_buf(),
-            dependencies: vec![],
-            package_sources: vec![(
-                "golem/script-source/gen/world/scriptSource".to_string(),
-                Utf8Path::new("gen/world/scriptSource").to_path_buf(),
-            )],
-        });
-
-        component.define_package(MoonBitPackage {
-            name: "golem/script-source/gen".to_string(),
-            mbt_files: vec![
-                Utf8Path::new("gen/world_script_source_export.mbt").to_path_buf(),
-                Utf8Path::new("gen/ffi.mbt").to_path_buf(),
-            ],
-            warning_control: vec![],
-            output: Utf8Path::new("target/wasm/release/build/gen/gen.core").to_path_buf(),
-            dependencies: vec![
-                (
-                    Utf8Path::new("target/wasm/release/build/ffi/ffi.mi").to_path_buf(),
-                    "ffi".to_string(),
-                ),
-                (
-                    Utf8Path::new(
-                        "target/wasm/release/build/gen/world/scriptSource/scriptSource.mi",
-                    )
-                    .to_path_buf(),
-                    "scriptSource".to_string(),
-                ),
-            ],
-            package_sources: vec![(
-                "golem/script-source/gen".to_string(),
-                Utf8Path::new("gen").to_path_buf(),
-            )],
-        });
-
-        let script = indoc! {
-            r#"export function hello() {
-                 return "Hello, World!";
-            }"#
-        };
-
-        let mut stub_mbt = String::new();
-        uwriteln!(stub_mbt, "// Generated by `moonbit-component-generator`");
-        uwriteln!(stub_mbt, "");
-        uwriteln!(stub_mbt, "pub fn get_script() -> String {{");
-        for line in script.lines() {
-            uwriteln!(stub_mbt, "    #|{line}");
-        }
-        uwriteln!(stub_mbt, "}}");
-
-        component.write_world_stub(&stub_mbt)?;
-
-        component.build(
-            "golem/script-source/gen",
-            Utf8Path::new("target/test-output/generate_get_script_component.wasm"),
-        )?;
-
-        Ok(())
-    }
-}

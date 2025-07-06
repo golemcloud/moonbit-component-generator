@@ -8,6 +8,10 @@ edition = "2024"
 [lib]
 harness = false
 
+[features]
+default = ["get-script"]
+get-script = []
+
 [dependencies]
 anyhow = "1"
 camino = "1.1.10"
