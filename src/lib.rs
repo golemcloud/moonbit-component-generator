@@ -245,8 +245,7 @@ impl MoonBitComponent {
             let interface_name = interface_name.to_snake_case();
 
             let name = format!(
-                "{moonbit_root_package}/interface/{}/{}/{}",
-                pkg_namespace, pkg_name, interface_name
+                "{moonbit_root_package}/interface/{pkg_namespace}/{pkg_name}/{interface_name}"
             );
             let src = Utf8Path::new("interface")
                 .join(&pkg_namespace)
@@ -276,8 +275,7 @@ impl MoonBitComponent {
             let interface_name = interface_name.to_snake_case();
 
             let name = format!(
-                "{moonbit_root_package}/gen/interface/{}/{}/{}",
-                pkg_namespace, pkg_name, interface_name
+                "{moonbit_root_package}/gen/interface/{pkg_namespace}/{pkg_name}/{interface_name}"
             );
             let src = Utf8Path::new("gen")
                 .join("interface")
@@ -339,13 +337,20 @@ impl MoonBitComponent {
     }
 
     /// Defines an additional dependency for a MoonBit package previously added with `define_package`.
-    pub fn add_dependency(&mut self, package_name: &str, mi_path: &Utf8Path, alias: &str) -> anyhow::Result<()> {
+    pub fn add_dependency(
+        &mut self,
+        package_name: &str,
+        mi_path: &Utf8Path,
+        alias: &str,
+    ) -> anyhow::Result<()> {
         debug!("Adding dependency: {package_name} ({mi_path}) as {alias}");
         let package = self
             .packages
             .get_mut(package_name)
             .ok_or_else(|| anyhow::anyhow!("Package '{package_name}' not found"))?;
-        package.dependencies.push((Utf8PathBuf::from(mi_path), alias.to_string()));
+        package
+            .dependencies
+            .push((Utf8PathBuf::from(mi_path), alias.to_string()));
         Ok(())
     }
 
