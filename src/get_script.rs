@@ -28,29 +28,24 @@ pub fn generate_get_script_component(script: &str, target: &Utf8Path) -> anyhow:
 
     component.write_world_stub(&stub_mbt)?;
 
-    component.build("golem/script-source/gen", target)?;
+    component.build(None, target)?;
 
     Ok(())
 }
 
 #[cfg(test)]
+use crate::Trace;
+#[cfg(test)]
+test_r::inherit_test_dep!(Trace);
+
+#[cfg(test)]
 mod tests {
+    use crate::Trace;
     use camino::Utf8Path;
     use indoc::indoc;
-    use log::LevelFilter;
-    use pretty_env_logger::env_logger::WriteStyle;
-    use test_r::{test, test_dep};
+    use test_r::{inherit_test_dep, test};
 
-    struct Trace;
-
-    #[test_dep]
-    fn initialize_trace() -> Trace {
-        pretty_env_logger::formatted_builder()
-            .filter_level(LevelFilter::Debug)
-            .write_style(WriteStyle::Always)
-            .init();
-        Trace
-    }
+    inherit_test_dep!(Trace);
 
     #[test]
     fn generate_get_script_component(_trace: &Trace) -> anyhow::Result<()> {
