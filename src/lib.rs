@@ -25,7 +25,7 @@ pub mod get_script;
 #[cfg(feature = "typed-config")]
 pub mod typed_config;
 
-static MOONBIT_CORE: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/core");
+static MOONBIT_CORE: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/bundled-core");
 
 #[derive(Default)]
 struct MoonC {

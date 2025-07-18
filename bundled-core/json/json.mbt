@@ -1,0 +1,226 @@
+// Copyright 2025 International Digital Economy Academy
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+///|
+/// Try to get this element as a Null
+pub fn as_null(self : JsonValue) -> Unit? {
+  guard self is Null else { return None }
+  Some(())
+}
+
+///|
+/// Try to get this element as a Boolean
+pub fn as_bool(self : JsonValue) -> Bool? {
+  match self {
+    True => Some(true)
+    False => Some(false)
+    _ => None
+  }
+}
+
+///|
+/// Try to get this element as a Number
+pub fn as_number(self : JsonValue) -> Double? {
+  guard self is Number(n) else { return None }
+  Some(n)
+}
+
+///|
+/// Try to get this element as a String
+pub fn as_string(self : JsonValue) -> String? {
+  guard self is String(s) else { return None }
+  Some(s)
+}
+
+///|
+/// Try to get this element as an Array
+pub fn as_array(self : JsonValue) -> Array[JsonValue]? {
+  guard self is Array(arr) else { return None }
+  Some(arr)
+}
+
+///|
+/// Try to get this element as a Json Array and get the element at the `index` as a Json Value
+pub fn item(self : JsonValue, index : Int) -> JsonValue? {
+  match self.as_array() {
+    Some(arr) => arr.get(index)
+    None => None
+  }
+}
+
+///|
+/// Try to get this element as an Object
+pub fn as_object(self : JsonValue) -> Map[String, JsonValue]? {
+  guard self is Object(obj) else { return None }
+  Some(obj)
+}
+
+///|
+/// Try to get this element as a Json Object and get the element with the `key` as a Json Value
+pub fn value(self : JsonValue, key : String) -> JsonValue? {
+  match self.as_object() {
+    Some(obj) => obj.get(key)
+    None => None
+  }
+}
+
+///|
+fn indent_str(level : Int, indent : Int) -> String {
+  if indent == 0 {
+    ""
+  } else {
+    "\n" + " ".repeat(indent * level)
+  }
+}
+
+///|
+pub fn stringify(
+  self : JsonValue,
+  escape_slash~ : Bool = false,
+  indent~ : Int = 0
+) -> String {
+  fn stringify_inner(value : JsonValue, level : Int) -> String {
+    match value {
+      Object(members) => {
+        if members.is_empty() {
+          return "{}"
+        }
+        let buf = StringBuilder::new(size_hint=0)
+        buf.write_char('{')
+        buf.write_string(indent_str(level + 1, indent))
+        let mut first = true
+        for k, v in members {
+          if first {
+            first = false
+          } else {
+            buf.write_char(',')
+            buf.write_string(indent_str(level + 1, indent))
+          }
+          buf
+          ..write_char('\"')
+          ..write_string(escape(k, escape_slash~))
+          ..write_char('\"')
+          if indent == 0 {
+            buf.write_char(':')
+          } else {
+            buf.write_string(": ")
+          }
+          buf.write_string(stringify_inner(v, level + 1))
+        }
+        buf.write_string(indent_str(level, indent))
+        buf..write_char('}').to_string()
+      }
+      Array(arr) => {
+        if arr.is_empty() {
+          return "[]"
+        }
+        let buf = StringBuilder::new(size_hint=0)
+        buf.write_char('[')
+        buf.write_string(indent_str(level + 1, indent))
+        for i, v in arr {
+          if i > 0 {
+            buf.write_char(',')
+            buf.write_string(indent_str(level + 1, indent))
+          }
+          buf.write_string(stringify_inner(v, level + 1))
+        }
+        buf.write_string(indent_str(level, indent))
+        buf..write_char(']').to_string()
+      }
+      String(s) => {
+        let buf = StringBuilder::new(size_hint=0)
+        buf
+        ..write_char('\"')
+        ..write_string(escape(s, escape_slash~))
+        ..write_char('\"')
+        .to_string()
+      }
+      Number(n) => n.to_string()
+      True => "true"
+      False => "false"
+      Null => "null"
+    }
+  }
+
+  stringify_inner(self, 0)
+}
+
+///|
+fn escape(str : String, escape_slash~ : Bool) -> String {
+  fn to_hex_digit(i : Int) -> Char {
+    if i < 10 {
+      ('0'.to_int() + i).unsafe_to_char()
+    } else {
+      ('a'.to_int() + (i - 10)).unsafe_to_char()
+    }
+  }
+
+  let buf = StringBuilder::new(size_hint=str.length())
+  for c in str {
+    match c {
+      '"' => buf.write_string("\\\"")
+      '\\' => buf.write_string("\\\\")
+      '/' =>
+        if escape_slash {
+          buf.write_string("\\/")
+        } else {
+          buf.write_char(c)
+        }
+      '\n' => buf.write_string("\\n")
+      '\r' => buf.write_string("\\r")
+      '\b' => buf.write_string("\\b")
+      '\t' => buf.write_string("\\t")
+      _ => {
+        let code = c.to_int()
+        if code == 0x0C {
+          buf.write_string("\\f")
+        } else if code < 0x20 {
+          buf.write_string("\\u00")
+          buf.write_char(to_hex_digit(code / 16))
+          buf.write_char(to_hex_digit(code % 16))
+        } else {
+          buf.write_char(c)
+        }
+      }
+    }
+  }
+  buf.to_string()
+}
+
+///|
+/// Useful for json interpolation
+pub impl ToJson for JsonValue with to_json(self) {
+  self
+}
+
+///|
+pub fn inspect(
+  obj : &ToJson,
+  content? : Json,
+  loc~ : SourceLoc = _,
+  args_loc~ : ArgsLoc = _
+) -> Unit raise InspectError {
+  let loc = loc.to_string().escape()
+  let args_loc = args_loc.to_json().escape()
+  let actual = obj.to_json().stringify(escape_slash=false)
+  let want = match content {
+    None => "".to_json().stringify(escape_slash=false)
+    Some(x) => x.stringify(escape_slash=false)
+  }
+  if actual != want {
+    raise InspectError(
+      "@EXPECT_FAILED {\"loc\": \{loc}, \"args_loc\": \{args_loc}, \"expect\": \{want.escape()}, \"actual\": \{actual.escape()}, \"mode\": \"json\"}",
+    )
+  }
+}

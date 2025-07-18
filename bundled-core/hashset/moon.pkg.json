@@ -1,0 +1,9 @@
+{
+  "import": [
+    "moonbitlang/core/builtin",
+    "moonbitlang/core/test",
+    "moonbitlang/core/array",
+    "moonbitlang/core/quickcheck"
+  ],
+  "test-import": ["moonbitlang/core/string", "moonbitlang/core/int"]
+}

@@ -1,0 +1,22 @@
+{
+  "import": [
+    "moonbitlang/core/builtin",
+    "moonbitlang/core/quickcheck",
+    {
+      "path": "moonbitlang/core/array",
+      "alias": "core/array"
+    }
+  ],
+  "targets": {
+    "panic_test.mbt": [
+      "not",
+      "native",
+      "llvm"
+    ],
+    "panic_wbtest.mbt": [
+      "not",
+      "native",
+      "llvm"
+    ]
+  }
+}

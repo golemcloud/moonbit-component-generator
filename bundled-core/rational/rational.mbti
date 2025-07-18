@@ -1,0 +1,46 @@
+package "moonbitlang/core/rational"
+
+// Values
+fn abs(T) -> T
+
+fn ceil(T) -> Int64
+
+fn floor(T) -> Int64
+
+fn from_double(Double) -> T raise RationalError
+
+fn neg(T) -> T
+
+fn new(Int64, Int64) -> T?
+
+fn trunc(T) -> Int64
+
+// Types and methods
+pub(all) suberror RationalError String
+impl Eq for RationalError
+impl Show for RationalError
+impl ToJson for RationalError
+
+type T
+fn T::abs(Self) -> Self
+fn T::ceil(Self) -> Int64
+fn T::floor(Self) -> Int64
+fn T::fract(Self) -> Self
+fn T::is_integer(Self) -> Bool
+fn T::neg(Self) -> Self
+fn T::reciprocal(Self) -> Self
+fn T::to_double(Self) -> Double
+fn T::trunc(Self) -> Int64
+impl Add for T
+impl Compare for T
+impl Div for T
+impl Eq for T
+impl Mul for T
+impl Show for T
+impl Sub for T
+impl @moonbitlang/core/quickcheck.Arbitrary for T
+
+// Type aliases
+
+// Traits
+

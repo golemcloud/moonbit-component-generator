@@ -77,10 +77,12 @@ To update and build the MoonBit core library:
 ```
 curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
 git submodule update --recursive
-moon bundle --target wasm
+./update-bundle.sh
 ```
 
 The bundled core library is included in the compiled crate using the `include_dir!` macro.
+It is also pushed into the repository (`bundled-core` directory) to avoid users of the crate from having to build the MoonBit core themselves as part
+of the Rust build process.
 
 Running the tests require `wasmtime-cli` to be installed with the following features enabled:
 - `component-model`

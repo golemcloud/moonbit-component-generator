@@ -1,0 +1,22 @@
+{
+  "import": [
+    "moonbitlang/core/builtin",
+    "moonbitlang/core/bytes",
+    "moonbitlang/core/string",
+    "moonbitlang/core/quickcheck",
+    "moonbitlang/core/quickcheck/splitmix"
+  ],
+  "test-import": [
+    "moonbitlang/core/char",
+    "moonbitlang/core/test",
+    "moonbitlang/core/random",
+    "moonbitlang/core/json"
+  ],
+  "targets": {
+    "array_js.mbt": ["js"],
+    "array_nonjs.mbt": ["not", "js"],
+    "blit_js.mbt": ["js"],
+    "blit_nonjs.mbt": ["not", "js"],
+    "panic_test.mbt": ["not", "native", "llvm"]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "import": [
+    "moonbitlang/core/builtin",
+    "moonbitlang/core/char",
+    "moonbitlang/core/double",
+    "moonbitlang/core/string",
+    "moonbitlang/core/strconv"
+  ],
+  "test-import": [
+    "moonbitlang/core/result",
+    "moonbitlang/core/option",
+    "moonbitlang/core/unit",
+    "moonbitlang/core/array",
+    "moonbitlang/core/bigint"
+  ]
+}
