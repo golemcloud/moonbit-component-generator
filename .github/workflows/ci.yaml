@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: v1-rust
@@ -26,6 +28,13 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Install moonbit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+      - name: Bundle core MoonBit library
+        run: moon bundle --target wasm
+        working-directory: core
       - name: Check formatting
         run: cargo fmt -- --check
       - name: Clippy
@@ -36,7 +45,9 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: v1-rust
@@ -47,6 +58,13 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Install moonbit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+      - name: Bundle core MoonBit library
+        run: moon bundle --target wasm
+        working-directory: core
       - name: Tests
         run: cargo test -- --nocapture --report-time --format junit --logfile target/report.xml
       - name: Publish Test Report
@@ -62,18 +80,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install moonbit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+      - name: Bundle core MoonBit library
+        run: moon bundle --target wasm
+        working-directory: core
       - id: get_version
         uses: battila7/get-version-action@v2
       - name: Publish crates
