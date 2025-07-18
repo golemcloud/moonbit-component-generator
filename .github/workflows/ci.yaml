@@ -61,6 +61,9 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - uses: cargo-bins/cargo-binstall@main
+      - name: Install wasmtime-cli
+        run: cargo binstall --force --locked wasmtime-cli@33.0.0
       - name: Install moonbit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
