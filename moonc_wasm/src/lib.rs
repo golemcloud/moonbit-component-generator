@@ -23,10 +23,7 @@ pub fn run_wasmoo(argv: Vec<String>) -> anyhow::Result<()> {
     global_proxy.set(scope, ident.into(), process_argv.into());
 
     let mut script = String::new();
-    let js_glue = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/moonc/js_glue_for_wasmoo.js"
-    ));
+    let js_glue = include_str!("moonc/js_glue_for_wasmoo.js");
     script.push_str(js_glue);
     let code = v8::String::new(scope, &script).unwrap();
     let name = v8::String::new(scope, "moonc").unwrap();

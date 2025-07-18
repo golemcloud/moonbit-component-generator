@@ -15,6 +15,8 @@ use topologic::AcyclicDependencyGraph;
 use wit_component::{ComponentEncoder, StringEncoding};
 use wit_parser::{PackageId, PackageName, Resolve, WorldId};
 
+mod moonc_wasm;
+
 /// An example generator that embeds and exports a script (arbitrary string) into a MoonBit component.
 #[cfg(feature = "get-script")]
 pub mod get_script;
