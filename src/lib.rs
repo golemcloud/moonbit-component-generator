@@ -463,7 +463,8 @@ impl MoonBitComponent {
                 &package.name,
                 &package.dependencies,
                 &package.package_sources,
-            )?
+            )
+            .context(format!("Building package {}", package.name))?;
         }
 
         let mut core_files = vec![
@@ -496,7 +497,8 @@ impl MoonBitComponent {
             })?;
 
         let main_package_json = self.dir.join(main_package_source).join("moon.pkg.json");
-        let linker_config = Self::extract_wasm_linker_config(&main_package_json)?;
+        let linker_config = Self::extract_wasm_linker_config(&main_package_json)
+            .context("Extracting linker config")?;
 
         self.link_core(
             &core_files,
@@ -506,10 +508,12 @@ impl MoonBitComponent {
             &linker_config.export_memory_name,
             &linker_config.exports,
             linker_config.heap_start_address,
-        )?;
+        )
+        .context("Linking")?;
 
-        self.embed_wit()?;
-        self.create_component(target)?;
+        self.embed_wit().context("Embedding WIT")?;
+        self.create_component(target)
+            .context("Creating component")?;
 
         Ok(())
     }
