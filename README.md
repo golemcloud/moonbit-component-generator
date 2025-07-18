@@ -16,9 +16,9 @@ Some example use cases are exposed by crate features:
 The crate implements the general machinery for generating WASM components from MoonBit source, and it also exports a few example use cases:
 
 ### "Get Script" component
-The simplest example generates a WASM component that exports a single function `get-script` which returns a string. 
-This can be used to attach dynamic content to a statically compiled WASM component via composition, 
-for example providing user-defined JavaScript code to a precompiled WASM JavaScript engine. 
+The simplest example generates a WASM component that exports a single function `get-script` which returns a string.
+This can be used to attach dynamic content to a statically compiled WASM component via composition,
+for example providing user-defined JavaScript code to a precompiled WASM JavaScript engine.
 
 To use this generator, just provide the script contents and the target WASM path:
 
@@ -72,7 +72,10 @@ fn main() {
 
 To update and build the MoonBit core library:
 
+**NOTE**: requires the 0.6.19 version of MoonBit currently
+
 ```
+curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
 git submodule update --recursive
 moon bundle --target wasm
 ```

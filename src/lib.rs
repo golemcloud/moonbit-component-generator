@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use camino::{Utf8Path, Utf8PathBuf};
 use camino_tempfile::Utf8TempDir;
 use heck::{ToLowerCamelCase, ToSnakeCase};
@@ -608,7 +608,9 @@ impl MoonBitComponent {
         let resolve = self.resolve.as_ref().unwrap();
         let world = &self.world_id.unwrap();
 
-        let mut wasm = std::fs::read(self.module_wasm())?;
+        let module_wasm = self.module_wasm();
+        let mut wasm = std::fs::read(&module_wasm)
+            .context(format!("Failed to read module WASM from {module_wasm}"))?;
 
         wit_component::embed_component_metadata(&mut wasm, resolve, *world, StringEncoding::UTF16)?;
 

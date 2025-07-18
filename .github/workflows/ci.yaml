@@ -30,7 +30,7 @@ jobs:
           override: true
       - name: Install moonbit
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
@@ -60,7 +60,7 @@ jobs:
           override: true
       - name: Install moonbit
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
@@ -90,7 +90,7 @@ jobs:
           override: true
       - name: Install moonbit
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
