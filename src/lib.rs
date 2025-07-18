@@ -630,9 +630,11 @@ impl MoonBitComponent {
         let mut wasm = std::fs::read(&module_wasm)
             .context(format!("Failed to read module WASM from {module_wasm}"))?;
 
-        wit_component::embed_component_metadata(&mut wasm, resolve, *world, StringEncoding::UTF16)?;
+        wit_component::embed_component_metadata(&mut wasm, resolve, *world, StringEncoding::UTF16)
+            .context("Embedding component metadata")?;
 
-        std::fs::write(self.module_with_embed_wasm(), wasm)?;
+        std::fs::write(self.module_with_embed_wasm(), wasm)
+            .context("Writing WASM with embedded metadata")?;
 
         Ok(())
     }
@@ -640,7 +642,8 @@ impl MoonBitComponent {
     fn create_component(&self, target: &Utf8Path) -> anyhow::Result<()> {
         info!("Creating the final WASM component at {target}");
 
-        let wasm = std::fs::read(self.module_with_embed_wasm())?;
+        let wasm = std::fs::read(self.module_with_embed_wasm())
+            .context("Reading WASM with embedded metadata")?;
         let mut encoder = ComponentEncoder::default()
             .validate(true)
             .reject_legacy_names(false)
@@ -648,12 +651,12 @@ impl MoonBitComponent {
             .realloc_via_memory_grow(false)
             .module(&wasm)?;
 
-        let component = encoder.encode()?;
+        let component = encoder.encode().context("Encoding WASM component")?;
 
         if let Some(parent) = target.parent() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent).context("Creating directory for WASM component")?;
         }
-        std::fs::write(target, component)?;
+        std::fs::write(target, component).context("Writing WASM component")?;
 
         Ok(())
     }
