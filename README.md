@@ -69,6 +69,7 @@ fn main() {
 
 - `moonc_wasm` is a cloned and patched version of https://github.com/moonbitlang/moonc_wasm to make it library crate.
 - `core` is a git submodule containing the MoonBit core library (https://github.com/moonbitlang/core)
+- `bundled-core` is the MoonBit core library (source and compiled for wasm), included in this repository to avoid users of the crate from having to build `core` themselves.
 
 To update and build the MoonBit core library:
 
