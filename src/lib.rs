@@ -37,7 +37,7 @@ impl MoonC {
         self.ensure_initialized()?;
         debug!("Running the MoonBit compiler with args: {}", args.join(" "));
         args.insert(0, "moonc".to_string());
-        moonc_wasm::run_wasmoo(args)?;
+        moonc_wasm::run_wasmoo(args).context("Running the MoonBit compiler")?;
         Ok(())
     }
 
@@ -72,7 +72,7 @@ impl MoonBitComponent {
         wit: impl AsRef<str>,
         selected_world: Option<&str>,
     ) -> anyhow::Result<Self> {
-        let temp_dir = Utf8TempDir::new()?;
+        let temp_dir = Utf8TempDir::new().context("Creating temporary directory")?;
         let dir = temp_dir.path().to_path_buf();
 
         info!("Creating MoonBit component in temporary directory: {dir}");
@@ -87,7 +87,7 @@ impl MoonBitComponent {
         };
 
         info!("Saving WIT package to {}/package.wit", component.wit_dir());
-        std::fs::create_dir_all(component.wit_dir())?;
+        std::fs::create_dir_all(component.wit_dir()).context("Creating WIT package directory")?;
         std::fs::write(
             component.wit_dir().join("package.wit"),
             wit.as_ref().as_bytes(),
@@ -95,8 +95,12 @@ impl MoonBitComponent {
 
         info!("Resolving WIT package");
         let mut resolve = Resolve::default();
-        let (root_package_id, _) = resolve.push_dir(component.wit_dir())?;
-        let world_id = resolve.select_world(root_package_id, selected_world)?;
+        let (root_package_id, _) = resolve
+            .push_dir(component.wit_dir())
+            .context("Resolving WIT packages")?;
+        let world_id = resolve
+            .select_world(root_package_id, selected_world)
+            .context("Selecting the WIT world")?;
 
         info!("Generating MoonBit WIT bindings");
         let mut wit_bindgen = wit_bindgen_moonbit::Opts {
@@ -105,7 +109,9 @@ impl MoonBitComponent {
         }
         .build();
         let mut bindgen_files = wit_bindgen_core::Files::default();
-        wit_bindgen.generate(&resolve, world_id, &mut bindgen_files)?;
+        wit_bindgen
+            .generate(&resolve, world_id, &mut bindgen_files)
+            .context("Generating MoonBit WIT bindings")?;
 
         for (name, contents) in bindgen_files.iter() {
             let dst = if let Some(stripped_name) = name.strip_prefix('/') {
@@ -116,9 +122,10 @@ impl MoonBitComponent {
             debug!("Writing binding file {dst}");
 
             if let Some(parent) = dst.parent() {
-                std::fs::create_dir_all(parent)?;
+                std::fs::create_dir_all(parent)
+                    .context("Creating directory for generated MoonBit WIT bindings")?;
             }
-            std::fs::write(&dst, contents)?;
+            std::fs::write(&dst, contents).context("Writing generated MoonBit WIT bindings")?;
         }
 
         component.extract_core()?;
@@ -152,8 +159,12 @@ impl MoonBitComponent {
 
         info!("Resolving WIT package");
         let mut resolve = Resolve::default();
-        let (root_package_id, _) = resolve.push_dir(component.wit_dir())?;
-        let world_id = resolve.select_world(root_package_id, selected_world)?;
+        let (root_package_id, _) = resolve
+            .push_dir(component.wit_dir())
+            .context("Resolving WIT package")?;
+        let world_id = resolve
+            .select_world(root_package_id, selected_world)
+            .context("Selecting WIT world")?;
 
         component.resolve = Some(resolve);
         component.world_id = Some(world_id);
@@ -388,8 +399,9 @@ impl MoonBitComponent {
             .join(interface_name.to_snake_case())
             .join("stub.mbt");
         info!("Writing interface stub to {path}");
-        std::fs::create_dir_all(path.parent().unwrap())?;
-        std::fs::write(path, moonbit_source)?;
+        std::fs::create_dir_all(path.parent().unwrap())
+            .context("Creating directory for interface stub")?;
+        std::fs::write(path, moonbit_source).context("Writing interface stub")?;
         Ok(())
     }
 
@@ -411,8 +423,12 @@ impl MoonBitComponent {
             .join(interface_name.to_snake_case())
             .join("moon.pkg.json");
         info!("Writing interface definition to {path}");
-        std::fs::create_dir_all(path.parent().unwrap())?;
-        std::fs::write(path, serde_json::to_string_pretty(&json)?)?;
+        std::fs::create_dir_all(path.parent().unwrap())
+            .context("Creating directory for interface definition")?;
+        std::fs::write(
+            path,
+            serde_json::to_string_pretty(&json).context("Writing interface definition")?,
+        )?;
         Ok(())
     }
 
