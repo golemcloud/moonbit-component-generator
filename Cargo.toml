@@ -11,6 +11,7 @@ description = "Library wrapping the MoonBit compiler and other WASM Component Mo
 
 [lib]
 harness = false
+doctest = false
 
 [features]
 default = ["get-script", "typed-config"]
