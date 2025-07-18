@@ -221,14 +221,14 @@ impl FdTable {
     }
     fn get(&self, fd: i32) -> Result<&File, String> {
         match self.map.get(&fd) {
-            None => Err(format!("invalid file descriptor: {}", fd)),
+            None => Err(format!("invalid file descriptor: {fd}")),
             Some(fileref) => Ok(fileref),
         }
     }
 
     fn get_mut(&mut self, fd: i32) -> Result<&mut File, String> {
         match self.map.get_mut(&fd) {
-            None => Err(format!("invalid file descriptor: {}", fd)),
+            None => Err(format!("invalid file descriptor: {fd}")),
             Some(fileref) => Ok(fileref),
         }
     }
@@ -340,7 +340,7 @@ fn close(
     let fd_table = context.get_slot_mut::<FdTable>().unwrap();
     match fd_table.remove(fd) {
         None => {
-            let err_msg = &format!("invalid file descriptor {}", fd);
+            let err_msg = &format!("invalid file descriptor {fd}");
             let message = v8::String::new(scope, err_msg).unwrap();
             let exn = v8::Exception::error(scope, message);
             scope.throw_exception(exn);
