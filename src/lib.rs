@@ -105,6 +105,8 @@ impl MoonBitComponent {
         info!("Generating MoonBit WIT bindings");
         let mut wit_bindgen = wit_bindgen_moonbit::Opts {
             gen_dir: "gen".to_string(),
+            derive_eq: true,
+            derive_show: true,
             ..Default::default()
         }
         .build();
@@ -255,7 +257,7 @@ impl MoonBitComponent {
         for (package_name, interface_name) in &imported_interfaces {
             let pkg_namespace = package_name.namespace.to_snake_case();
             let pkg_name = package_name.name.to_snake_case();
-            let interface_name = interface_name.to_snake_case();
+            let interface_name = interface_name.to_lower_camel_case();
 
             let name = format!(
                 "{moonbit_root_package}/interface/{pkg_namespace}/{pkg_name}/{interface_name}"
@@ -285,7 +287,7 @@ impl MoonBitComponent {
         for (package_name, interface_name) in &exported_interfaces {
             let pkg_namespace = package_name.namespace.to_snake_case();
             let pkg_name = package_name.name.to_snake_case();
-            let interface_name = interface_name.to_snake_case();
+            let interface_name = interface_name.to_lower_camel_case();
 
             let name = format!(
                 "{moonbit_root_package}/gen/interface/{pkg_namespace}/{pkg_name}/{interface_name}"
@@ -343,6 +345,19 @@ impl MoonBitComponent {
         Ok(())
     }
 
+    pub fn set_warning_control(
+        &mut self,
+        package_name: &str,
+        warning_control: Vec<WarningControl>,
+    ) -> anyhow::Result<()> {
+        let package = self
+            .packages
+            .get_mut(package_name)
+            .ok_or_else(|| anyhow::anyhow!("Package '{package_name}' not found"))?;
+        package.warning_control = warning_control;
+        Ok(())
+    }
+
     /// Defines a custom MoonBit package
     pub fn define_package(&mut self, package: MoonBitPackage) {
         debug!("Adding MoonBit package: {}", package.name);
@@ -364,6 +379,16 @@ impl MoonBitComponent {
         package
             .dependencies
             .push((Utf8PathBuf::from(mi_path), alias.to_string()));
+        Ok(())
+    }
+
+    pub fn write_file(&self, relative_path: &Utf8Path, contents: &str) -> anyhow::Result<()> {
+        let path = self.dir.join(relative_path);
+        info!("Writing file: {path:?}");
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).context("Creating directory for generated file")?;
+        }
+        std::fs::write(path, contents)?;
         Ok(())
     }
 
@@ -396,7 +421,7 @@ impl MoonBitComponent {
             .join("interface")
             .join(package_namespace_snake)
             .join(package_name_snake)
-            .join(interface_name.to_snake_case())
+            .join(interface_name.to_lower_camel_case())
             .join("stub.mbt");
         info!("Writing interface stub to {path}");
         std::fs::create_dir_all(path.parent().unwrap())
@@ -420,7 +445,7 @@ impl MoonBitComponent {
             .join("interface")
             .join(package_namespace_snake)
             .join(package_name_snake)
-            .join(interface_name.to_snake_case())
+            .join(interface_name.to_lower_camel_case())
             .join("moon.pkg.json");
         info!("Writing interface definition to {path}");
         std::fs::create_dir_all(path.parent().unwrap())
@@ -537,11 +562,7 @@ impl MoonBitComponent {
     ) -> anyhow::Result<()> {
         info!("Building MoonBit package: {package}");
 
-        let mut args = vec![
-            "build-package".to_string(),
-            "-error-format".to_string(),
-            "json".to_string(),
-        ];
+        let mut args = vec!["build-package".to_string()];
         for file in mbt_files {
             let full_path = self.dir.join(file);
             args.push(full_path.to_string());
@@ -741,7 +762,15 @@ impl MoonBitComponent {
         Ok(pkg.link.wasm)
     }
 
-    fn moonbit_root_package(&self) -> anyhow::Result<String> {
+    pub fn moonbit_root_package(&self) -> anyhow::Result<String> {
+        Ok(format!(
+            "{}/{}",
+            self.root_pkg_namespace()?,
+            self.root_pkg_name()?
+        ))
+    }
+
+    pub fn root_pkg_namespace(&self) -> anyhow::Result<String> {
         let root_package_id = self.root_package_id.as_ref().unwrap();
         let resolve = self.resolve.as_ref().unwrap();
 
@@ -749,10 +778,18 @@ impl MoonBitComponent {
             .packages
             .get(*root_package_id)
             .ok_or_else(|| anyhow!("Root package not found"))?;
-        Ok(format!(
-            "{}/{}",
-            root_package.name.namespace, root_package.name.name
-        ))
+        Ok(root_package.name.namespace.to_string())
+    }
+
+    pub fn root_pkg_name(&self) -> anyhow::Result<String> {
+        let root_package_id = self.root_package_id.as_ref().unwrap();
+        let resolve = self.resolve.as_ref().unwrap();
+
+        let root_package = resolve
+            .packages
+            .get(*root_package_id)
+            .ok_or_else(|| anyhow!("Root package not found"))?;
+        Ok(root_package.name.name.to_string())
     }
 
     fn world_name(&self) -> anyhow::Result<String> {
