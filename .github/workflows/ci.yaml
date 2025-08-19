@@ -16,7 +16,10 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,10 +34,18 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - name: Install moonbit
+      - name: Install moonbit (Unix)
+        if: matrix.os != 'windows-latest'
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
+      - name: Install moonbit (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          Invoke-WebRequest -Uri "https://cli.moonbitlang.com/binaries/0.6.19/moonbit-windows-x86_64.zip" -OutFile "moonbit.zip"
+          Expand-Archive -Path "moonbit.zip" -DestinationPath "$env:USERPROFILE\.moon"
+          echo "$env:USERPROFILE\.moon\bin" >> $env:GITHUB_PATH
+        shell: powershell
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
         working-directory: core
@@ -46,7 +57,10 @@ jobs:
         run: cargo build --all-features --all-targets
   test:
     needs: [build]
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,10 +78,18 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - name: Install wasmtime-cli
         run: cargo binstall --force --locked wasmtime-cli@33.0.0
-      - name: Install moonbit
+      - name: Install moonbit (Unix)
+        if: matrix.os != 'windows-latest'
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
+      - name: Install moonbit (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          Invoke-WebRequest -Uri "https://cli.moonbitlang.com/binaries/0.6.19/moonbit-windows-x86_64.zip" -OutFile "moonbit.zip"
+          Expand-Archive -Path "moonbit.zip" -DestinationPath "$env:USERPROFILE\.moon"
+          echo "$env:USERPROFILE\.moon\bin" >> $env:GITHUB_PATH
+        shell: powershell
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
         working-directory: core
