@@ -1,0 +1,32 @@
+[tools]
+# Install stable Rust via rustup through mise and add wasm32-wasip1 target
+rust = { version = "stable", targets = "wasm32-wasip1" }
+
+[tasks.build_windows]
+run = "cargo build --release --target x86_64-pc-windows-msvc"
+
+[tasks.build_windows_aarch64]
+run = "cargo build --release --target aarch64-pc-windows-msvc"
+
+[tasks.test]
+description = "Run all tests with output"
+run = "cargo test --all -- --nocapture"
+
+[tasks.test-unit]
+description = "Run unit tests only"
+run = "cargo test --lib -- --nocapture"
+
+[tasks.test-integration]
+description = "Run integration tests only"
+run = "cargo test --test '*' -- --nocapture"
+
+[tasks.test-quiet]
+description = "Run all tests quietly"
+run = "cargo test --all"
+
+[tasks.test-verbose]
+description = "Run all tests with verbose output"
+run = "cargo test --all --verbose -- --nocapture"
+
+[tasks.release_windows]
+depends = ["build_windows"]

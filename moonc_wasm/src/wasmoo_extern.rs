@@ -3,13 +3,20 @@ use std::{
     ffi::CString,
     fs::{self, File, OpenOptions, Permissions, metadata},
     io::{IsTerminal, Read, Write},
-    os::{
-        fd::AsRawFd,
-        unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt},
-    },
     path::Path,
     process::{Command, Stdio},
 };
+
+use crate::cross_platform::{
+    MetadataExtractor, CrossPlatformMetadataExt, CrossPlatformFileTypeExt, PermissionsBuilder, RawFdExt, 
+    platform_constants, host_isatty, cross_utimes
+};
+
+cfg_if::cfg_if! {
+    if #[cfg(unix)] {
+        use std::os::unix::fs::OpenOptionsExt;
+    }
+}
 
 // getenv : JSString -> JSString
 fn getenv(
@@ -150,7 +157,7 @@ fn chmod(
     let path = Path::new(&path);
     let mode = args.get(1);
     let mode = mode.to_number(scope).unwrap().value() as u32;
-    let permission = Permissions::from_mode(mode);
+    let permission = PermissionsBuilder::from_mode(mode);
     match fs::set_permissions(path, permission) {
         Err(err) => {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
@@ -299,19 +306,33 @@ fn open(
     }
     let mut custom_flags = 0;
     if (flags & O_NONBLOCK) != 0 {
-        custom_flags |= libc::O_NONBLOCK;
+        custom_flags |= platform_constants::O_NONBLOCK;
     }
     if (flags & O_NOCTTY) != 0 {
-        custom_flags |= libc::O_NOCTTY;
+        custom_flags |= platform_constants::O_NOCTTY;
     }
     if (flags & O_DSYNC) != 0 {
-        custom_flags |= libc::O_DSYNC;
+        custom_flags |= platform_constants::O_DSYNC;
     }
     if (flags & O_SYNC) != 0 {
-        custom_flags |= libc::O_SYNC;
+        custom_flags |= platform_constants::O_SYNC;
     }
-    opts.custom_flags(custom_flags);
-    opts.mode((mode & 0o777) as u32); // assure permission is legal
+    cfg_if::cfg_if! {
+        if #[cfg(unix)] {
+            opts.custom_flags(custom_flags as u32);
+            opts.mode((mode & 0o777) as u32);
+        } else {
+            // Windows: set the common FILE_ATTRIBUTE_NORMAL and optionally overlapped I/O
+            use std::os::windows::fs::OpenOptionsExt;
+            use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_NORMAL;
+            use windows::Win32::Storage::FileSystem::FILE_FLAG_OVERLAPPED;
+    
+            opts.attributes(FILE_ATTRIBUTE_NORMAL.0);
+            // If you want nonblocking async I/O:
+            opts.custom_flags(FILE_FLAG_OVERLAPPED.0);
+        }
+    }
+    
     match opts.open(path) {
         Err(err) => {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
@@ -413,7 +434,7 @@ fn access(
                 return;
             }
             Ok(metadata) => {
-                let mode = metadata.permissions().mode();
+                let mode_bits = MetadataExtractor::mode(&metadata);
                 if mode & 0o111 == 0 {
                     let message = v8::String::new(scope, "execute permission denied").unwrap();
                     let exn = v8::Exception::error(scope, message);
@@ -617,34 +638,40 @@ fn timeval_from_f64(t: f64) -> std::io::Result<libc::timeval> {
             "Time value must be finite",
         ));
     }
-
+    
     let total_usec = (t * 1_000_000.0).round() as i64;
-
     let sec = total_usec.div_euclid(1_000_000);
     let usec = total_usec.rem_euclid(1_000_000);
-
-    Ok(libc::timeval {
-        tv_sec: sec as libc::time_t,
-        tv_usec: usec as libc::suseconds_t,
-    })
-}
-
-fn __utimes(path: String, atime: f64, mtime: f64) -> std::io::Result<()> {
-    let c_path = CString::new(path)?;
-
-    let atime_tv = timeval_from_f64(atime)?;
-    let mtime_tv = timeval_from_f64(mtime)?;
-
-    let times = [atime_tv, mtime_tv];
-
-    let result = unsafe { libc::utimes(c_path.as_ptr(), times.as_ptr()) };
-
-    if result == 0 {
-        Ok(())
-    } else {
-        Err(std::io::Error::last_os_error())
+    
+    // Build timeval with platform-specific field types
+    cfg_if::cfg_if! {
+        if #[cfg(unix)] {
+            Ok(libc::timeval {
+                tv_sec: sec as libc::time_t,        // Fixed: use 'sec' not 'sec_i64'
+                tv_usec: usec as libc::suseconds_t, // Fixed: use 'usec' not 'usec_i64' 
+            })
+        } else if #[cfg(windows)] {
+            Ok(libc::timeval {
+                // On Windows both fields are c_long (i32)
+                tv_sec: sec as libc::c_long,   // Fixed: use 'sec' not 'atime_tv.tv_sec'
+                tv_usec: usec as libc::c_long, // Fixed: use 'usec' not 'atime_tv.tv_usec'
+            })
+        } else {
+            // Other platforms - use safe defaults
+            Ok(libc::timeval {
+                tv_sec: sec as i64,
+                tv_usec: usec as i64,
+            })
+        }
     }
 }
+
+
+fn __utimes(path: String, atime: f64, mtime: f64) -> std::io::Result<()> {
+    cross_utimes(&path, atime, mtime)
+}
+
+
 
 // utimes: JSString as Path, F64 as AccessTime, F64 as ModifyTime -> undefined
 fn utimes(
@@ -678,7 +705,7 @@ fn exit(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _ret: 
 }
 
 // isatty: FileDescriptor -> Number(1 | 0)
-fn isatty(
+fn js_isatty(
     scope: &mut v8::HandleScope,
     args: v8::FunctionCallbackArguments,
     mut ret: v8::ReturnValue,
@@ -703,7 +730,7 @@ fn isatty(
         let context = scope.get_current_context();
         let fd_table = context.get_slot_mut::<FdTable>().unwrap();
         match fd_table.get(fd) {
-            Ok(file) => unsafe { libc::isatty(file.as_raw_fd()) },
+            Ok(file) => host_isatty(file.as_raw_fd()),
             Err(_) => 0,
         }
     };
@@ -772,7 +799,7 @@ fn mkdir(
         scope.throw_exception(exn);
         return;
     }
-    let permissions = fs::Permissions::from_mode(mode as u32);
+    let permissions = PermissionsBuilder::from_mode(mode as u32);
     match fs::set_permissions(path, permissions) {
         Err(err) => {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
@@ -1110,15 +1137,15 @@ fn stat(
         0
     } else if filetype.is_dir() {
         1
-    } else if filetype.is_char_device() {
+    } else if filetype.cross_is_char_device() {
         2
-    } else if filetype.is_block_device() {
+    } else if filetype.cross_is_block_device() {
         3
     } else if filetype.is_symlink() {
         4
-    } else if filetype.is_fifo() {
+    } else if filetype.cross_is_fifo() {
         5
-    } else if filetype.is_socket() {
+    } else if filetype.cross_is_socket() {
         6
     } else {
         panic!()
@@ -1131,47 +1158,47 @@ fn stat(
     stat.set(scope, id.into(), kind.into());
 
     let id = v8::String::new(scope, "dev").unwrap();
-    let dev = v8::Number::new(scope, metadata.dev() as f64);
+    let dev = v8::Number::new(scope, metadata.cross_dev() as f64);
     stat.set(scope, id.into(), dev.into());
 
     let id = v8::String::new(scope, "ino").unwrap();
-    let ino = v8::Number::new(scope, metadata.ino() as f64);
+    let ino = v8::Number::new(scope, metadata.cross_ino() as f64);
     stat.set(scope, id.into(), ino.into());
 
     let id = v8::String::new(scope, "mode").unwrap();
-    let mode = v8::Number::new(scope, metadata.mode() as f64);
+    let mode = v8::Number::new(scope, metadata.cross_mode() as f64);
     stat.set(scope, id.into(), mode.into());
 
     let id = v8::String::new(scope, "nlink").unwrap();
-    let nlink = v8::Number::new(scope, metadata.nlink() as f64);
+    let nlink = v8::Number::new(scope, metadata.cross_nlink() as f64);
     stat.set(scope, id.into(), nlink.into());
 
     let id = v8::String::new(scope, "uid").unwrap();
-    let uid = v8::Number::new(scope, metadata.uid() as f64);
+    let uid = v8::Number::new(scope, metadata.cross_uid() as f64);
     stat.set(scope, id.into(), uid.into());
 
     let id = v8::String::new(scope, "gid").unwrap();
-    let gid = v8::Number::new(scope, metadata.gid() as f64);
+    let gid = v8::Number::new(scope, metadata.cross_gid() as f64);
     stat.set(scope, id.into(), gid.into());
 
     let id = v8::String::new(scope, "rdev").unwrap();
-    let rdev = v8::Number::new(scope, metadata.rdev() as f64);
+    let rdev = v8::Number::new(scope, metadata.cross_rdev() as f64);
     stat.set(scope, id.into(), rdev.into());
 
     let id = v8::String::new(scope, "size").unwrap();
-    let size = v8::Number::new(scope, metadata.size() as f64);
+    let size = v8::Number::new(scope, metadata.cross_size() as f64);
     stat.set(scope, id.into(), size.into());
 
     let id = v8::String::new(scope, "atime").unwrap();
-    let atime = v8::Number::new(scope, metadata.atime() as f64);
+    let atime = v8::Number::new(scope, metadata.cross_atime() as f64);
     stat.set(scope, id.into(), atime.into());
 
     let id = v8::String::new(scope, "mtime").unwrap();
-    let mtime = v8::Number::new(scope, metadata.mtime() as f64);
+    let mtime = v8::Number::new(scope, metadata.cross_mtime() as f64);
     stat.set(scope, id.into(), mtime.into());
 
     let id = v8::String::new(scope, "ctime").unwrap();
-    let ctime = v8::Number::new(scope, metadata.ctime() as f64);
+    let ctime = v8::Number::new(scope, metadata.cross_ctime() as f64);
     stat.set(scope, id.into(), ctime.into());
 
     ret.set(stat.into());
@@ -1201,15 +1228,15 @@ fn lstat(
         0
     } else if filetype.is_dir() {
         1
-    } else if filetype.is_char_device() {
+    } else if filetype.cross_is_char_device() {
         2
-    } else if filetype.is_block_device() {
+    } else if filetype.cross_is_block_device() {
         3
     } else if filetype.is_symlink() {
         4
-    } else if filetype.is_fifo() {
+    } else if filetype.cross_is_fifo() {
         5
-    } else if filetype.is_socket() {
+    } else if filetype.cross_is_socket() {
         6
     } else {
         panic!()
@@ -1222,47 +1249,47 @@ fn lstat(
     stat.set(scope, id.into(), kind.into());
 
     let id = v8::String::new(scope, "dev").unwrap();
-    let dev = v8::Number::new(scope, metadata.dev() as f64);
+    let dev = v8::Number::new(scope, metadata.cross_dev() as f64);
     stat.set(scope, id.into(), dev.into());
 
     let id = v8::String::new(scope, "ino").unwrap();
-    let ino = v8::Number::new(scope, metadata.ino() as f64);
+    let ino = v8::Number::new(scope, metadata.cross_ino() as f64);
     stat.set(scope, id.into(), ino.into());
 
     let id = v8::String::new(scope, "mode").unwrap();
-    let mode = v8::Number::new(scope, metadata.mode() as f64);
+    let mode = v8::Number::new(scope, metadata.cross_mode() as f64);
     stat.set(scope, id.into(), mode.into());
 
     let id = v8::String::new(scope, "nlink").unwrap();
-    let nlink = v8::Number::new(scope, metadata.nlink() as f64);
+    let nlink = v8::Number::new(scope, metadata.cross_nlink() as f64);
     stat.set(scope, id.into(), nlink.into());
 
     let id = v8::String::new(scope, "uid").unwrap();
-    let uid = v8::Number::new(scope, metadata.uid() as f64);
+    let uid = v8::Number::new(scope, metadata.cross_uid() as f64);
     stat.set(scope, id.into(), uid.into());
 
     let id = v8::String::new(scope, "gid").unwrap();
-    let gid = v8::Number::new(scope, metadata.gid() as f64);
+    let gid = v8::Number::new(scope, metadata.cross_gid() as f64);
     stat.set(scope, id.into(), gid.into());
 
     let id = v8::String::new(scope, "rdev").unwrap();
-    let rdev = v8::Number::new(scope, metadata.rdev() as f64);
+    let rdev = v8::Number::new(scope, metadata.cross_rdev() as f64);
     stat.set(scope, id.into(), rdev.into());
 
     let id = v8::String::new(scope, "size").unwrap();
-    let size = v8::Number::new(scope, metadata.size() as f64);
+    let size = v8::Number::new(scope, metadata.cross_size() as f64);
     stat.set(scope, id.into(), size.into());
 
     let id = v8::String::new(scope, "atime").unwrap();
-    let atime = v8::Number::new(scope, metadata.atime() as f64);
+    let atime = v8::Number::new(scope, metadata.cross_atime() as f64);
     stat.set(scope, id.into(), atime.into());
 
     let id = v8::String::new(scope, "mtime").unwrap();
-    let mtime = v8::Number::new(scope, metadata.mtime() as f64);
+    let mtime = v8::Number::new(scope, metadata.cross_mtime() as f64);
     stat.set(scope, id.into(), mtime.into());
 
     let id = v8::String::new(scope, "ctime").unwrap();
-    let ctime = v8::Number::new(scope, metadata.ctime() as f64);
+    let ctime = v8::Number::new(scope, metadata.cross_ctime() as f64);
     stat.set(scope, id.into(), ctime.into());
 
     ret.set(stat.into());
@@ -1301,15 +1328,15 @@ fn fstat(
         0
     } else if filetype.is_dir() {
         1
-    } else if filetype.is_char_device() {
+    } else if filetype.cross_is_char_device() {
         2
-    } else if filetype.is_block_device() {
+    } else if filetype.cross_is_block_device() {
         3
     } else if filetype.is_symlink() {
         4
-    } else if filetype.is_fifo() {
+    } else if filetype.cross_is_fifo() {
         5
-    } else if filetype.is_socket() {
+    } else if filetype.cross_is_socket() {
         6
     } else {
         panic!()
@@ -1322,47 +1349,47 @@ fn fstat(
     stat.set(scope, id.into(), kind.into());
 
     let id = v8::String::new(scope, "dev").unwrap();
-    let dev = v8::Number::new(scope, metadata.dev() as f64);
+    let dev = v8::Number::new(scope, metadata.cross_dev() as f64);
     stat.set(scope, id.into(), dev.into());
 
     let id = v8::String::new(scope, "ino").unwrap();
-    let ino = v8::Number::new(scope, metadata.ino() as f64);
+    let ino = v8::Number::new(scope, metadata.cross_ino() as f64);
     stat.set(scope, id.into(), ino.into());
 
     let id = v8::String::new(scope, "mode").unwrap();
-    let mode = v8::Number::new(scope, metadata.mode() as f64);
+    let mode = v8::Number::new(scope, metadata.cross_mode() as f64);
     stat.set(scope, id.into(), mode.into());
 
     let id = v8::String::new(scope, "nlink").unwrap();
-    let nlink = v8::Number::new(scope, metadata.nlink() as f64);
+    let nlink = v8::Number::new(scope, metadata.cross_nlink() as f64);
     stat.set(scope, id.into(), nlink.into());
 
     let id = v8::String::new(scope, "uid").unwrap();
-    let uid = v8::Number::new(scope, metadata.uid() as f64);
+    let uid = v8::Number::new(scope, metadata.cross_uid() as f64);
     stat.set(scope, id.into(), uid.into());
 
     let id = v8::String::new(scope, "gid").unwrap();
-    let gid = v8::Number::new(scope, metadata.gid() as f64);
+    let gid = v8::Number::new(scope, metadata.cross_gid() as f64);
     stat.set(scope, id.into(), gid.into());
 
     let id = v8::String::new(scope, "rdev").unwrap();
-    let rdev = v8::Number::new(scope, metadata.rdev() as f64);
+    let rdev = v8::Number::new(scope, metadata.cross_rdev() as f64);
     stat.set(scope, id.into(), rdev.into());
 
     let id = v8::String::new(scope, "size").unwrap();
-    let size = v8::Number::new(scope, metadata.size() as f64);
+    let size = v8::Number::new(scope, metadata.cross_size() as f64);
     stat.set(scope, id.into(), size.into());
 
     let id = v8::String::new(scope, "atime").unwrap();
-    let atime = v8::Number::new(scope, metadata.atime() as f64);
+    let atime = v8::Number::new(scope, metadata.cross_atime() as f64);
     stat.set(scope, id.into(), atime.into());
 
     let id = v8::String::new(scope, "mtime").unwrap();
-    let mtime = v8::Number::new(scope, metadata.mtime() as f64);
+    let mtime = v8::Number::new(scope, metadata.cross_mtime() as f64);
     stat.set(scope, id.into(), mtime.into());
 
     let id = v8::String::new(scope, "ctime").unwrap();
-    let ctime = v8::Number::new(scope, metadata.ctime() as f64);
+    let ctime = v8::Number::new(scope, metadata.cross_ctime() as f64);
     stat.set(scope, id.into(), ctime.into());
 
     ret.set(stat.into());
@@ -1378,7 +1405,7 @@ fn fchmod(
     let fd = fd.to_number(scope).unwrap().value() as i32;
     let mode = args.get(1);
     let mode = mode.to_number(scope).unwrap().value() as u32;
-    let permission = Permissions::from_mode(mode);
+    let permission = PermissionsBuilder::from_mode(mode);
     let context = scope.get_current_context();
     let fd_table = context.get_slot_mut::<FdTable>().unwrap();
     let file = match fd_table.get(fd) {
@@ -1753,7 +1780,7 @@ pub fn init_wasmoo<'s>(
     let ident = v8::String::new(scope, "fchmod").unwrap();
     obj.set(scope, ident.into(), fchmod.into());
 
-    let isatty = v8::FunctionTemplate::new(scope, isatty);
+    let isatty = v8::FunctionTemplate::new(scope, js_isatty);
     let isatty = isatty.get_function(scope).unwrap();
     let ident = v8::String::new(scope, "isatty").unwrap();
     obj.set(scope, ident.into(), isatty.into());

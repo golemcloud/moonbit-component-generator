@@ -9,3 +9,23 @@ edition = "2024"
 anyhow = { version = "1.0.86" }
 v8 = "0.106.0"
 libc = "0.2.172"
+cfg-if = "1.0"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61.3", features = [
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_Foundation", 
+    "Win32_System_Console",
+    "Win32_System_IO",
+    "Win32_System_Registry",
+    "Win32_System_Diagnostics_Etw"
+] }
+windows-sys = { version = "0.60.2", features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+] }
+
+[dev-dependencies]
+rstest = "0.21"
+tempfile = "3.8"
