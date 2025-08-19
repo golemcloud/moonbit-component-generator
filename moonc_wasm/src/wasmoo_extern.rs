@@ -911,14 +911,11 @@ fn mkdir(
         // We can only set the readonly attribute
         let mut permissions = fs::metadata(path).unwrap().permissions();
         permissions.set_readonly((mode & 0o200) == 0);
-        match fs::set_permissions(path, permissions) {
-            Err(err) => {
-                let message = v8::String::new(scope, &err.to_string()).unwrap();
-                let exn = v8::Exception::error(scope, message);
-                scope.throw_exception(exn);
-                return;
-            }
-            Ok(_) => {}
+        if let Err(err) = fs::set_permissions(path, permissions) {
+            let message = v8::String::new(scope, &err.to_string()).unwrap();
+            let exn = v8::Exception::error(scope, message);
+            scope.throw_exception(exn);
+            return;
         }
     }
 
