@@ -1,5 +1,5 @@
-mod wasmoo_extern;
 pub mod cross_platform;
+mod wasmoo_extern;
 
 pub fn run_wasmoo(argv: Vec<String>) -> anyhow::Result<()> {
     let isolate = &mut v8::Isolate::new(Default::default());

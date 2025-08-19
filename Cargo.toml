@@ -8,6 +8,7 @@ repository = "https://github.com/golemcloud/moonbit-component-generator"
 description = "Library wrapping the MoonBit compiler and other WASM Component Model libraries for generating and compiling WASM components"
 
 [workspace]
+members = ["moonc_wasm"]
 
 [lib]
 harness = false

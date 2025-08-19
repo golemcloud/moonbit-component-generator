@@ -3,8 +3,7 @@
 
 #![allow(dead_code)]
 
-use std::fs::{self, File, Metadata, Permissions, FileType};
-use std::path::Path;
+use std::fs::{self, File, FileType, Metadata, Permissions};
 use std::io;
 use std::io::IsTerminal;
 
@@ -14,16 +13,10 @@ cfg_if! {
     if #[cfg(windows)] {
         use std::os::windows::fs::MetadataExt;
         use std::os::windows::io::{AsRawHandle, RawHandle};
-        use windows::Win32::Foundation::{HANDLE, FILETIME, INVALID_HANDLE_VALUE};
-        use windows::Win32::Storage::FileSystem::{
-            CreateFileW,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_FLAG_OVERLAPPED,
-            FILE_GENERIC_WRITE, FILE_SHARE_READ, OPEN_EXISTING,
-            SetFileTime, GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION,
-        };
+        use windows::Win32::Foundation::{HANDLE, FILETIME};
+
         use windows::Win32::System::Console::{GetConsoleMode, CONSOLE_MODE};
-        use windows::core::{PCWSTR, Error as WindowsError};
+
         pub type RawFd = RawHandle;
     } else {
         use std::os::unix::fs::{MetadataExt, PermissionsExt, OpenOptionsExt, FileTypeExt};
@@ -216,9 +209,10 @@ impl MetadataExtractor {
         // Windows FILETIME: 100-nanosecond intervals since January 1, 1601 UTC
         // Unix timestamp: seconds since January 1, 1970 UTC
         const WINDOWS_TO_UNIX_OFFSET: u64 = 11_644_473_600; // seconds between epochs
-        const FILETIME_UNITS_PER_SECOND: u64 = 10_000_000;  // 100ns units per second
+        const FILETIME_UNITS_PER_SECOND: u64 = 10_000_000; // 100ns units per second
 
-        let unix_seconds = (filetime / FILETIME_UNITS_PER_SECOND).saturating_sub(WINDOWS_TO_UNIX_OFFSET);
+        let unix_seconds =
+            (filetime / FILETIME_UNITS_PER_SECOND).saturating_sub(WINDOWS_TO_UNIX_OFFSET);
         unix_seconds as i64
     }
 }
@@ -255,7 +249,7 @@ impl PermissionsBuilder {
             .create(true)
             .write(true)
             .truncate(true)
-            .open(&temp_path) 
+            .open(&temp_path)
         {
             let mut perms = fs::metadata(&temp_path).unwrap().permissions();
             perms.set_readonly(read_only);
@@ -306,7 +300,7 @@ pub fn host_isatty(fd: RawFd) -> i32 {
             if fd == std::io::stderr().as_raw_handle() { // stderr
                 return if std::io::stderr().is_terminal() { 1 } else { 0 };
             }
-            
+
             // For other handles, use Win32 API
             unsafe {
                 let handle = HANDLE(fd);
@@ -341,17 +335,39 @@ pub trait CrossPlatformMetadataExt {
 }
 
 impl CrossPlatformMetadataExt for Metadata {
-    fn cross_dev(&self) -> u64 { MetadataExtractor::dev(self) }
-    fn cross_ino(&self) -> u64 { MetadataExtractor::ino(self) }
-    fn cross_mode(&self) -> u32 { MetadataExtractor::mode(self) }
-    fn cross_nlink(&self) -> u64 { MetadataExtractor::nlink(self) }
-    fn cross_uid(&self) -> u32 { MetadataExtractor::uid(self) }
-    fn cross_gid(&self) -> u32 { MetadataExtractor::gid(self) }
-    fn cross_rdev(&self) -> u64 { MetadataExtractor::rdev(self) }
-    fn cross_size(&self) -> u64 { MetadataExtractor::size(self) }
-    fn cross_atime(&self) -> i64 { MetadataExtractor::atime(self) }
-    fn cross_mtime(&self) -> i64 { MetadataExtractor::mtime(self) }
-    fn cross_ctime(&self) -> i64 { MetadataExtractor::ctime(self) }
+    fn cross_dev(&self) -> u64 {
+        MetadataExtractor::dev(self)
+    }
+    fn cross_ino(&self) -> u64 {
+        MetadataExtractor::ino(self)
+    }
+    fn cross_mode(&self) -> u32 {
+        MetadataExtractor::mode(self)
+    }
+    fn cross_nlink(&self) -> u64 {
+        MetadataExtractor::nlink(self)
+    }
+    fn cross_uid(&self) -> u32 {
+        MetadataExtractor::uid(self)
+    }
+    fn cross_gid(&self) -> u32 {
+        MetadataExtractor::gid(self)
+    }
+    fn cross_rdev(&self) -> u64 {
+        MetadataExtractor::rdev(self)
+    }
+    fn cross_size(&self) -> u64 {
+        MetadataExtractor::size(self)
+    }
+    fn cross_atime(&self) -> i64 {
+        MetadataExtractor::atime(self)
+    }
+    fn cross_mtime(&self) -> i64 {
+        MetadataExtractor::mtime(self)
+    }
+    fn cross_ctime(&self) -> i64 {
+        MetadataExtractor::ctime(self)
+    }
 }
 
 /// Cross-platform FileType extensions
@@ -414,18 +430,18 @@ pub fn cross_utimes(path: &str, atime: f64, mtime: f64) -> io::Result<()> {
             use libc::{timeval, suseconds_t, utimes as libc_utimes};
             let c_path = std::ffi::CString::new(path)
                 .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "Invalid path"))?;
-            
+
             let atime_tv = timeval {
                 tv_sec: atime as i64,
                 tv_usec: (atime.fract() * 1_000_000.0) as suseconds_t,
             };
             let mtime_tv = timeval {
-                tv_sec: mtime as i64, 
+                tv_sec: mtime as i64,
                 tv_usec: (mtime.fract() * 1_000_000.0) as suseconds_t,
             };
-            
+
             let times = [atime_tv, mtime_tv];
-            
+
             unsafe {
                 if libc_utimes(c_path.as_ptr(), times.as_ptr()) == 0 {
                     Ok(())
@@ -437,14 +453,14 @@ pub fn cross_utimes(path: &str, atime: f64, mtime: f64) -> io::Result<()> {
             // FIXED Windows implementation
             use windows::core::HSTRING;
             use windows::Win32::Storage::FileSystem::{
-                CreateFileW, FILE_GENERIC_WRITE, FILE_SHARE_READ, 
+                CreateFileW, FILE_GENERIC_WRITE, FILE_SHARE_READ,
                 OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, SetFileTime
             };
-            use windows::Win32::Foundation::{HANDLE, INVALID_HANDLE_VALUE, FILETIME};
+            use windows::Win32::Foundation::{INVALID_HANDLE_VALUE, FILETIME};
             use windows::core::PCWSTR;
-            
+
             let wide_path = HSTRING::from(path);
-            
+
             unsafe {
                 // FIX ERROR 3: Correct CreateFileW parameter types
                 let handle = CreateFileW(
@@ -456,27 +472,27 @@ pub fn cross_utimes(path: &str, atime: f64, mtime: f64) -> io::Result<()> {
                     FILE_ATTRIBUTE_NORMAL,          // Remove .0 ✓
                     None,                           // Option<HANDLE> ✓
                 )?;
-                
+
                 if handle == INVALID_HANDLE_VALUE {
                     return Err(io::Error::last_os_error());
                 }
-                
+
                 // Convert Unix timestamps to Windows FILETIME
                 let unix_to_filetime = |timestamp: f64| -> FILETIME {
                     const WINDOWS_TO_UNIX_OFFSET: u64 = 11_644_473_600;
                     const FILETIME_UNITS_PER_SECOND: u64 = 10_000_000;
-                    
+
                     let windows_time = ((timestamp as u64) + WINDOWS_TO_UNIX_OFFSET) * FILETIME_UNITS_PER_SECOND;
-                    
+
                     FILETIME {
                         dwLowDateTime: (windows_time & 0xFFFFFFFF) as u32,
                         dwHighDateTime: (windows_time >> 32) as u32,
                     }
                 };
-                
+
                 let atime_ft = unix_to_filetime(atime);
                 let mtime_ft = unix_to_filetime(mtime);
-                
+
                 // FIX ERROR 4: SetFileTime returns Result, not Option
                 SetFileTime(
                     handle,
@@ -491,15 +507,14 @@ pub fn cross_utimes(path: &str, atime: f64, mtime: f64) -> io::Result<()> {
     }
 }
 
-
 /// Convert Unix timestamp to Windows FILETIME
 #[cfg(windows)]
 fn unix_to_filetime(timestamp: f64) -> FILETIME {
     const WINDOWS_TO_UNIX_OFFSET: u64 = 11_644_473_600; // seconds between epochs
-    const FILETIME_UNITS_PER_SECOND: u64 = 10_000_000;  // 100ns units per second
-    
+    const FILETIME_UNITS_PER_SECOND: u64 = 10_000_000; // 100ns units per second
+
     let windows_time = ((timestamp as u64) + WINDOWS_TO_UNIX_OFFSET) * FILETIME_UNITS_PER_SECOND;
-    
+
     FILETIME {
         dwLowDateTime: (windows_time & 0xFFFFFFFF) as u32,
         dwHighDateTime: (windows_time >> 32) as u32,

@@ -1,5 +1,4 @@
 name: CI
-
 on:
   push:
     tags:
@@ -7,14 +6,11 @@ on:
     branches:
       - main
   pull_request:
-
 permissions:
   checks: write
   pull-requests: write
-
 env:
   CARGO_TERM_COLOR: always
-
 jobs:
   build:
     strategy:
@@ -31,10 +27,9 @@ jobs:
           shared-key: debug
           cache-all-crates: true
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
+          components: rustfmt, clippy
       - name: Install moonbit (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -44,8 +39,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          Invoke-WebRequest -Uri "https://cli.moonbitlang.com/binaries/moonbit-win32_x64-0.6.19.zip" -OutFile "moonbit.zip"
-          Expand-Archive -Path "moonbit.zip" -DestinationPath "$env:USERPROFILE\.moon"
+          $env:MOONBIT_INSTALL_VERSION = "0.6.19"
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
           echo "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
@@ -56,7 +51,6 @@ jobs:
         run: cargo clippy -- -Dwarnings
       - name: Build
         run: cargo build --all-features --all-targets
-
   test:
     needs: [build]
     strategy:
@@ -73,10 +67,9 @@ jobs:
           shared-key: debug
           cache-all-crates: false
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
+          components: rustfmt, clippy
       - uses: cargo-bins/cargo-binstall@main
       - name: Install wasmtime-cli
         run: cargo binstall --force --locked wasmtime-cli@33.0.0
@@ -89,8 +82,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          Invoke-WebRequest -Uri "https://cli.moonbitlang.com/binaries/moonbit-win32_x64-0.6.19.zip" -OutFile "moonbit.zip"
-          Expand-Archive -Path "moonbit.zip" -DestinationPath "$env:USERPROFILE\.moon"
+          $env:MOONBIT_INSTALL_VERSION = "0.6.19"
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
           echo "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
@@ -104,7 +97,6 @@ jobs:
           report_paths: "**/target/report-*.xml"
           detailed_summary: true
           include_passed: true
-
   publish:
     needs: [test]
     if: "startsWith(github.ref, 'refs/tags/v')"

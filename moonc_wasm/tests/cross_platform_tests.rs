@@ -1,16 +1,16 @@
 //! Integration tests for cross-platform file system operations
-//! 
+//!
 //! This module contains comprehensive parameterized tests using rstest
 //! to verify cross-platform compatibility of metadata operations.
 
+use rstest::rstest;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 use tempfile::TempDir;
-use rstest::rstest;
 
 use moonc_wasm::cross_platform::{
-    CrossPlatformMetadataExt, PermissionsBuilder, MetadataExtractor, platform_constants
+    CrossPlatformMetadataExt, MetadataExtractor, PermissionsBuilder, platform_constants,
 };
 
 /// Test fixture that creates a temporary directory for each test
@@ -27,13 +27,9 @@ fn temp_dir() -> TempDir {
 #[case::full_permissions(0o777, "full permissions")]
 #[case::no_write(0o555, "no write permissions")]
 #[case::owner_only(0o600, "owner only permissions")]
-fn test_metadata_permissions(
-    temp_dir: TempDir,
-    #[case] mode: u32,
-    #[case] description: &str,
-) {
+fn test_metadata_permissions(temp_dir: TempDir, #[case] mode: u32, #[case] description: &str) {
     let file_path = temp_dir.path().join("test_file.txt");
-    
+
     // Create test file with content
     let mut file = File::create(&file_path).expect("Failed to create test file");
     writeln!(file, "Test content for {}", description).expect("Failed to write to file");
@@ -45,18 +41,18 @@ fn test_metadata_permissions(
 
     // Test metadata extraction
     let metadata = fs::metadata(&file_path).expect("Failed to get metadata");
-    
+
     // Verify cross-platform methods work
     let extracted_mode = metadata.cross_mode();
     let size = metadata.cross_size();
     let uid = metadata.cross_uid();
     let gid = metadata.cross_gid();
     let nlink = metadata.cross_nlink();
-    
+
     // Basic assertions
     assert!(size > 0, "File size should be greater than 0");
     assert!(nlink >= 1, "Number of links should be at least 1");
-    
+
     // Platform-specific assertions
     cfg_if::cfg_if! {
         if #[cfg(unix)] {
@@ -67,9 +63,11 @@ fn test_metadata_permissions(
             assert!(extracted_mode > 0, "Windows file attributes should be present");
         }
     }
-    
-    println!("✅ {} - Mode: 0o{:o}, Size: {}, UID: {}, GID: {}, Links: {}", 
-             description, extracted_mode, size, uid, gid, nlink);
+
+    println!(
+        "✅ {} - Mode: 0o{:o}, Size: {}, UID: {}, GID: {}, Links: {}",
+        description, extracted_mode, size, uid, gid, nlink
+    );
 }
 
 /// Test metadata extraction for different file types and edge cases
@@ -84,13 +82,13 @@ fn test_metadata_file_sizes(
     #[case] description: &str,
 ) {
     let file_path = temp_dir.path().join("size_test.txt");
-    
+
     // Create file with specific content size
     let content = "x".repeat(content_size);
     fs::write(&file_path, &content).expect("Failed to write file");
-    
+
     let metadata = fs::metadata(&file_path).expect("Failed to get metadata");
-    
+
     // Test all cross-platform metadata methods
     let size = metadata.cross_size();
     let dev = metadata.cross_dev();
@@ -98,19 +96,27 @@ fn test_metadata_file_sizes(
     let atime = metadata.cross_atime();
     let mtime = metadata.cross_mtime();
     let ctime = metadata.cross_ctime();
-    
+
     // Verify size matches expected
-    assert_eq!(size as usize, content_size, "File size should match written content");
-    
+    assert_eq!(
+        size as usize, content_size,
+        "File size should match written content"
+    );
+
     // Verify other metadata fields are reasonable
     assert!(dev >= 0, "Device ID should be non-negative");
     assert!(ino >= 0, "Inode should be non-negative");
-    assert!(atime > 0 || atime == 0, "Access time should be valid timestamp or 0");
+    assert!(
+        atime > 0 || atime == 0,
+        "Access time should be valid timestamp or 0"
+    );
     assert!(mtime > 0, "Modification time should be positive timestamp");
     assert!(ctime >= 0, "Creation/change time should be non-negative");
-    
-    println!("✅ {} - Size: {}, Dev: {}, Ino: {}, ATime: {}, MTime: {}, CTime: {}", 
-             description, size, dev, ino, atime, mtime, ctime);
+
+    println!(
+        "✅ {} - Size: {}, Dev: {}, Ino: {}, ATime: {}, MTime: {}, CTime: {}",
+        description, size, dev, ino, atime, mtime, ctime
+    );
 }
 
 /// Test platform constants compatibility
@@ -130,7 +136,7 @@ fn test_platform_constants(#[case] constant: i32, #[case] name: &str) {
             assert!(constant >= 0, "{} should be non-negative on Windows", name);
         }
     }
-    
+
     println!("✅ {} = 0x{:x} ({})", name, constant, constant);
 }
 
@@ -152,29 +158,29 @@ fn test_platform_constants(#[case] constant: i32, #[case] name: &str) {
 #[case::public_read(0o644)]
 fn test_permissions_builder(temp_dir: TempDir, #[case] mode: u32) {
     let file_path = temp_dir.path().join("perm_test.txt");
-    
+
     // Create test file
     File::create(&file_path).expect("Failed to create test file");
-    
+
     // Test permissions builder
     let permissions = PermissionsBuilder::from_mode(mode);
-    
+
     // Apply permissions
     let result = fs::set_permissions(&file_path, permissions);
-    
+
     cfg_if::cfg_if! {
         if #[cfg(unix)] {
             // On Unix, setting permissions should generally succeed
             assert!(result.is_ok(), "Setting permissions 0o{:o} should succeed on Unix", mode);
-            
+
             // Verify the permissions were set correctly
             let metadata = fs::metadata(&file_path).expect("Failed to get metadata");
             let actual_mode = metadata.cross_mode() & 0o777;
-            
+
             // Account for umask and filesystem limitations
             if mode & 0o200 == 0 {
                 // If we tried to remove write permission, verify it's readonly
-                assert!(metadata.permissions().readonly() || (actual_mode & 0o200) == 0, 
+                assert!(metadata.permissions().readonly() || (actual_mode & 0o200) == 0,
                        "File should be readonly when write bit is cleared");
             }
         } else if #[cfg(windows)] {
@@ -183,7 +189,7 @@ fn test_permissions_builder(temp_dir: TempDir, #[case] mode: u32) {
             println!("Windows permissions builder test for mode 0o{:o}: {:?}", mode, result);
         }
     }
-    
+
     println!("✅ Permissions 0o{:o} - Builder succeeded", mode);
 }
 
@@ -193,10 +199,10 @@ fn test_permissions_builder(temp_dir: TempDir, #[case] mode: u32) {
 #[case::empty_filename("")]
 fn test_metadata_edge_cases(temp_dir: TempDir, #[case] filename: &str) {
     let file_path = temp_dir.path().join(filename);
-    
+
     // Attempt to get metadata for nonexistent file
     let result = fs::metadata(&file_path);
-    
+
     match filename {
         "" => {
             // Empty filename should fail
@@ -208,7 +214,7 @@ fn test_metadata_edge_cases(temp_dir: TempDir, #[case] filename: &str) {
         }
         _ => {}
     }
-    
+
     println!("✅ Edge case '{}' handled correctly", filename);
 }
 
@@ -225,32 +231,39 @@ fn test_file_operations_cross_platform(
     #[case] append: bool,
 ) {
     let file_path = temp_dir.path().join("ops_test.txt");
-    
+
     // Create initial file
     fs::write(&file_path, "initial content").expect("Failed to create initial file");
-    
+
     // Test OpenOptions with different combinations
     let mut opts = OpenOptions::new();
     opts.read(read).write(write).append(append);
-    
+
     let result = opts.open(&file_path);
-    
+
     if read || write {
-        assert!(result.is_ok(), "File should open with read={}, write={}, append={}", 
-               read, write, append);
-        
+        assert!(
+            result.is_ok(),
+            "File should open with read={}, write={}, append={}",
+            read,
+            write,
+            append
+        );
+
         if let Ok(file) = result {
             let metadata = file.metadata().expect("Failed to get file metadata");
-            
+
             // Test metadata extraction on open file
             let size = metadata.cross_size();
             let mode = metadata.cross_mode();
-            
+
             assert!(size > 0, "File should have content");
             assert!(mode > 0, "File should have valid mode");
-            
-            println!("✅ File operations (r={}, w={}, a={}) - Size: {}, Mode: 0o{:o}", 
-                    read, write, append, size, mode);
+
+            println!(
+                "✅ File operations (r={}, w={}, a={}) - Size: {}, Mode: 0o{:o}",
+                read, write, append, size, mode
+            );
         }
     }
 }
@@ -259,17 +272,17 @@ fn test_file_operations_cross_platform(
 #[rstest]
 fn test_metadata_performance(temp_dir: TempDir) {
     let file_path = temp_dir.path().join("perf_test.txt");
-    
+
     // Create test file
     let content = "x".repeat(1024);
     fs::write(&file_path, &content).expect("Failed to create test file");
-    
+
     let metadata = fs::metadata(&file_path).expect("Failed to get metadata");
-    
+
     // Perform multiple metadata extractions to test performance
     let iterations = 1000;
     let start = std::time::Instant::now();
-    
+
     for _ in 0..iterations {
         let _mode = metadata.cross_mode();
         let _size = metadata.cross_size();
@@ -283,13 +296,18 @@ fn test_metadata_performance(temp_dir: TempDir) {
         let _mtime = metadata.cross_mtime();
         let _ctime = metadata.cross_ctime();
     }
-    
+
     let duration = start.elapsed();
     let avg_time = duration.as_nanos() / iterations as u128;
-    
+
     // Performance should be reasonable (less than 1ms per operation set)
-    assert!(avg_time < 1_000_000, "Average metadata extraction should be under 1ms");
-    
-    println!("✅ Performance test - {} iterations in {:?} (avg: {}ns per iteration)", 
-             iterations, duration, avg_time);
+    assert!(
+        avg_time < 1_000_000,
+        "Average metadata extraction should be under 1ms"
+    );
+
+    println!(
+        "✅ Performance test - {} iterations in {:?} (avg: {}ns per iteration)",
+        iterations, duration, avg_time
+    );
 }

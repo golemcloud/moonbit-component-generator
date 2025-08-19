@@ -1,15 +1,14 @@
 use std::{
     collections::HashMap,
-    ffi::CString,
-    fs::{self, File, OpenOptions, Permissions, metadata},
+    fs::{self, File, OpenOptions, metadata},
     io::{IsTerminal, Read, Write},
     path::Path,
     process::{Command, Stdio},
 };
 
 use crate::cross_platform::{
-    MetadataExtractor, CrossPlatformMetadataExt, CrossPlatformFileTypeExt, PermissionsBuilder, RawFdExt, 
-    platform_constants, host_isatty, cross_utimes
+    CrossPlatformFileTypeExt, CrossPlatformMetadataExt, MetadataExtractor, PermissionsBuilder,
+    RawFdExt, cross_utimes, host_isatty, platform_constants,
 };
 
 cfg_if::cfg_if! {
@@ -326,13 +325,13 @@ fn open(
             use std::os::windows::fs::OpenOptionsExt;
             use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_NORMAL;
             use windows::Win32::Storage::FileSystem::FILE_FLAG_OVERLAPPED;
-    
+
             opts.attributes(FILE_ATTRIBUTE_NORMAL.0);
             // If you want nonblocking async I/O:
             opts.custom_flags(FILE_FLAG_OVERLAPPED.0);
         }
     }
-    
+
     match opts.open(path) {
         Err(err) => {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
@@ -398,31 +397,31 @@ fn access(
     let path = Path::new(&path);
     let mode = args.get(1);
     let mode = mode.to_number(scope).unwrap().value() as i32;
-    if mode & F_OK != 0 {
-        if let Err(err) = metadata(path) {
-            let message = v8::String::new(scope, &err.to_string()).unwrap();
-            let exn = v8::Exception::error(scope, message);
-            scope.throw_exception(exn);
-            return;
-        }
+    if mode & F_OK != 0
+        && let Err(err) = metadata(path)
+    {
+        let message = v8::String::new(scope, &err.to_string()).unwrap();
+        let exn = v8::Exception::error(scope, message);
+        scope.throw_exception(exn);
+        return;
     }
 
-    if mode & R_OK != 0 {
-        if let Err(err) = File::open(path) {
-            let message = v8::String::new(scope, &err.to_string()).unwrap();
-            let exn = v8::Exception::error(scope, message);
-            scope.throw_exception(exn);
-            return;
-        }
+    if mode & R_OK != 0
+        && let Err(err) = File::open(path)
+    {
+        let message = v8::String::new(scope, &err.to_string()).unwrap();
+        let exn = v8::Exception::error(scope, message);
+        scope.throw_exception(exn);
+        return;
     }
 
-    if mode & W_OK != 0 {
-        if let Err(err) = OpenOptions::new().write(true).open(path) {
-            let message = v8::String::new(scope, &err.to_string()).unwrap();
-            let exn = v8::Exception::error(scope, message);
-            scope.throw_exception(exn);
-            return;
-        }
+    if mode & W_OK != 0
+        && let Err(err) = OpenOptions::new().write(true).open(path)
+    {
+        let message = v8::String::new(scope, &err.to_string()).unwrap();
+        let exn = v8::Exception::error(scope, message);
+        scope.throw_exception(exn);
+        return;
     }
 
     if mode & X_OK != 0 {
@@ -638,17 +637,17 @@ fn timeval_from_f64(t: f64) -> std::io::Result<libc::timeval> {
             "Time value must be finite",
         ));
     }
-    
+
     let total_usec = (t * 1_000_000.0).round() as i64;
     let sec = total_usec.div_euclid(1_000_000);
     let usec = total_usec.rem_euclid(1_000_000);
-    
+
     // Build timeval with platform-specific field types
     cfg_if::cfg_if! {
         if #[cfg(unix)] {
             Ok(libc::timeval {
                 tv_sec: sec as libc::time_t,        // Fixed: use 'sec' not 'sec_i64'
-                tv_usec: usec as libc::suseconds_t, // Fixed: use 'usec' not 'usec_i64' 
+                tv_usec: usec as libc::suseconds_t, // Fixed: use 'usec' not 'usec_i64'
             })
         } else if #[cfg(windows)] {
             Ok(libc::timeval {
@@ -666,12 +665,9 @@ fn timeval_from_f64(t: f64) -> std::io::Result<libc::timeval> {
     }
 }
 
-
 fn __utimes(path: String, atime: f64, mtime: f64) -> std::io::Result<()> {
     cross_utimes(&path, atime, mtime)
 }
-
-
 
 // utimes: JSString as Path, F64 as AccessTime, F64 as ModifyTime -> undefined
 fn utimes(

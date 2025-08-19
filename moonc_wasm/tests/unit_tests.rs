@@ -1,13 +1,13 @@
 //! Unit tests for cross-platform module components
-//! 
+//!
 //! These tests focus on individual components and internal functionality
 
+use rstest::rstest;
 use std::fs::{self, File};
 use tempfile::TempDir;
-use rstest::rstest;
 
 use moonc_wasm::cross_platform::{
-    MetadataExtractor, PermissionsBuilder, CrossPlatformMetadataExt, platform_constants
+    CrossPlatformMetadataExt, MetadataExtractor, PermissionsBuilder, platform_constants,
 };
 
 #[cfg(test)]
@@ -19,13 +19,13 @@ mod metadata_extractor_tests {
     fn test_metadata_extractor_basic() {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let file_path = temp_dir.path().join("test.txt");
-        
+
         // Create test file with known content
         let content = "Hello, cross-platform world!";
         fs::write(&file_path, content).expect("Failed to write file");
-        
+
         let metadata = fs::metadata(&file_path).expect("Failed to get metadata");
-        
+
         // Test all extractor methods
         let mode = MetadataExtractor::mode(&metadata);
         let _dev = MetadataExtractor::dev(&metadata);
@@ -38,13 +38,17 @@ mod metadata_extractor_tests {
         let atime = MetadataExtractor::atime(&metadata);
         let mtime = MetadataExtractor::mtime(&metadata);
         let ctime = MetadataExtractor::ctime(&metadata);
-        
+
         // Verify reasonable values
         assert!(mode > 0, "Mode should be positive");
-        assert_eq!(size as usize, content.len(), "Size should match content length");
+        assert_eq!(
+            size as usize,
+            content.len(),
+            "Size should match content length"
+        );
         assert!(nlink >= 1, "Should have at least one link");
         assert!(mtime > 0, "Modification time should be positive");
-        
+
         // Platform-specific checks
         cfg_if::cfg_if! {
             if #[cfg(unix)] {
@@ -57,8 +61,11 @@ mod metadata_extractor_tests {
                 assert_eq!(gid, 0, "GID should be 0 on Windows (simulated)");
             }
         }
-        
-        println!("✅ MetadataExtractor - Mode: 0o{:o}, Size: {}, Links: {}", mode, size, nlink);
+
+        println!(
+            "✅ MetadataExtractor - Mode: 0o{:o}, Size: {}, Links: {}",
+            mode, size, nlink
+        );
     }
 
     /// Test metadata extraction with different file types
@@ -66,29 +73,37 @@ mod metadata_extractor_tests {
     #[case::regular_file("regular.txt", "Regular file content")]
     #[case::empty_file("empty.txt", "")]
     #[case::binary_file("binary.bin", "\x00\x01\x02\x03\x7F")]
-    fn test_metadata_extractor_file_types(
-        #[case] filename: &str,
-        #[case] content: &str,
-    ) {
+    fn test_metadata_extractor_file_types(#[case] filename: &str, #[case] content: &str) {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let file_path = temp_dir.path().join(filename);
-        
+
         fs::write(&file_path, content).expect("Failed to write file");
         let metadata = fs::metadata(&file_path).expect("Failed to get metadata");
-        
+
         // Test size extraction
         let size = MetadataExtractor::size(&metadata);
-        assert_eq!(size as usize, content.len(), "Size should match for {}", filename);
-        
+        assert_eq!(
+            size as usize,
+            content.len(),
+            "Size should match for {}",
+            filename
+        );
+
         // Test timestamps
         let atime = MetadataExtractor::atime(&metadata);
         let mtime = MetadataExtractor::mtime(&metadata);
         let ctime = MetadataExtractor::ctime(&metadata);
-        
-        assert!(mtime > 0 || content.is_empty(), "MTime should be positive for non-empty files");
+
+        assert!(
+            mtime > 0 || content.is_empty(),
+            "MTime should be positive for non-empty files"
+        );
         assert!(ctime >= 0, "CTime should be non-negative");
-        
-        println!("✅ File type {} - Size: {}, MTime: {}", filename, size, mtime);
+
+        println!(
+            "✅ File type {} - Size: {}, MTime: {}",
+            filename, size, mtime
+        );
     }
 }
 
@@ -107,22 +122,22 @@ mod permissions_builder_tests {
     fn test_permissions_builder_modes(#[case] mode: u32, #[case] description: &str) {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let file_path = temp_dir.path().join("perm_test.txt");
-        
+
         // Create test file
         File::create(&file_path).expect("Failed to create file");
-        
+
         // Test permissions builder
         let permissions = PermissionsBuilder::from_mode(mode);
         let result = fs::set_permissions(&file_path, permissions);
-        
+
         cfg_if::cfg_if! {
             if #[cfg(unix)] {
                 assert!(result.is_ok(), "Setting {} (0o{:o}) should succeed on Unix", description, mode);
-                
+
                 // Verify permissions were applied
                 let metadata = fs::metadata(&file_path).expect("Failed to get metadata");
                 let actual_mode = metadata.cross_mode() & 0o777;
-                
+
                 // Check readonly flag for write permissions
                 if mode & 0o200 == 0 {
                     assert!(metadata.permissions().readonly() || (actual_mode & 0o200) == 0,
@@ -133,7 +148,7 @@ mod permissions_builder_tests {
                 println!("Windows permissions test for {}: {:?}", description, result);
             }
         }
-        
+
         println!("✅ {} (0o{:o}) - Builder completed", description, mode);
     }
 
@@ -146,13 +161,13 @@ mod permissions_builder_tests {
     fn test_permissions_special_bits(#[case] mode: u32, #[case] description: &str) {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let file_path = temp_dir.path().join("special_perm_test.txt");
-        
+
         File::create(&file_path).expect("Failed to create file");
-        
+
         // Test with special permission bits
         let permissions = PermissionsBuilder::from_mode(mode);
         let result = fs::set_permissions(&file_path, permissions);
-        
+
         // Special bits may not be supported on all filesystems
         cfg_if::cfg_if! {
             if #[cfg(unix)] {
@@ -163,8 +178,11 @@ mod permissions_builder_tests {
                 println!("Windows special permissions test for {} (0o{:o}): {:?}", description, mode, result);
             }
         }
-        
-        println!("✅ {} (0o{:o}) - Special bits test completed", description, mode);
+
+        println!(
+            "✅ {} (0o{:o}) - Special bits test completed",
+            description, mode
+        );
     }
 }
 
@@ -182,10 +200,10 @@ mod platform_constants_tests {
             ("O_DSYNC", platform_constants::O_DSYNC),
             ("O_SYNC", platform_constants::O_SYNC),
         ];
-        
+
         for (name, value) in constants {
             assert!(value >= 0, "{} should be non-negative", name);
-            
+
             cfg_if::cfg_if! {
                 if #[cfg(unix)] {
                     // On Unix, some constants should have specific values
@@ -200,7 +218,7 @@ mod platform_constants_tests {
                 }
             }
         }
-        
+
         println!("✅ All platform constants are properly defined");
     }
 
@@ -213,17 +231,17 @@ mod platform_constants_tests {
             platform_constants::O_DSYNC,
             platform_constants::O_SYNC,
         ];
-        
+
         // Remove zeros (unsupported flags on some platforms)
         let non_zero_constants: Vec<_> = constants.into_iter().filter(|&x| x != 0).collect();
-        
+
         // Check for duplicates among non-zero constants
         for (i, &const1) in non_zero_constants.iter().enumerate() {
             for &const2 in non_zero_constants.iter().skip(i + 1) {
                 assert_ne!(const1, const2, "Constants should not have duplicate values");
             }
         }
-        
+
         println!("✅ Platform constants are unique (excluding zeros)");
     }
 }
@@ -237,12 +255,12 @@ mod trait_extension_tests {
     fn test_trait_extension_methods() {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let file_path = temp_dir.path().join("trait_test.txt");
-        
+
         let content = "Testing trait extension methods";
         fs::write(&file_path, content).expect("Failed to write file");
-        
+
         let metadata = fs::metadata(&file_path).expect("Failed to get metadata");
-        
+
         // Test all trait methods
         let dev = metadata.cross_dev();
         let ino = metadata.cross_ino();
@@ -255,27 +273,75 @@ mod trait_extension_tests {
         let atime = metadata.cross_atime();
         let mtime = metadata.cross_mtime();
         let ctime = metadata.cross_ctime();
-        
+
         // Verify all methods return reasonable values
         assert!(mode > 0, "cross_mode should return positive value");
-        assert_eq!(size as usize, content.len(), "cross_size should match content length");
+        assert_eq!(
+            size as usize,
+            content.len(),
+            "cross_size should match content length"
+        );
         assert!(nlink >= 1, "cross_nlink should be at least 1");
         assert!(mtime > 0, "cross_mtime should be positive");
         assert!(ctime >= 0, "cross_ctime should be non-negative");
-        
+
         // Test that trait methods match direct extractor calls
-        assert_eq!(dev, MetadataExtractor::dev(&metadata), "cross_dev should match extractor");
-        assert_eq!(ino, MetadataExtractor::ino(&metadata), "cross_ino should match extractor");
-        assert_eq!(mode, MetadataExtractor::mode(&metadata), "cross_mode should match extractor");
-        assert_eq!(nlink, MetadataExtractor::nlink(&metadata), "cross_nlink should match extractor");
-        assert_eq!(uid, MetadataExtractor::uid(&metadata), "cross_uid should match extractor");
-        assert_eq!(gid, MetadataExtractor::gid(&metadata), "cross_gid should match extractor");
-        assert_eq!(rdev, MetadataExtractor::rdev(&metadata), "cross_rdev should match extractor");
-        assert_eq!(size, MetadataExtractor::size(&metadata), "cross_size should match extractor");
-        assert_eq!(atime, MetadataExtractor::atime(&metadata), "cross_atime should match extractor");
-        assert_eq!(mtime, MetadataExtractor::mtime(&metadata), "cross_mtime should match extractor");
-        assert_eq!(ctime, MetadataExtractor::ctime(&metadata), "cross_ctime should match extractor");
-        
+        assert_eq!(
+            dev,
+            MetadataExtractor::dev(&metadata),
+            "cross_dev should match extractor"
+        );
+        assert_eq!(
+            ino,
+            MetadataExtractor::ino(&metadata),
+            "cross_ino should match extractor"
+        );
+        assert_eq!(
+            mode,
+            MetadataExtractor::mode(&metadata),
+            "cross_mode should match extractor"
+        );
+        assert_eq!(
+            nlink,
+            MetadataExtractor::nlink(&metadata),
+            "cross_nlink should match extractor"
+        );
+        assert_eq!(
+            uid,
+            MetadataExtractor::uid(&metadata),
+            "cross_uid should match extractor"
+        );
+        assert_eq!(
+            gid,
+            MetadataExtractor::gid(&metadata),
+            "cross_gid should match extractor"
+        );
+        assert_eq!(
+            rdev,
+            MetadataExtractor::rdev(&metadata),
+            "cross_rdev should match extractor"
+        );
+        assert_eq!(
+            size,
+            MetadataExtractor::size(&metadata),
+            "cross_size should match extractor"
+        );
+        assert_eq!(
+            atime,
+            MetadataExtractor::atime(&metadata),
+            "cross_atime should match extractor"
+        );
+        assert_eq!(
+            mtime,
+            MetadataExtractor::mtime(&metadata),
+            "cross_mtime should match extractor"
+        );
+        assert_eq!(
+            ctime,
+            MetadataExtractor::ctime(&metadata),
+            "cross_ctime should match extractor"
+        );
+
         println!("✅ All trait extension methods work correctly and match extractors");
     }
 }
