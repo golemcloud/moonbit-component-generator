@@ -10,7 +10,12 @@ run = "cargo build --release --target aarch64-pc-windows-msvc"
 
 [tasks.test]
 description = "Run all tests with output"
-run = "cargo test --all -- --nocapture"
+run = [
+    "cargo test --test cross_platform_tests -- --nocapture",
+    "cargo test --test integration_tests -- --nocapture",
+    "cargo test --test simple_test -- --nocapture",
+    "cargo test --lib -- --nocapture"
+]
 
 [tasks.test-unit]
 description = "Run unit tests only"
@@ -18,7 +23,7 @@ run = "cargo test --lib -- --nocapture"
 
 [tasks.test-integration]
 description = "Run integration tests only"
-run = "cargo test --test '*' -- --nocapture"
+run = "cargo test --test integration_tests -- --nocapture"
 
 [tasks.test-quiet]
 description = "Run all tests quietly"
@@ -27,6 +32,14 @@ run = "cargo test --all"
 [tasks.test-verbose]
 description = "Run all tests with verbose output"
 run = "cargo test --all --verbose -- --nocapture"
+
+[tasks.test-cross-platform]
+description = "Run cross-platform tests only"
+run = "cargo test --test cross_platform_tests -- --nocapture"
+
+[tasks.test-simple]
+description = "Run simple tests only"
+run = "cargo test --test simple_test -- --nocapture"
 
 [tasks.release_windows]
 depends = ["build_windows"]

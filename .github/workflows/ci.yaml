@@ -26,6 +26,7 @@ jobs:
           prefix-key: v1-rust-${{ matrix.os }}
           shared-key: debug
           cache-all-crates: true
+        timeout-minutes: 10
       - name: Setup Rust
         if: runner.os != 'Windows'
         uses: dtolnay/rust-toolchain@stable
@@ -50,7 +51,7 @@ jobs:
           Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
           $ProgressPreference = 'SilentlyContinue'
           try {
-            $script = Invoke-RestMethod -Uri "https://cli.moonbitlang.com/install/powershell.ps1" -TimeoutSec 90
+            $script = Invoke-RestMethod -Uri "https://cli.moonbitlang.com/install/powershell.ps1" -TimeoutSec 120
             Invoke-Expression $script
           } catch {
             Write-Error "Failed to download or execute MoonBit installer: $_"
@@ -81,6 +82,7 @@ jobs:
           prefix-key: v1-rust-${{ matrix.os }}
           shared-key: debug
           cache-all-crates: false
+        timeout-minutes: 10
       - name: Setup Rust
         if: runner.os != 'Windows'
         uses: dtolnay/rust-toolchain@stable
@@ -108,7 +110,7 @@ jobs:
           Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
           $ProgressPreference = 'SilentlyContinue'
           try {
-            $script = Invoke-RestMethod -Uri "https://cli.moonbitlang.com/install/powershell.ps1" -TimeoutSec 60
+            $script = Invoke-RestMethod -Uri "https://cli.moonbitlang.com/install/powershell.ps1" -TimeoutSec 120
             Invoke-Expression $script
           } catch {
             Write-Error "Failed to download or execute MoonBit installer: $_"
