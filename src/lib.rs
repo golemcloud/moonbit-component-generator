@@ -288,6 +288,7 @@ impl MoonBitComponent {
             let pkg_namespace = package_name.namespace.to_snake_case();
             let pkg_name = package_name.name.to_snake_case();
             let interface_name = interface_name.to_lower_camel_case();
+            let snake_interface_name = interface_name.to_snake_case();
 
             let name = format!(
                 "{moonbit_root_package}/gen/interface/{pkg_namespace}/{pkg_name}/{interface_name}"
@@ -320,7 +321,7 @@ impl MoonBitComponent {
                 interface_name.clone(),
             ));
             gen_mbt_files.push(Utf8Path::new("gen").join(format!(
-                "gen_interface_{pkg_namespace}_{pkg_name}_{interface_name}_export.mbt"
+                "gen_interface_{pkg_namespace}_{pkg_name}_{snake_interface_name}_export.mbt"
             )));
         }
 
