@@ -803,6 +803,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
+ "moonc_wasm",
  "pretty_env_logger",
  "serde",
  "serde_json",

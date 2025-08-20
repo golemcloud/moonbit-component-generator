@@ -27,9 +27,16 @@ jobs:
           shared-key: debug
           cache-all-crates: true
       - name: Setup Rust
+        if: runner.os != 'Windows'
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Setup Rust
+        if: runner.os == 'Windows'
+        run: |
+          rustup toolchain install stable --profile default --no-self-update
+          rustup default stable
+          rustup target add wasm32-wasip1          
       - name: Install moonbit (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -40,7 +47,15 @@ jobs:
         shell: powershell
         run: |
           $env:MOONBIT_INSTALL_VERSION = "0.6.19"
-          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+          $ProgressPreference = 'SilentlyContinue'
+          try {
+            $script = Invoke-RestMethod -Uri "https://cli.moonbitlang.com/install/powershell.ps1" -TimeoutSec 90
+            Invoke-Expression $script
+          } catch {
+            Write-Error "Failed to download or execute MoonBit installer: $_"
+            exit 1
+          }
           echo "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
@@ -67,9 +82,16 @@ jobs:
           shared-key: debug
           cache-all-crates: false
       - name: Setup Rust
+        if: runner.os != 'Windows'
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Setup Rust
+        if: runner.os == 'Windows'
+        run: |
+          rustup toolchain install stable --profile default --no-self-update
+          rustup default stable
+          rustup target add wasm32-wasip1
       - uses: cargo-bins/cargo-binstall@main
       - name: Install wasmtime-cli
         run: cargo binstall --force --locked wasmtime-cli@33.0.0
@@ -83,7 +105,15 @@ jobs:
         shell: powershell
         run: |
           $env:MOONBIT_INSTALL_VERSION = "0.6.19"
-          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+          $ProgressPreference = 'SilentlyContinue'
+          try {
+            $script = Invoke-RestMethod -Uri "https://cli.moonbitlang.com/install/powershell.ps1" -TimeoutSec 60
+            Invoke-Expression $script
+          } catch {
+            Write-Error "Failed to download or execute MoonBit installer: $_"
+            exit 1
+          }
           echo "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm

@@ -33,9 +33,21 @@ struct MoonC {
 }
 
 impl MoonC {
-    pub fn run(&self, mut args: Vec<String>) -> anyhow::Result<()> {
+    pub fn run(&self, args: Vec<String>) -> anyhow::Result<()> {
         self.ensure_initialized()?;
+        
+        // Normalize paths for Windows compatibility
+        #[cfg(windows)]
+        let args: Vec<String> = args.into_iter().map(|arg| {
+            // Convert backslashes to forward slashes for better cross-platform compatibility
+            arg.replace('\\', "/")
+        }).collect();
+        
+        #[cfg(not(windows))]
+        let args = args;
+        
         debug!("Running the MoonBit compiler with args: {}", args.join(" "));
+        let mut args = args;
         args.insert(0, "moonc".to_string());
         moonc_wasm::run_wasmoo(args).context("Running the MoonBit compiler")?;
         Ok(())
@@ -73,7 +85,24 @@ impl MoonBitComponent {
         selected_world: Option<&str>,
     ) -> anyhow::Result<Self> {
         let temp_dir = Utf8TempDir::new().context("Creating temporary directory")?;
-        let dir = temp_dir.path().to_path_buf();
+        
+        // Get the canonical path to avoid Windows short names
+        let dir = {
+            let path = temp_dir.path();
+            // Try to get the canonical path, fall back to original if it fails
+            if let Ok(canonical) = std::fs::canonicalize(path) {
+                // Convert to string and remove Windows UNC prefix if present
+                let canonical_str = canonical.to_string_lossy();
+                let clean_path = if canonical_str.starts_with(r"\\?\") {
+                    &canonical_str[4..]
+                } else {
+                    &canonical_str
+                };
+                Utf8PathBuf::from(clean_path)
+            } else {
+                path.to_path_buf()
+            }
+        };
 
         info!("Creating MoonBit component in temporary directory: {dir}");
 

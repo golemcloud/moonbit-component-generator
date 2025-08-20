@@ -245,11 +245,12 @@ impl PermissionsBuilder {
 
         // Create a temporary file to get permissions, then modify
         let temp_path = std::env::temp_dir().join("temp_permissions");
-        if let Ok(_) = std::fs::OpenOptions::new()
+        if std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
             .open(&temp_path)
+            .is_ok()
         {
             if let Ok(metadata) = fs::metadata(&temp_path) {
                 let mut perms = metadata.permissions();
