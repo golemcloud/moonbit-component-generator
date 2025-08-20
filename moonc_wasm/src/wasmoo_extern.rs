@@ -377,32 +377,29 @@ fn access(
     let path = Path::new(&path);
     let mode = args.get(1);
     let mode = mode.to_number(scope).unwrap().value() as i32;
-    if mode & F_OK != 0 {
-        if let Err(err) = metadata(path) {
+    if mode & F_OK != 0
+        && let Err(err) = metadata(path) {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
             let exn = v8::Exception::error(scope, message);
             scope.throw_exception(exn);
             return;
         }
-    }
 
-    if mode & R_OK != 0 {
-        if let Err(err) = File::open(path) {
+    if mode & R_OK != 0
+        && let Err(err) = File::open(path) {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
             let exn = v8::Exception::error(scope, message);
             scope.throw_exception(exn);
             return;
         }
-    }
 
-    if mode & W_OK != 0 {
-        if let Err(err) = OpenOptions::new().write(true).open(path) {
+    if mode & W_OK != 0
+        && let Err(err) = OpenOptions::new().write(true).open(path) {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
             let exn = v8::Exception::error(scope, message);
             scope.throw_exception(exn);
             return;
         }
-    }
 
     if mode & X_OK != 0 {
         match metadata(path) {

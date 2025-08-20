@@ -811,8 +811,8 @@ impl MoonBitComponent {
             .ok_or_else(|| anyhow::anyhow!("Could not find world"))?;
         let mut imported_interfaces = Vec::new();
         for (_, item) in &world.imports {
-            if let wit_parser::WorldItem::Interface { id, .. } = item {
-                if let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id)) {
+            if let wit_parser::WorldItem::Interface { id, .. } = item
+                && let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id)) {
                     if let Some(interface_name) = interface.name.as_ref() {
                         let owner_package = interface.package.ok_or_else(|| {
                             anyhow::anyhow!(
@@ -839,7 +839,6 @@ impl MoonBitComponent {
                         ));
                     }
                 }
-            }
         }
         Ok(imported_interfaces)
     }
@@ -852,8 +851,8 @@ impl MoonBitComponent {
             .ok_or_else(|| anyhow::anyhow!("Could not find world"))?;
         let mut exported_interfaces = Vec::new();
         for (_, item) in &world.exports {
-            if let wit_parser::WorldItem::Interface { id, .. } = item {
-                if let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id)) {
+            if let wit_parser::WorldItem::Interface { id, .. } = item
+                && let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id)) {
                     if let Some(interface_name) = interface.name.as_ref() {
                         let owner_package = interface.package.ok_or_else(|| {
                             anyhow::anyhow!(
@@ -880,7 +879,6 @@ impl MoonBitComponent {
                         ));
                     }
                 }
-            }
         }
         Ok(exported_interfaces)
     }
