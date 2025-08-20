@@ -41,7 +41,17 @@ impl MoonC {
         let args: Vec<String> = args
             .into_iter()
             .map(|arg| {
-                // Convert backslashes to forward slashes for better cross-platform compatibility
+                // Special handling for package source arguments (format: package:path)
+                if arg.contains(":") && !arg.starts_with("-") {
+                    // Check if this looks like a package:path argument
+                    if let Some((pkg, path)) = arg.split_once(':') {
+                        // Only convert the path part if it looks like a Windows path
+                        if path.contains('\\') || (path.len() > 2 && &path[1..2] == ":") {
+                            return format!("{}:{}", pkg, path.replace('\\', "/"));
+                        }
+                    }
+                }
+                // Convert all backslashes to forward slashes for other arguments
                 arg.replace('\\', "/")
             })
             .collect();
@@ -50,6 +60,13 @@ impl MoonC {
         let args = args;
 
         debug!("Running the MoonBit compiler with args: {}", args.join(" "));
+        
+        // Additional debug logging for Windows
+        #[cfg(windows)]
+        for (i, arg) in args.iter().enumerate() {
+            debug!("  Arg[{}]: {:?}", i, arg);
+        }
+        
         let mut args = args;
         args.insert(0, "moonc".to_string());
         moonc_wasm::run_wasmoo(args).context("Running the MoonBit compiler")?;
@@ -80,6 +97,11 @@ pub struct MoonBitComponent {
 }
 
 impl MoonBitComponent {
+    /// Normalizes paths to use forward slashes for cross-platform compatibility
+    fn normalize_path(&self, path: &Utf8Path) -> String {
+        path.as_str().replace('\\', "/")
+    }
+
     /// Initializes a new MoonBit component that implements the given WIT interface.
     ///
     /// This step will create a temporary directory and generate MoonBit WIT bindings in it.
@@ -92,16 +114,32 @@ impl MoonBitComponent {
         // Get the canonical path to avoid Windows short names
         let dir = {
             let path = temp_dir.path();
-            // Try to get the canonical path, fall back to original if it fails
-            if let Ok(canonical) = std::fs::canonicalize(path) {
-                // Convert to string and remove Windows UNC prefix if present
-                let canonical_str = canonical.to_string_lossy();
-                let clean_path = canonical_str
-                    .strip_prefix(r"\\?\")
-                    .unwrap_or(&canonical_str);
-                Utf8PathBuf::from(clean_path)
-            } else {
-                path.to_path_buf()
+            // Try to get the canonical UTF-8 path, fall back to original if it fails
+            match path.canonicalize_utf8() {
+                Ok(mut canonical) => {
+                    // On Windows, strip the UNC prefix if present
+                    #[cfg(target_os = "windows")]
+                    {
+                        let canonical_str = canonical.as_str();
+                        if let Some(clean_path) = canonical_str.strip_prefix(r"\\?\") {
+                            canonical = Utf8PathBuf::from(clean_path);
+                        }
+                    }
+
+                    // Normalize separators to forward slashes for cross-platform consistency
+                    #[cfg(target_os = "windows")]
+                    {
+                        let normalized = canonical.as_str().replace('\\', "/");
+                        Utf8PathBuf::from(normalized)
+                    }
+
+                    #[cfg(not(target_os = "windows"))]
+                    canonical
+                }
+                Err(_) => {
+                    // Fall back to converting the original path to Utf8PathBuf
+                    path.to_path_buf()
+                }
             }
         };
 
@@ -595,22 +633,27 @@ impl MoonBitComponent {
         let mut args = vec!["build-package".to_string()];
         for file in mbt_files {
             let full_path = self.dir.join(file);
-            args.push(full_path.to_string());
+            // Verify file exists before passing to moonc
+            if !full_path.exists() {
+                anyhow::bail!("Source file does not exist: {}", full_path);
+            }
+            // Ensure forward slashes for moonc compatibility
+            args.push(self.normalize_path(&full_path));
         }
         for w in warning_control {
             args.push("-w".to_string());
             args.push(w.to_string());
         }
         args.push("-o".to_string());
-        args.push(self.dir.join(output).to_string());
+        args.push(self.normalize_path(&self.dir.join(output)));
         args.push("-pkg".to_string());
         args.push(package.to_string());
         args.push("-std-path".to_string());
-        args.push(self.core_bundle_dir().to_string());
+        args.push(self.normalize_path(&self.core_bundle_dir()));
         for (dep_path, dep_name) in dependencies {
             args.push("-i".to_string());
             let full_path = self.dir.join(dep_path);
-            args.push(format!("{full_path}:{dep_name}"));
+            args.push(format!("{}:{dep_name}", self.normalize_path(&full_path)));
         }
         self.add_package_sources(&mut args, package_sources);
         args.push("-target".to_string());
@@ -636,17 +679,17 @@ impl MoonBitComponent {
 
         for file in core_files {
             let full_path = self.dir.join(file);
-            args.push(full_path.to_string());
+            args.push(self.normalize_path(&full_path));
         }
         args.push("-main".to_string());
         args.push(main_package_name.to_string());
         args.push("-o".to_string());
-        args.push(self.module_wasm().to_string());
+        args.push(self.normalize_path(&self.module_wasm()));
         args.push("-pkg-config-path".to_string());
-        args.push(self.dir.join(main_package_json).to_string());
+        args.push(self.normalize_path(&self.dir.join(main_package_json)));
         self.add_package_sources(&mut args, package_sources);
         args.push("-pkg-sources".to_string());
-        args.push(format!("moonbitlang/core:{}", self.core_dir()));
+        args.push(format!("moonbitlang/core:{}", self.normalize_path(&self.core_dir())));
         args.push("-target".to_string());
         args.push("wasm".to_string());
         args.push(format!(
@@ -670,7 +713,7 @@ impl MoonBitComponent {
         for (source_name, source_path) in package_sources {
             args.push("-pkg-sources".to_string());
             let full_path = self.dir.join(source_path);
-            args.push(format!("{source_name}:{full_path}"));
+            args.push(format!("{source_name}:{}", self.normalize_path(&full_path)));
         }
     }
 
@@ -972,4 +1015,75 @@ fn initialize_trace() -> Trace {
         .write_style(pretty_env_logger::env_logger::WriteStyle::Always)
         .init();
     Trace
+}
+
+#[cfg(test)]
+mod path_tests {
+    use super::Trace;
+    use camino::Utf8PathBuf;
+    use camino_tempfile::Utf8TempDir;
+
+    test_r::inherit_test_dep!(Trace);
+
+    #[test_r::test]
+    fn test_canonicalization_preserves_utf8_and_normalizes_paths(_trace: &Trace) {
+        // Create a temporary directory
+        let temp_dir = Utf8TempDir::new().expect("Failed to create temp dir");
+
+        // Apply our canonicalization logic
+        let dir = {
+            let path = temp_dir.path();
+            match path.canonicalize_utf8() {
+                Ok(mut canonical) => {
+                    // On Windows, strip the UNC prefix if present
+                    #[cfg(target_os = "windows")]
+                    {
+                        let canonical_str = canonical.as_str();
+                        if let Some(clean_path) = canonical_str.strip_prefix(r"\\?\") {
+                            canonical = Utf8PathBuf::from(clean_path);
+                        }
+                    }
+
+                    // Normalize separators to forward slashes for cross-platform consistency
+                    #[cfg(target_os = "windows")]
+                    {
+                        let normalized = canonical.as_str().replace('\\', "/");
+                        Utf8PathBuf::from(normalized)
+                    }
+
+                    #[cfg(not(target_os = "windows"))]
+                    canonical
+                }
+                Err(_) => path.to_path_buf(),
+            }
+        };
+
+        // Verify the path doesn't contain UNC prefix
+        assert!(
+            !dir.as_str().starts_with(r"\\?\"),
+            "Path should not start with UNC prefix"
+        );
+
+        // On Windows, verify no backslashes remain
+        #[cfg(target_os = "windows")]
+        assert!(
+            !dir.as_str().contains('\\'),
+            "Path should not contain backslashes on Windows"
+        );
+
+        // Verify path operations work correctly
+        let subdir = dir.join("test");
+        // The joined path should end with our test directory
+        assert!(
+            subdir.as_str().ends_with("/test") || subdir.as_str().ends_with("\\test"),
+            "Expected path to end with /test or \\test, got: {}",
+            subdir
+        );
+
+        // Verify parent path calculation works
+        assert!(
+            dir.parent().is_some(),
+            "Should be able to get parent directory"
+        );
+    }
 }
