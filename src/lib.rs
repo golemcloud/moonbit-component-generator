@@ -35,17 +35,20 @@ struct MoonC {
 impl MoonC {
     pub fn run(&self, args: Vec<String>) -> anyhow::Result<()> {
         self.ensure_initialized()?;
-        
+
         // Normalize paths for Windows compatibility
         #[cfg(windows)]
-        let args: Vec<String> = args.into_iter().map(|arg| {
-            // Convert backslashes to forward slashes for better cross-platform compatibility
-            arg.replace('\\', "/")
-        }).collect();
-        
+        let args: Vec<String> = args
+            .into_iter()
+            .map(|arg| {
+                // Convert backslashes to forward slashes for better cross-platform compatibility
+                arg.replace('\\', "/")
+            })
+            .collect();
+
         #[cfg(not(windows))]
         let args = args;
-        
+
         debug!("Running the MoonBit compiler with args: {}", args.join(" "));
         let mut args = args;
         args.insert(0, "moonc".to_string());
@@ -85,7 +88,7 @@ impl MoonBitComponent {
         selected_world: Option<&str>,
     ) -> anyhow::Result<Self> {
         let temp_dir = Utf8TempDir::new().context("Creating temporary directory")?;
-        
+
         // Get the canonical path to avoid Windows short names
         let dir = {
             let path = temp_dir.path();
@@ -93,11 +96,9 @@ impl MoonBitComponent {
             if let Ok(canonical) = std::fs::canonicalize(path) {
                 // Convert to string and remove Windows UNC prefix if present
                 let canonical_str = canonical.to_string_lossy();
-                let clean_path = if canonical_str.starts_with(r"\\?\") {
-                    &canonical_str[4..]
-                } else {
-                    &canonical_str
-                };
+                let clean_path = canonical_str
+                    .strip_prefix(r"\\?\")
+                    .unwrap_or(&canonical_str);
                 Utf8PathBuf::from(clean_path)
             } else {
                 path.to_path_buf()
@@ -839,33 +840,26 @@ impl MoonBitComponent {
             .ok_or_else(|| anyhow::anyhow!("Could not find world"))?;
         let mut imported_interfaces = Vec::new();
         for (_, item) in &world.imports {
-            if let wit_parser::WorldItem::Interface { id, .. } = item {
-                if let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id)) {
-                    if let Some(interface_name) = interface.name.as_ref() {
-                        let owner_package = interface.package.ok_or_else(|| {
-                            anyhow::anyhow!(
-                                "Interface '{}' does not have a package",
-                                interface_name
-                            )
+            if let wit_parser::WorldItem::Interface { id, .. } = item
+                && let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id))
+            {
+                if let Some(interface_name) = interface.name.as_ref() {
+                    let owner_package = interface.package.ok_or_else(|| {
+                        anyhow::anyhow!("Interface '{}' does not have a package", interface_name)
+                    })?;
+                    let package = self
+                        .resolve
+                        .as_ref()
+                        .and_then(|r| r.packages.get(owner_package))
+                        .ok_or_else(|| {
+                            anyhow::anyhow!("Package for interface '{}' not found", interface_name)
                         })?;
-                        let package = self
-                            .resolve
-                            .as_ref()
-                            .and_then(|r| r.packages.get(owner_package))
-                            .ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "Package for interface '{}' not found",
-                                    interface_name
-                                )
-                            })?;
 
-                        imported_interfaces
-                            .push((package.name.clone(), interface_name.to_string()));
-                    } else {
-                        return Err(anyhow::anyhow!(
-                            "Anonymous imported interfaces are not supported"
-                        ));
-                    }
+                    imported_interfaces.push((package.name.clone(), interface_name.to_string()));
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "Anonymous imported interfaces are not supported"
+                    ));
                 }
             }
         }
@@ -880,33 +874,26 @@ impl MoonBitComponent {
             .ok_or_else(|| anyhow::anyhow!("Could not find world"))?;
         let mut exported_interfaces = Vec::new();
         for (_, item) in &world.exports {
-            if let wit_parser::WorldItem::Interface { id, .. } = item {
-                if let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id)) {
-                    if let Some(interface_name) = interface.name.as_ref() {
-                        let owner_package = interface.package.ok_or_else(|| {
-                            anyhow::anyhow!(
-                                "Interface '{}' does not have a package",
-                                interface_name
-                            )
+            if let wit_parser::WorldItem::Interface { id, .. } = item
+                && let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id))
+            {
+                if let Some(interface_name) = interface.name.as_ref() {
+                    let owner_package = interface.package.ok_or_else(|| {
+                        anyhow::anyhow!("Interface '{}' does not have a package", interface_name)
+                    })?;
+                    let package = self
+                        .resolve
+                        .as_ref()
+                        .and_then(|r| r.packages.get(owner_package))
+                        .ok_or_else(|| {
+                            anyhow::anyhow!("Package for interface '{}' not found", interface_name)
                         })?;
-                        let package = self
-                            .resolve
-                            .as_ref()
-                            .and_then(|r| r.packages.get(owner_package))
-                            .ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "Package for interface '{}' not found",
-                                    interface_name
-                                )
-                            })?;
 
-                        exported_interfaces
-                            .push((package.name.clone(), interface_name.to_string()));
-                    } else {
-                        return Err(anyhow::anyhow!(
-                            "Anonymous exported interfaces are not supported"
-                        ));
-                    }
+                    exported_interfaces.push((package.name.clone(), interface_name.to_string()));
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "Anonymous exported interfaces are not supported"
+                    ));
                 }
             }
         }
