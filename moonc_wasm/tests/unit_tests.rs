@@ -35,9 +35,9 @@ mod metadata_extractor_tests {
         let gid = MetadataExtractor::gid(&metadata);
         let _rdev = MetadataExtractor::rdev(&metadata);
         let size = MetadataExtractor::size(&metadata);
-        let atime = MetadataExtractor::atime(&metadata);
+        let _atime = MetadataExtractor::atime(&metadata);
         let mtime = MetadataExtractor::mtime(&metadata);
-        let ctime = MetadataExtractor::ctime(&metadata);
+        let _ctime = MetadataExtractor::ctime(&metadata);
 
         // Verify reasonable values
         assert!(mode > 0, "Mode should be positive");
@@ -90,15 +90,15 @@ mod metadata_extractor_tests {
         );
 
         // Test timestamps
-        let atime = MetadataExtractor::atime(&metadata);
+        let _atime = MetadataExtractor::atime(&metadata);
         let mtime = MetadataExtractor::mtime(&metadata);
-        let ctime = MetadataExtractor::ctime(&metadata);
+        let _ctime = MetadataExtractor::ctime(&metadata);
 
         assert!(
             mtime > 0 || content.is_empty(),
             "MTime should be positive for non-empty files"
         );
-        assert!(ctime >= 0, "CTime should be non-negative");
+        assert!(_ctime >= 0, "CTime should be non-negative");
 
         println!(
             "✅ File type {} - Size: {}, MTime: {}",

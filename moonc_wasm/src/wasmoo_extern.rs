@@ -274,7 +274,7 @@ fn open(
     let flags = args.get(1);
     let flags = flags.to_number(scope).unwrap().value() as i32;
     let mode = args.get(2);
-    let mode = mode.to_number(scope).unwrap().value() as i32;
+    let _mode = mode.to_number(scope).unwrap().value() as i32;
 
     let access_mode = flags & (O_RDONLY | O_WRONLY | O_RDWR);
     let (read, write) = match access_mode {
@@ -303,23 +303,23 @@ fn open(
     } else if has_creat {
         opts.create(true);
     }
-    let mut custom_flags = 0;
+    let mut _custom_flags = 0;
     if (flags & O_NONBLOCK) != 0 {
-        custom_flags |= platform_constants::O_NONBLOCK;
+        _custom_flags |= platform_constants::O_NONBLOCK;
     }
     if (flags & O_NOCTTY) != 0 {
-        custom_flags |= platform_constants::O_NOCTTY;
+        _custom_flags |= platform_constants::O_NOCTTY;
     }
     if (flags & O_DSYNC) != 0 {
-        custom_flags |= platform_constants::O_DSYNC;
+        _custom_flags |= platform_constants::O_DSYNC;
     }
     if (flags & O_SYNC) != 0 {
-        custom_flags |= platform_constants::O_SYNC;
+        _custom_flags |= platform_constants::O_SYNC;
     }
     cfg_if::cfg_if! {
         if #[cfg(unix)] {
-            opts.custom_flags(custom_flags as u32);
-            opts.mode((mode & 0o777) as u32);
+            opts.custom_flags(_custom_flags as u32);
+            opts.mode((_mode & 0o777) as u32);
         } else {
             // Windows: set the common FILE_ATTRIBUTE_NORMAL and optionally overlapped I/O
             use std::os::windows::fs::OpenOptionsExt;
@@ -433,7 +433,7 @@ fn access(
                 return;
             }
             Ok(metadata) => {
-                let mode_bits = MetadataExtractor::mode(&metadata);
+                let _mode_bits = MetadataExtractor::mode(&metadata);
                 if mode & 0o111 == 0 {
                     let message = v8::String::new(scope, "execute permission denied").unwrap();
                     let exn = v8::Exception::error(scope, message);
@@ -630,6 +630,7 @@ fn file_size(
     ret.set(size.into());
 }
 
+#[allow(dead_code)]
 fn timeval_from_f64(t: f64) -> std::io::Result<libc::timeval> {
     if !t.is_finite() {
         return Err(std::io::Error::new(

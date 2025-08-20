@@ -94,7 +94,7 @@ impl MetadataExtractor {
     }
 
     /// Extract number of hard links
-    pub fn nlink(metadata: &Metadata) -> u64 {
+    pub fn nlink(_metadata: &Metadata) -> u64 {
         cfg_if::cfg_if! {
             if #[cfg(windows)] {
                 // Windows files typically have 1 link
@@ -108,7 +108,7 @@ impl MetadataExtractor {
     }
 
     /// Extract user ID (Windows: simulate with 0, Unix: actual UID)
-    pub fn uid(metadata: &Metadata) -> u32 {
+    pub fn uid(_metadata: &Metadata) -> u32 {
         cfg_if::cfg_if! {
             if #[cfg(windows)] {
                 // Windows uses SIDs, not UIDs. For compatibility, return 0
@@ -123,7 +123,7 @@ impl MetadataExtractor {
     }
 
     /// Extract group ID (Windows: simulate with 0, Unix: actual GID)
-    pub fn gid(metadata: &Metadata) -> u32 {
+    pub fn gid(_metadata: &Metadata) -> u32 {
         cfg_if::cfg_if! {
             if #[cfg(windows)] {
                 // Windows uses SIDs, not GIDs. For compatibility, return 0
@@ -251,13 +251,20 @@ impl PermissionsBuilder {
             .truncate(true)
             .open(&temp_path)
         {
-            let mut perms = fs::metadata(&temp_path).unwrap().permissions();
-            perms.set_readonly(read_only);
+            if let Ok(metadata) = fs::metadata(&temp_path) {
+                let mut perms = metadata.permissions();
+                perms.set_readonly(read_only);
 
-            // Clean up
-            let _ = fs::remove_file(temp_path);
+                // Clean up
+                let _ = fs::remove_file(temp_path);
 
-            perms
+                perms
+            } else {
+                // If we can't get metadata, return default permissions
+                fs::metadata(".")
+                    .unwrap_or_else(|_| fs::metadata("C:\\").unwrap())
+                    .permissions()
+            }
         } else {
             // Fallback to current directory permissions
             fs::metadata(".").unwrap().permissions()
