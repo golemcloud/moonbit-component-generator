@@ -1,1 +1,1 @@
-include!("../../moonc_wasm/src/wasmoo_extern.rs");
+../../moonc_wasm/src/wasmoo_extern.rs

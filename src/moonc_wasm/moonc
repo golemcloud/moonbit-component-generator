@@ -1,1 +1,1 @@
-include!("../../moonc_wasm/src/moonc.rs");
+../../moonc_wasm/src/moonc
