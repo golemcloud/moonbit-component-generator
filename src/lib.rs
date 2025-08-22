@@ -573,7 +573,8 @@ impl MoonBitComponent {
             args.push(w.to_string());
         }
         args.push("-o".to_string());
-        args.push(self.dir.join(output).to_string());
+        let output_path = self.dir.join(output);
+        args.push(output_path.to_string());
         args.push("-pkg".to_string());
         args.push(package.to_string());
         args.push("-std-path".to_string());
@@ -586,6 +587,12 @@ impl MoonBitComponent {
         self.add_package_sources(&mut args, package_sources);
         args.push("-target".to_string());
         args.push("wasm".to_string());
+
+        // Create the parent directory for the output file if it doesn't exist
+        if let Some(parent) = output_path.parent() {
+            std::fs::create_dir_all(parent)
+                .context("Creating output directory for MoonBit package")?;
+        }
 
         MOONC.run(args)?;
         Ok(())
@@ -612,7 +619,8 @@ impl MoonBitComponent {
         args.push("-main".to_string());
         args.push(main_package_name.to_string());
         args.push("-o".to_string());
-        args.push(self.module_wasm().to_string());
+        let module_wasm_path = self.module_wasm();
+        args.push(module_wasm_path.to_string());
         args.push("-pkg-config-path".to_string());
         args.push(self.dir.join(main_package_json).to_string());
         self.add_package_sources(&mut args, package_sources);
@@ -628,6 +636,12 @@ impl MoonBitComponent {
         args.push(exported_memory_name.to_string());
         args.push("-heap-start-address".to_string());
         args.push(heap_start_address.to_string());
+
+        // Create the parent directory for the module WASM file if it doesn't exist
+        if let Some(parent) = module_wasm_path.parent() {
+            std::fs::create_dir_all(parent)
+                .context("Creating output directory for module WASM")?;
+        }
 
         MOONC.run(args)?;
         Ok(())
@@ -659,7 +673,12 @@ impl MoonBitComponent {
         wit_component::embed_component_metadata(&mut wasm, resolve, *world, StringEncoding::UTF16)
             .context("Embedding component metadata")?;
 
-        std::fs::write(self.module_with_embed_wasm(), wasm)
+        let module_with_embed_path = self.module_with_embed_wasm();
+        if let Some(parent) = module_with_embed_path.parent() {
+            std::fs::create_dir_all(parent)
+                .context("Creating output directory for embedded WASM")?;
+        }
+        std::fs::write(module_with_embed_path, wasm)
             .context("Writing WASM with embedded metadata")?;
 
         Ok(())
