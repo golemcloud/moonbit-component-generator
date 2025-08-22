@@ -639,8 +639,7 @@ impl MoonBitComponent {
 
         // Create the parent directory for the module WASM file if it doesn't exist
         if let Some(parent) = module_wasm_path.parent() {
-            std::fs::create_dir_all(parent)
-                .context("Creating output directory for module WASM")?;
+            std::fs::create_dir_all(parent).context("Creating output directory for module WASM")?;
         }
 
         MOONC.run(args)?;
