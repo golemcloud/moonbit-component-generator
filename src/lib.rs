@@ -571,6 +571,7 @@ impl MoonBitComponent {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_package(
         &self,
         mbt_files: &[Utf8PathBuf],
