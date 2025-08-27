@@ -194,6 +194,7 @@ impl MoonBitComponent {
             name: format!("{moonbit_root_package}/ffi"),
             mbt_files: vec![Utf8Path::new("ffi").join("top.mbt")],
             warning_control: vec![WarningControl::Disable(Warning::Specific(44))],
+            alert_control: vec![],
             output: Utf8Path::new("target")
                 .join("wasm")
                 .join("release")
@@ -226,6 +227,7 @@ impl MoonBitComponent {
                     .join("stub.mbt"),
             ],
             warning_control: vec![],
+            alert_control: vec![],
             output: Utf8Path::new("target")
                 .join("wasm")
                 .join("release")
@@ -278,6 +280,7 @@ impl MoonBitComponent {
                 name: name.clone(),
                 mbt_files: vec![src.join("top.mbt"), src.join("ffi.mbt")],
                 warning_control: vec![],
+                alert_control: vec![],
                 output: output.join(format!("{interface_name}.core")),
                 dependencies: vec![ffi_dep.clone()],
                 package_sources: vec![(name, src)],
@@ -311,6 +314,7 @@ impl MoonBitComponent {
                 name: name.clone(),
                 mbt_files: vec![src.join("top.mbt"), src.join("stub.mbt")],
                 warning_control: vec![],
+                alert_control: vec![],
                 output: output.join(format!("{interface_name}.core")),
 
                 dependencies: vec![],
@@ -330,6 +334,7 @@ impl MoonBitComponent {
             name: format!("{moonbit_root_package}/gen"),
             mbt_files: gen_mbt_files,
             warning_control: vec![],
+            alert_control: vec![],
             output: Utf8Path::new("target")
                 .join("wasm")
                 .join("release")
@@ -356,6 +361,19 @@ impl MoonBitComponent {
             .get_mut(package_name)
             .ok_or_else(|| anyhow::anyhow!("Package '{package_name}' not found"))?;
         package.warning_control = warning_control;
+        Ok(())
+    }
+
+    pub fn set_alert_control(
+        &mut self,
+        package_name: &str,
+        alert_control: Vec<WarningControl>,
+    ) -> anyhow::Result<()> {
+        let package = self
+            .packages
+            .get_mut(package_name)
+            .ok_or_else(|| anyhow::anyhow!("Package '{package_name}' not found"))?;
+        package.alert_control = alert_control;
         Ok(())
     }
 
@@ -485,6 +503,7 @@ impl MoonBitComponent {
             self.build_package(
                 &package.mbt_files,
                 &package.warning_control,
+                &package.alert_control,
                 &package.output,
                 &package.name,
                 &package.dependencies,
@@ -556,12 +575,34 @@ impl MoonBitComponent {
         &self,
         mbt_files: &[Utf8PathBuf],
         warning_control: &[WarningControl],
+        alert_control: &[WarningControl],
         output: &Utf8Path,
         package: &str,
         dependencies: &[(Utf8PathBuf, String)],
         package_sources: &[(String, Utf8PathBuf)],
     ) -> anyhow::Result<()> {
         info!("Building MoonBit package: {package}");
+
+        for mbt_file in mbt_files {
+            let abs = self.dir.join(mbt_file);
+            if !abs.exists() {
+                return Err(anyhow!("MBT file does not exist at {abs}"));
+            }
+        }
+        for (path, name) in dependencies {
+            let abs = self.dir.join(path);
+            if !abs.exists() {
+                return Err(anyhow!("Dependency {name} does not exist at {abs}"));
+            }
+        }
+        for (source_name, source_path) in package_sources {
+            let abs = self.dir.join(source_path);
+            if !abs.exists() {
+                return Err(anyhow!(
+                    "Package source {source_name} does not exist at {abs}"
+                ));
+            }
+        }
 
         let mut args = vec!["build-package".to_string()];
         for file in mbt_files {
@@ -571,6 +612,10 @@ impl MoonBitComponent {
         for w in warning_control {
             args.push("-w".to_string());
             args.push(w.to_string());
+        }
+        for a in alert_control {
+            args.push("-alert".to_string());
+            args.push(a.to_string());
         }
         args.push("-o".to_string());
         args.push(self.dir.join(output).to_string());
@@ -588,6 +633,12 @@ impl MoonBitComponent {
         args.push("wasm".to_string());
 
         MOONC.run(args)?;
+
+        let abs = self.dir.join(output);
+        if !abs.exists() {
+            return Err(anyhow!("Output does not exist at {abs}"));
+        }
+
         Ok(())
     }
 
@@ -894,6 +945,7 @@ pub struct MoonBitPackage {
     pub name: String,
     pub mbt_files: Vec<Utf8PathBuf>,
     pub warning_control: Vec<WarningControl>,
+    pub alert_control: Vec<WarningControl>,
     pub output: Utf8PathBuf,
     pub dependencies: Vec<(Utf8PathBuf, String)>,
     pub package_sources: Vec<(String, Utf8PathBuf)>,
