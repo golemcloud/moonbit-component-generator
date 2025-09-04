@@ -437,10 +437,6 @@ impl MoonBitComponent {
         let package_name_snake = to_moonbit_ident(&package_name.name);
         let package_namespace_snake = to_moonbit_ident(&package_name.namespace);
 
-        println!(
-            "!!! writing interface stub for {package_name}/{interface_name} to {package_namespace_snake}/{package_name_snake}"
-        );
-
         let path = self
             .dir
             .join("gen")
