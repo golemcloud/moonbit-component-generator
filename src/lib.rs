@@ -179,7 +179,7 @@ impl MoonBitComponent {
     pub fn define_bindgen_packages(&mut self) -> anyhow::Result<()> {
         let moonbit_root_package = self.moonbit_root_package()?;
         let world_name = self.world_name()?;
-        let world_snake = world_name.to_snake_case();
+        let world_snake = to_moonbit_ident(&world_name);
 
         let imported_interfaces = self.get_imported_interfaces()?;
         let exported_interfaces = self.get_exported_interfaces()?;
@@ -257,8 +257,8 @@ impl MoonBitComponent {
         gen_mbt_files.push(Utf8Path::new("gen").join(format!("world_{world_snake}_export.mbt")));
 
         for (package_name, interface_name) in &imported_interfaces {
-            let pkg_namespace = package_name.namespace.to_snake_case();
-            let pkg_name = package_name.name.to_snake_case();
+            let pkg_namespace = to_moonbit_ident(&package_name.namespace);
+            let pkg_name = to_moonbit_ident(&package_name.name);
             let interface_name = interface_name.to_lower_camel_case();
 
             let name = format!(
@@ -288,8 +288,10 @@ impl MoonBitComponent {
         }
 
         for (package_name, interface_name) in &exported_interfaces {
-            let pkg_namespace = package_name.namespace.to_snake_case();
-            let pkg_name = package_name.name.to_snake_case();
+            let pkg_namespace = to_moonbit_ident(&package_name.namespace);
+            let unescaped_pkg_namespace = package_name.namespace.to_snake_case();
+            let pkg_name = to_moonbit_ident(&package_name.name);
+            let unescaped_pkg_name = package_name.name.to_snake_case();
             let interface_name = interface_name.to_lower_camel_case();
             let snake_interface_name = interface_name.to_snake_case();
 
@@ -325,7 +327,7 @@ impl MoonBitComponent {
                 interface_name.clone(),
             ));
             gen_mbt_files.push(Utf8Path::new("gen").join(format!(
-                "gen_interface_{pkg_namespace}_{pkg_name}_{snake_interface_name}_export.mbt"
+                "gen_interface_{unescaped_pkg_namespace}_{unescaped_pkg_name}_{snake_interface_name}_export.mbt"
             )));
         }
 
@@ -432,8 +434,13 @@ impl MoonBitComponent {
         interface_name: &str,
         moonbit_source: &str,
     ) -> anyhow::Result<()> {
-        let package_name_snake = package_name.name.to_snake_case();
-        let package_namespace_snake = package_name.namespace.to_snake_case();
+        let package_name_snake = to_moonbit_ident(&package_name.name);
+        let package_namespace_snake = to_moonbit_ident(&package_name.namespace);
+
+        println!(
+            "!!! writing interface stub for {package_name}/{interface_name} to {package_namespace_snake}/{package_name_snake}"
+        );
+
         let path = self
             .dir
             .join("gen")
@@ -456,8 +463,8 @@ impl MoonBitComponent {
         interface_name: &str,
         json: serde_json::Value,
     ) -> anyhow::Result<()> {
-        let package_name_snake = package_name.name.to_snake_case();
-        let package_namespace_snake = package_name.namespace.to_snake_case();
+        let package_name_snake = to_moonbit_ident(&package_name.name);
+        let package_namespace_snake = to_moonbit_ident(&package_name.namespace);
         let path = self
             .dir
             .join("gen")
@@ -979,6 +986,31 @@ impl Display for WarningControl {
             WarningControl::Disable(code) => write!(f, "-{code}"),
             WarningControl::EnableAsError(code) => write!(f, "@{code}"),
         }
+    }
+}
+
+pub fn to_moonbit_ident(name: impl AsRef<str>) -> String {
+    // Escape MoonBit keywords and reserved keywords
+    let name = name.as_ref();
+    match name {
+        // Keywords
+        "as" | "else" | "extern" | "fn" | "fnalias" | "if" | "let" | "const" | "match" | "using"
+        | "mut" | "type" | "typealias" | "struct" | "enum" | "trait" | "traitalias" | "derive"
+        | "while" | "break" | "continue" | "import" | "return" | "throw" | "raise" | "try" | "catch"
+        | "pub" | "priv" | "readonly" | "true" | "false" | "_" | "test" | "loop" | "for" | "in" | "impl"
+        | "with" | "guard" | "async" | "is" | "suberror" | "and" | "letrec" | "enumview" | "noraise"
+        | "defer" | "init" | "main"
+        // Reserved keywords
+        | "module" | "move" | "ref" | "static" | "super" | "unsafe" | "use" | "where" | "await"
+        | "dyn" | "abstract" | "do" | "final" | "macro" | "override" | "typeof" | "virtual" | "yield"
+        | "local" | "method" | "alias" | "assert" | "recur" | "isnot" | "define" | "downcast"
+        | "inherit" | "member" | "namespace" | "upcast" | "void" | "lazy" | "include" | "mixin"
+        | "protected" | "sealed" | "constructor" | "atomic" | "volatile" | "anyframe" | "anytype"
+        | "asm" | "comptime" | "errdefer" | "export" | "opaque" | "orelse" | "resume" | "threadlocal"
+        | "unreachable" | "dynclass" | "dynobj" | "dynrec" | "var" | "finally" | "noasync" => {
+            format ! ("{name}_")
+        }
+        _ => name.to_snake_case(),
     }
 }
 
