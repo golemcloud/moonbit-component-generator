@@ -25,7 +25,7 @@ fn ParseContext::make(input : String) -> ParseContext {
 }
 
 ///|
-priv type CharClass Array[(Char, Char)]
+priv struct CharClass(Array[(Char, Char)])
 
 ///|
 fn CharClass::of(array : Array[(Char, Char)]) -> CharClass {
@@ -55,7 +55,7 @@ priv enum Token {
   Null
   True
   False
-  Number(Double)
+  Number(Double, String?)
   String(String)
   LBrace
   RBrace

@@ -55,10 +55,10 @@ pub fn bench(
   self : T,
   name? : String,
   f : () -> Unit,
-  count~ : UInt = 10
+  count? : UInt = 10,
 ) -> Unit {
   let summary = iter_count(name?, f, count)
-  if not(self.buffer.is_empty()) {
+  if !self.buffer.is_empty() {
     self.buffer.write_char(',')
   }
   self.buffer.write_string(summary.to_json().stringify(escape_slash=true))
@@ -70,7 +70,7 @@ pub fn bench(
 pub fn single_bench(
   name? : String,
   f : () -> Unit,
-  count~ : UInt = 10
+  count? : UInt = 10,
 ) -> Summary {
   iter_count(name?, f, count)
 }
@@ -94,6 +94,7 @@ pub fn dump_summaries(self : T) -> String {
 }
 
 ///|
+#skip("slow benchmarking test")
 test "bench - single_bench basic functionality" {
   let bench_result = single_bench(
     () => {
@@ -112,6 +113,7 @@ test "bench - single_bench basic functionality" {
 }
 
 ///|
+#skip("slow benchmarking test")
 test "bench - Summary struct properties" {
   // Create a very simple bench and extract the summary
   let bench_result = single_bench(
@@ -141,6 +143,7 @@ test "bench - Summary struct properties" {
 }
 
 ///|
+#skip("slow benchmarking test")
 test "bench - T struct and bench method" {
   let bench_obj = new()
 
@@ -177,6 +180,7 @@ test "bench - T struct and bench method" {
 }
 
 ///|
+#skip("slow benchmarking test")
 test "bench - monotonic clock functionality" {
   // Test that the clock functions work properly
   let start = monotonic_clock_start()
@@ -191,4 +195,14 @@ test "bench - monotonic clock functionality" {
 
   // Elapsed time should be non-negative
   inspect(elapsed >= 0.0, content="true")
+}
+
+///|
+test "bench - keep stores value" {
+  let b = new()
+  assert_eq(b.summaries.length(), 0)
+  b.keep(123)
+  assert_eq(b.summaries.length(), 0)
+  b.keep(456)
+  assert_eq(b.summaries.length(), 0)
 }

@@ -19,10 +19,14 @@ typealias @path.Path
 /// An non-empty immutable hash set data structure
 priv enum Node[A] {
   Flat(A, Path)
-  Leaf(A, @list.T[A]) // use a list of buckets to resolve collision
+  Leaf(A, @list.List[A]) // use a list of buckets to resolve collision
   /// number of all its leaf > 1. If equals 1, it should be represented as `Flat`
   Branch(@sparse_array.SparseArray[Node[A]])
 }
 
 ///|
-type T[A] Node[A]? derive(Eq)
+struct HashSet[A](Node[A]?) derive(Eq)
+
+///|
+#deprecated("Use `Set` instead of `T`")
+pub typealias HashSet as T

@@ -71,12 +71,80 @@ fn main() {
 - `core` is a git submodule containing the MoonBit core library (https://github.com/moonbitlang/core)
 - `bundled-core` is the MoonBit core library (source and compiled for wasm), included in this repository to avoid users of the crate from having to build `core` themselves.
 
-To update and build the MoonBit core library:
+### System Requirements
 
-**NOTE**: requires the 0.6.19 version of MoonBit currently
+#### Debian/Ubuntu
+The following system packages are required:
+```bash
+# Essential build tools and C compiler for Rust build dependencies
+sudo apt-get update && sudo apt-get install -y build-essential
 
+# Optional but recommended: curl for downloading tools
+sudo apt-get install -y curl
+
+# Git for submodule management
+sudo apt-get install -y git
 ```
-curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
+
+**Note**: The project has been tested on Debian 12 (Bookworm) with kernel 6.1.0-38-amd64 and works correctly with the standard Debian package repositories.
+
+### Development Setup
+
+1. **Install mise** (development environment manager):
+```bash
+# Install mise if not already present
+curl https://mise.run | sh
+```
+
+2. **Install development tools** via mise:
+```bash
+# This installs Rust stable toolchain as configured in .mise.toml
+mise install
+```
+
+3. **Install MoonBit** (version 0.6.24):
+```bash
+curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.24
+# Add to PATH (the installer does this automatically for new shells)
+export PATH="$HOME/.moon/bin:$PATH"
+```
+
+4. **Initialize git submodules** and build the core library:
+```bash
+git submodule update --init --recursive
+cd core && moon bundle --target wasm && cd ..
+```
+
+5. **Install test dependencies**:
+```bash
+# Install cargo-binstall for faster binary installation
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+# Install wasmtime-cli with required features
+cargo binstall --force --locked wasmtime-cli@33.0.0 -y
+```
+
+### Building and Testing
+
+```bash
+# Format check
+cargo fmt -- --check
+
+# Lint check
+cargo clippy -- -Dwarnings
+
+# Build all features and targets
+cargo build --all-features --all-targets
+
+# Run tests (requires wasmtime-cli)
+cargo test -p moonbit-component-generator -- --nocapture --test-threads=1
+```
+
+### Updating the MoonBit Core Library
+
+To update and rebuild the MoonBit core library bundle:
+
+```bash
 git submodule update --recursive
 ./update-bundle.sh
 ```
@@ -85,6 +153,9 @@ The bundled core library is included in the compiled crate using the `include_di
 It is also pushed into the repository (`bundled-core` directory) to avoid users of the crate from having to build the MoonBit core themselves as part
 of the Rust build process.
 
-Running the tests require `wasmtime-cli` to be installed with the following features enabled:
-- `component-model`
-- `wasi-config`
+### Notes
+
+- Running tests requires `wasmtime-cli` version 33.0.0 with the following features enabled:
+  - `component-model`
+  - `wasi-config`
+- The MoonBit compiler runs in WASM on V8, so the first compilation in a session may take longer due to V8 initialization

@@ -17,29 +17,65 @@ let default_init_capacity = 8
 
 ///|
 test "new_with_capacity_then_add " {
-  let set : @hashset.T[(String, String)] = @hashset.new(capacity=20)
+  let set : @hashset.HashSet[(String, String)] = @hashset.new(capacity=20)
   set.add(("None", "Hash"))
   inspect(
     set,
-    content=
+    content=(
       #|@hashset.of([("None", "Hash")])
-    ,
+    ),
   )
 }
 
 ///|
-test "doc" {
-  let set = @hashset.of([3, 8, 1])
-  set.add(3)
-  set.add(4)
-  inspect(set, content="@hashset.of([3, 4, 1, 8])")
+test "to_array" {
+  let v = @hashset.of([1, 2, 3, 4])
+  let arr = v.to_array()
+  arr.sort()
+  inspect(arr, content="[1, 2, 3, 4]")
+}
+
+///|
+test "add_and_check" {
+  let set : @hashset.HashSet[String] = @hashset.new()
+  inspect(set.add_and_check("key"), content="true") // First insertion
+  inspect(set.add_and_check("key"), content="false") // Already exists
+  inspect(set.size(), content="1")
+}
+
+///|
+test "remove_and_check" {
+  let set = @hashset.of(["a", "b"])
+  inspect(set.remove_and_check("a"), content="true") // Successfully removed
+  inspect(set.remove_and_check("a"), content="false") // Already removed
+  inspect(set.size(), content="1")
+}
+
+///|
+test "copy" {
+  let set = @hashset.of(["a", "b", "c"])
+  let copied = set.copy()
+  inspect(copied.size(), content="3")
+  inspect(copied.contains("a"), content="true")
+  inspect(copied.contains("b"), content="true")
+  inspect(copied.contains("c"), content="true")
+  // Modify original, copy should be unaffected
+  set.remove("a")
+  inspect(set.size(), content="2")
+  inspect(copied.size(), content="3")
+}
+
+///|
+test "to_json" {
+  let set = @hashset.of([1, 2, 3])
+  @json.inspect(set, content=[3, 1, 2])
 }
 
 ///|
 test "new" {
-  let m : @hashset.T[Int] = @hashset.new()
+  let m : @hashset.HashSet[Int] = @hashset.new()
   assert_eq(m.capacity(), default_init_capacity)
-  assert_eq(m.size(), 0)
+  inspect(m.size(), content="0")
 }
 
 ///|
@@ -66,19 +102,19 @@ test "from_array" {
 ///|
 test "size" {
   let m = @hashset.new()
-  assert_eq(m.size(), 0)
+  inspect(m.size(), content="0")
   m.add("a")
-  assert_eq(m.size(), 1)
+  inspect(m.size(), content="1")
 }
 
 ///|
 test "is_empty" {
   let m = @hashset.new()
-  assert_eq(m.is_empty(), true)
+  inspect(m.is_empty(), content="true")
   m.add("a")
-  assert_eq(m.is_empty(), false)
+  inspect(m.is_empty(), content="false")
   m.remove("a")
-  assert_eq(m.is_empty(), true)
+  inspect(m.is_empty(), content="true")
 }
 
 ///|
@@ -107,7 +143,7 @@ test "union" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
   let m = m1.union(m2)
-  assert_eq(m.size(), 4)
+  inspect(m.size(), content="4")
   assert_true(m.contains("a"))
   assert_true(m.contains("b"))
   assert_true(m.contains("c"))
@@ -119,7 +155,7 @@ test "intersection" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
   let m = m1.intersection(m2)
-  assert_eq(m.size(), 2)
+  inspect(m.size(), content="2")
   assert_false(m.contains("a"))
   assert_true(m.contains("b"))
   assert_true(m.contains("c"))
@@ -131,7 +167,7 @@ test "difference" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
   let m = m1.difference(m2)
-  assert_eq(m.size(), 1)
+  inspect(m.size(), content="1")
   assert_true(m.contains("a"))
   assert_false(m.contains("b"))
   assert_false(m.contains("c"))
@@ -143,7 +179,7 @@ test "symmetric_difference" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
   let m = m1.symmetric_difference(m2)
-  assert_eq(m.size(), 2)
+  inspect(m.size(), content="2")
   assert_true(m.contains("a"))
   assert_false(m.contains("b"))
   assert_false(m.contains("c"))
@@ -154,30 +190,30 @@ test "symmetric_difference" {
 test "is_disjoint" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
-  assert_eq(m1.is_disjoint(m2), false)
+  inspect(m1.is_disjoint(m2), content="false")
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["e", "f", "g"])
-  assert_eq(m1.is_disjoint(m2), true)
+  inspect(m1.is_disjoint(m2), content="true")
 }
 
 ///|
 test "is_subset" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
-  assert_eq(m1.is_subset(m2), false)
+  inspect(m1.is_subset(m2), content="false")
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["a", "b", "c", "d"])
-  assert_eq(m1.is_subset(m2), true)
+  inspect(m1.is_subset(m2), content="true")
 }
 
 ///|
 test "is_superset" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
-  assert_eq(m1.is_superset(m2), false)
+  inspect(m1.is_superset(m2), content="false")
   let m1 = @hashset.of(["a", "b", "c", "d"])
   let m2 = @hashset.of(["a", "b", "c"])
-  assert_eq(m1.is_superset(m2), true)
+  inspect(m1.is_superset(m2), content="true")
 }
 
 ///|
@@ -185,7 +221,7 @@ test "land" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
   let m = m1 & m2
-  assert_eq(m.size(), 2)
+  inspect(m.size(), content="2")
   assert_false(m.contains("a"))
   assert_true(m.contains("b"))
   assert_true(m.contains("c"))
@@ -197,7 +233,7 @@ test "lor" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
   let m = m1 | m2
-  assert_eq(m.size(), 4)
+  inspect(m.size(), content="4")
   assert_true(m.contains("a"))
   assert_true(m.contains("b"))
   assert_true(m.contains("c"))
@@ -209,7 +245,7 @@ test "lxor" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
   let m = m1 ^ m2
-  assert_eq(m.size(), 2)
+  inspect(m.size(), content="2")
   assert_true(m.contains("a"))
   assert_false(m.contains("b"))
   assert_false(m.contains("c"))
@@ -221,7 +257,7 @@ test "op_sub" {
   let m1 = @hashset.of(["a", "b", "c"])
   let m2 = @hashset.of(["b", "c", "d"])
   let m = m1 - m2
-  assert_eq(m.size(), 1)
+  inspect(m.size(), content="1")
   assert_true(m.contains("a"))
   assert_false(m.contains("b"))
   assert_false(m.contains("c"))
@@ -255,8 +291,8 @@ test "insert_and_grow" {
   for i in 0..<10 {
     m.add(i.to_string())
   }
-  assert_eq(m.size(), 10)
-  assert_eq(m.capacity(), 16)
+  inspect(m.size(), content="10")
+  inspect(m.capacity(), content="16")
 }
 
 ///|
@@ -277,9 +313,9 @@ test "remove_and_shift_back" {
 test "capacity_and_size" {
   let m = @hashset.new()
   assert_eq(m.capacity(), default_init_capacity)
-  assert_eq(m.size(), 0)
+  inspect(m.size(), content="0")
   m.add("a")
-  assert_eq(m.size(), 1)
+  inspect(m.size(), content="1")
 }
 
 ///|
@@ -288,9 +324,9 @@ test "clear_and_reinsert" {
   m.add("a")
   m.add("b")
   m.clear()
-  assert_eq(m.size(), 0)
+  inspect(m.size(), content="0")
   m.add("c")
-  assert_eq(m.size(), 1)
+  inspect(m.size(), content="1")
   assert_true(m.contains("c"))
 }
 
@@ -300,8 +336,8 @@ test "insert_and_grow" {
   for i in 0..<10 {
     m.add(i.to_string())
   }
-  assert_eq(m.size(), 10)
-  assert_eq(m.capacity(), 16)
+  inspect(m.size(), content="10")
+  inspect(m.capacity(), content="16")
 }
 
 ///|
@@ -322,9 +358,9 @@ test "remove_and_shift_back" {
 test "capacity_and_size" {
   let m = @hashset.new()
   assert_eq(m.capacity(), default_init_capacity)
-  assert_eq(m.size(), 0)
+  inspect(m.size(), content="0")
   m.add("a")
-  assert_eq(m.size(), 1)
+  inspect(m.size(), content="1")
 }
 
 ///|
@@ -333,9 +369,9 @@ test "clear_and_reinsert" {
   m.add("a")
   m.add("b")
   m.clear()
-  assert_eq(m.size(), 0)
+  inspect(m.size(), content="0")
   m.add("c")
-  assert_eq(m.size(), 1)
+  inspect(m.size(), content="1")
   assert_true(m.contains("c"))
 }
 
@@ -354,13 +390,13 @@ test "from_iter single element iter" {
 
 ///|
 test "from_iter empty iter" {
-  let map : @hashset.T[Int] = @hashset.from_iter(Iter::empty())
+  let map : @hashset.HashSet[Int] = @hashset.from_iter(Iter::empty())
   inspect(map, content="@hashset.of([])")
 }
 
 ///|
 test "hashset arbitrary" {
-  let samples : Array[@hashset.T[Int]] = @quickcheck.samples(20)
+  let samples : Array[@hashset.HashSet[Int]] = @quickcheck.samples(20)
   inspect(
     samples[5:10],
     content="[@hashset.of([]), @hashset.of([]), @hashset.of([0]), @hashset.of([0]), @hashset.of([0, 3, 1, 2])]",
@@ -373,7 +409,7 @@ test "hashset arbitrary" {
 
 ///|
 test "@hashset.to_array/empty" {
-  let set : @hashset.T[Int] = @hashset.new()
+  let set : @hashset.HashSet[Int] = @hashset.new()
   inspect(set.to_array(), content="[]")
 }
 

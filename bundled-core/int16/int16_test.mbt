@@ -426,3 +426,10 @@ test "Int16::to_json" {
   inspect(Int16::to_json(32767), content="Number(32767)")
   inspect(Int16::to_json(-32768), content="Number(-32768)")
 }
+
+///|
+test "Int16::reinterpret_as_uint16" {
+  inspect((-1 : Int16).reinterpret_as_uint16(), content="65535")
+  inspect((0 : Int16).reinterpret_as_uint16(), content="0")
+  inspect((1 : Int16).reinterpret_as_uint16(), content="1")
+}

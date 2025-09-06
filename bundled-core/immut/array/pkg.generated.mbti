@@ -1,0 +1,56 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/core/immut/array"
+
+import(
+  "moonbitlang/core/quickcheck"
+)
+
+// Values
+
+// Errors
+
+// Types and methods
+type T[A]
+fn[A] T::concat(Self[A], Self[A]) -> Self[A]
+#deprecated
+fn[A] T::copy(Self[A]) -> Self[A]
+fn[A] T::each(Self[A], (A) -> Unit raise?) -> Unit raise?
+fn[A] T::eachi(Self[A], (Int, A) -> Unit raise?) -> Unit raise?
+fn[A, B] T::fold(Self[A], init~ : B, (B, A) -> B raise?) -> B raise?
+#deprecated
+fn[A] T::fold_left(Self[A], (A, A) -> A raise?, init~ : A) -> A raise?
+#deprecated
+fn[A] T::fold_right(Self[A], (A, A) -> A raise?, init~ : A) -> A raise?
+#as_free_fn
+fn[A] T::from_array(Array[A]) -> Self[A]
+#as_free_fn
+fn[A] T::from_iter(Iter[A]) -> Self[A]
+fn[A] T::get(Self[A], Int) -> A?
+fn[A] T::is_empty(Self[A]) -> Bool
+fn[A] T::iter(Self[A]) -> Iter[A]
+fn[A] T::length(Self[A]) -> Int
+#as_free_fn
+fn[A] T::make(Int, A) -> Self[A]
+#as_free_fn
+fn[A] T::makei(Int, (Int) -> A raise?) -> Self[A] raise?
+fn[A, B] T::map(Self[A], (A) -> B raise?) -> Self[B] raise?
+#as_free_fn
+fn[A] T::new() -> Self[A]
+#as_free_fn
+fn[A] T::of(FixedArray[A]) -> Self[A]
+fn[A] T::op_get(Self[A], Int) -> A
+fn[A] T::push(Self[A], A) -> Self[A]
+fn[A, B] T::rev_fold(Self[A], init~ : B, (B, A) -> B raise?) -> B raise?
+fn[A] T::set(Self[A], Int, A) -> Self[A]
+fn[A] T::to_array(Self[A]) -> Array[A]
+impl[A] Add for T[A]
+impl[A : Compare] Compare for T[A]
+impl[A : Eq] Eq for T[A]
+impl[A : Hash] Hash for T[A]
+impl[A : Show] Show for T[A]
+impl[X : @quickcheck.Arbitrary] @quickcheck.Arbitrary for T[X]
+
+// Type aliases
+
+// Traits
+

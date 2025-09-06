@@ -16,36 +16,28 @@
 test "String::escape" {
   inspect(
     "abc,def".escape(),
-    content=
+    content=(
       #|"abc,def"
-    ,
+    ),
   )
   inspect(
     "\n\t\\".escape(),
-    content=
+    content=(
       #|"\n\t\\"
-    ,
+    ),
   )
   inspect(
     "\"'".escape(),
-    content=
+    content=(
       #|"\"'"
-    ,
+    ),
   )
   inspect(
     "\u{00}\u{01}\u{20}\u{21}".escape(),
-    content=
+    content=(
       #|"\u{00}\u{01} !"
-    ,
+    ),
   )
-}
-
-///|
-test "substring" {
-  assert_eq("abc".substring(), "abc")
-  assert_eq("abc".substring(start=1), "bc")
-  assert_eq("abc".substring(end=2), "ab")
-  assert_eq("abc".substring(start=1, end=2), "b")
 }
 
 ///|
@@ -53,25 +45,6 @@ test "panic codepoint_at1" {
   let str = "Hello🤣🤣🤣"
   let _ = str.iter().nth(8).unwrap()
 
-}
-
-///|
-// test "panic codepoint_at2" {
-//   let str = "Hello🤣🤣🤣"
-//   let _ = str.iter().nth(-1).unwrap()
-
-// }
-
-///|
-test "panic charcode_at with negative index" {
-  let s = "Hello"
-  ignore(s.charcode_at(-1))
-}
-
-///|
-test "charcode_at with valid index" {
-  let s = "Hello"
-  inspect(s.charcode_at(0), content="72")
 }
 
 ///|
@@ -84,16 +57,6 @@ test "codepoint_at regular character at end of string" {
 test "codepoint_at emoji" {
   let s = "👋"
   inspect(s.iter().nth(0).unwrap(), content="👋")
-}
-
-///|
-test "unsafe_char_at" {
-  let s = "a👋b"
-  inspect(s.unsafe_char_at(0), content="a")
-  inspect(s.unsafe_char_at(1), content="👋")
-  // invalid char cannot be inspected
-  inspect(s.unsafe_char_at(2).to_int(), content="56395")
-  inspect(s.unsafe_char_at(3), content="b")
 }
 
 ///|

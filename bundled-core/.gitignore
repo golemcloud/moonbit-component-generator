@@ -4,6 +4,9 @@
 moonbit-coverage-*.txt
 _coverage
 bisect.coverage
+*.log
 
 .DS_Store
 .ai/
+.auto-coder/
+.moonagent/

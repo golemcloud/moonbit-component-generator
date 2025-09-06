@@ -25,12 +25,7 @@ test "show error" {
     }
   }
 
-  inspect(
-    try? f(true),
-    content=
-      #|Ok("ok")
-    ,
-  )
+  inspect(try! f(true), content="ok")
   inspect(
     try? f(false),
     content="Err(moonbitlang/core/error_blackbox_test.IntError.IntError)",
@@ -54,7 +49,7 @@ test "show error" {
 /// here `protect` raise the `work` error
 fn[A, E : Error] protect(
   finalize~ : () -> Unit raise?,
-  work : () -> A raise E
+  work : () -> A raise E,
 ) -> A raise E {
   try work() catch {
     e => {
@@ -63,7 +58,7 @@ fn[A, E : Error] protect(
       }
       raise e
     }
-  } else {
+  } noraise {
     x => {
       finalize() catch {
         _ => ()
@@ -85,7 +80,7 @@ fn[A] protect2(finalize~ : () -> Unit raise?, work : () -> A raise) -> A raise {
       finalize()
       raise e
     }
-  } else {
+  } noraise {
     x => {
       finalize()
       x
@@ -102,9 +97,9 @@ test "protect" {
     })
   inspect(
     x,
-    content=
+    content=(
       #|Err(Failure("error"))
-    ,
+    ),
   )
 }
 
@@ -117,9 +112,9 @@ test "protect & finally raise error" {
     })
   inspect(
     x,
-    content=
+    content=(
       #|Err(Failure("error"))
-    ,
+    ),
   )
 }
 
@@ -132,9 +127,9 @@ test "protect2" {
     })
   inspect(
     x,
-    content=
+    content=(
       #|Err(Failure("error"))
-    ,
+    ),
   )
 }
 
@@ -147,14 +142,14 @@ test "protect2 & finally raise error" {
     })
   inspect(
     x,
-    content=
+    content=(
       #|Err(Failure("finally error"))
-    ,
+    ),
   )
 }
 
 ///|
-suberror ErrWithToJson Int derive(ToJson)
+suberror ErrWithToJson Int derive(ToJson(style="flat"))
 
 ///|
 suberror ErrWithoutToJson Int
@@ -174,14 +169,14 @@ test "error to json" {
 
   inspect(
     j(ErrWithToJson(42)),
-    content=
-      #|Object({"$tag": String("ErrWithToJson"), "0": Number(42)})
-    ,
+    content=(
+      #|Array([String("ErrWithToJson"), Number(42)])
+    ),
   )
   inspect(
     j(ErrWithoutToJson(42)),
-    content=
+    content=(
       #|String("moonbitlang/core/error_blackbox_test.ErrWithoutToJson.ErrWithoutToJson")
-    ,
+    ),
   )
 }

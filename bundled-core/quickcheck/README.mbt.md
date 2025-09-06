@@ -30,15 +30,9 @@ test "multiple samples" {
   let strings : Array[String] = @quickcheck.samples(12)
   inspect(
     strings[5:10],
-    content=
-      
-  #|["E\b\u{0f} ", "", "K\u{1f}[", "!@", "xvLxb"]
-
-
-
-
-
-    ,
+    content=(
+      #|["E\b\u{0f} ", "", "K\u{1f}[", "!@", "xvLxb"]
+    ),
   )
 }
 ```
@@ -54,15 +48,15 @@ test "builtin types" {
   inspect(v, content="(true, '#', b'\\x12')")
   // Numeric types
   let v : (Int, Int64, UInt, UInt64, Float, Double, BigInt) = @quickcheck.gen()
-  inspect(v, content="(0, 0, 0, 0, 76806128, 0.33098446695254635, 0)")
+  inspect(v, content="(0, 0, 0, 0, 0.1430625319480896, 0.33098446695254635, 0)")
   // Collections
 
   let v : (String, Bytes, Iter[Int]) = @quickcheck.gen()
   inspect(
     v,
-    content=
+    content=(
       #|("", b"", [])
-    ,
+    ),
   )
 }
 ```
@@ -79,8 +73,8 @@ struct Point {
 
 impl Arbitrary for Point with arbitrary(size, r0) {
   let r1 = r0.split()
-  let y = Arbitrary::arbitrary(size, r1)
-  { x: Arbitrary::arbitrary(size, r0), y }
+  let y = @quickcheck.Arbitrary::arbitrary(size, r1)
+  { x: @quickcheck.Arbitrary::arbitrary(size, r0), y }
 }
 
 test "custom type generation" {

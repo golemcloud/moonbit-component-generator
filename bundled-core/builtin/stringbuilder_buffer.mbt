@@ -29,7 +29,7 @@ struct StringBuilder {
 ///
 /// Returns a new `StringBuilder` instance with the specified initial capacity.
 ///
-pub fn StringBuilder::new(size_hint~ : Int = 0) -> StringBuilder {
+pub fn StringBuilder::new(size_hint? : Int = 0) -> StringBuilder {
   let initial = if size_hint < 1 { 1 } else { size_hint }
   let data : FixedArray[Byte] = FixedArray::make(initial, 0)
   { data, len: 0 }
@@ -44,7 +44,7 @@ pub fn StringBuilder::is_empty(self : StringBuilder) -> Bool {
 ///|
 fn StringBuilder::grow_if_necessary(
   self : StringBuilder,
-  required : Int
+  required : Int,
 ) -> Unit {
   let current_len = self.data.length()
   if required <= current_len {
@@ -98,7 +98,7 @@ pub impl Logger for StringBuilder with write_substring(
   self : StringBuilder,
   str : String,
   start : Int,
-  len : Int
+  len : Int,
 ) -> Unit {
   guard start >= 0 && len >= 0 && start + len <= str.length()
   self.grow_if_necessary(self.len + len * 2)
@@ -106,7 +106,7 @@ pub impl Logger for StringBuilder with write_substring(
   self.len += len * 2
 }
 
-///| 
+///|
 /// Returns the current content of the StringBuilder as a string.
 pub fn StringBuilder::to_string(self : StringBuilder) -> String {
   self.data
@@ -124,8 +124,19 @@ pub impl Show for StringBuilder with output(self, logger) {
   )
 }
 
-///| 
+///|
 /// Resets the string builder to an empty state.
 pub fn StringBuilder::reset(self : StringBuilder) -> Unit {
   self.len = 0
 }
+
+// pub fn StringBuilder::write_stringview(
+//   self : StringBuilder,
+//   view : StringView,
+// ) -> Unit {
+//  self.write_substring(
+//     view.data(),
+//     view.offset(),
+//     view.length(),
+//   )
+// }

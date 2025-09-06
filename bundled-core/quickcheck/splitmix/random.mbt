@@ -29,11 +29,9 @@ let float_ulp : Float = 1.0.to_float() / (1L << 24).to_float()
 
 ///|
 /// Create a new RandomState from an optional seed.
-pub fn new(seed~ : UInt64 = 37) -> RandomState {
+pub fn new(seed? : UInt64 = 37) -> RandomState {
   { seed: mix64(seed), gamma: mix_gamma(seed + golden_gamma) }
 }
-
-///|
 
 ///|
 /// Clone a RandomState.
@@ -96,7 +94,7 @@ pub fn next_positive_int(self : RandomState) -> Int {
 /// Get the next random number as a float in [0, 1]
 pub fn next_float(self : RandomState) -> Float {
   let u = self.next_uint64()
-  (u >> 11).to_float() * float_ulp
+  (u >> 40).to_float() * float_ulp
 }
 
 ///|

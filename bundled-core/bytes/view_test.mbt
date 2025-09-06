@@ -105,93 +105,93 @@ test "negative index1" {
   let bv = bs[-1:]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x03"
-    ,
+    ),
   )
   let bv = bs[-2:]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x02\x03"
-    ,
+    ),
   )
   let bv = bs[-3:]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02\x03"
-    ,
+    ),
   )
   let bv = bs[:-1]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02"
-    ,
+    ),
   )
   let bv = bs[:-2]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01"
-    ,
+    ),
   )
   let bv = bs[:-3]
   inspect(
     bv,
-    content=
+    content=(
       #|b""
-    ,
+    ),
   )
   let bv = bs[-3:-3]
   inspect(
     bv,
-    content=
+    content=(
       #|b""
-    ,
+    ),
   )
   let bv = bs[-3:-2]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01"
-    ,
+    ),
   )
   let bv = bs[-3:-1]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02"
-    ,
+    ),
   )
   let bv = bs[-3:0]
   inspect(
     bv,
-    content=
+    content=(
       #|b""
-    ,
+    ),
   )
   let bv = bs[-3:1]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01"
-    ,
+    ),
   )
   let bv = bs[-3:2]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02"
-    ,
+    ),
   )
   let bv = bs[-3:3]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02\x03"
-    ,
+    ),
   )
 }
 
@@ -201,93 +201,93 @@ test "negative index2" {
   let bv = bs[-1:]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x03"
-    ,
+    ),
   )
   let bv = bs[-2:]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x02\x03"
-    ,
+    ),
   )
   let bv = bs[-3:]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02\x03"
-    ,
+    ),
   )
   let bv = bs[:-1]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02"
-    ,
+    ),
   )
   let bv = bs[:-2]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01"
-    ,
+    ),
   )
   let bv = bs[:-3]
   inspect(
     bv,
-    content=
+    content=(
       #|b""
-    ,
+    ),
   )
   let bv = bs[-3:-3]
   inspect(
     bv,
-    content=
+    content=(
       #|b""
-    ,
+    ),
   )
   let bv = bs[-3:-2]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01"
-    ,
+    ),
   )
   let bv = bs[-3:-1]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02"
-    ,
+    ),
   )
   let bv = bs[-3:0]
   inspect(
     bv,
-    content=
+    content=(
       #|b""
-    ,
+    ),
   )
   let bv = bs[-3:1]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01"
-    ,
+    ),
   )
   let bv = bs[-3:2]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02"
-    ,
+    ),
   )
   let bv = bs[-3:3]
   inspect(
     bv,
-    content=
+    content=(
       #|b"\x01\x02\x03"
-    ,
+    ),
   )
 }
 
@@ -403,7 +403,7 @@ test "panic to_float_be/short_input" {
   // Test that trying to read from a view that's too short causes a panic
   let bytes = b"\x40\x49"
   let view = bytes[:]
-  ignore(View::to_float_be(view)) // Should panic due to insufficient bytes
+  ignore(@bytes.View::to_float_be(view)) // Should panic due to insufficient bytes
 }
 
 ///|
@@ -493,24 +493,47 @@ test "View::to_bytes" {
   let view = bytes[1:4]
   inspect(
     view.to_bytes(),
-    content=
+    content=(
       #|b"\x62\x63\x61"
-    ,
+    ),
   )
   let bytes = b"abcabc"
   let view = bytes[:]
   inspect(
     view.to_bytes(),
-    content=
+    content=(
       #|b"\x61\x62\x63\x61\x62\x63"
-    ,
+    ),
   )
   let bytes = b"abcabc"
   let view = bytes[0:0]
   inspect(
     view.to_bytes(),
-    content=
+    content=(
       #|b""
-    ,
+    ),
   )
+}
+
+///|
+test "impl Hash for View" {
+  let b0 : Bytes = "12345678"
+  let b1 : Bytes = "56781234"
+  assert_eq(b0[0:4].hash(), b1[4:8].hash())
+  assert_eq(b0[4:8].hash(), b1[0:4].hash())
+  assert_not_eq(b0[0:4].hash(), b1[0:4].hash())
+  assert_not_eq(b0[4:8].hash(), b1[4:8].hash())
+}
+
+///|
+/// This test checks the invariance that the hash of a bytes and its view are the same.
+/// 
+/// This is necessary because we may want to use a bytes view as a key in a hash map,
+/// and we need to ensure that the hash remains consistent with the original bytes.
+test "bytes view hash invariant" {
+  let bytes : Array[Bytes] = @quickcheck.samples(20)
+  for b in bytes {
+    let view = b[:]
+    assert_eq(view.hash(), b.hash())
+  }
 }

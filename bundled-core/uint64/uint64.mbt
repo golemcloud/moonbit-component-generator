@@ -18,7 +18,8 @@ pub let min_value : UInt64 = 0UL
 ///|
 pub let max_value : UInt64 = 18446744073709551615UL
 
-///| Converts the UInt64 to a Bytes in big-endian byte order.
+///|
+/// Converts the UInt64 to a Bytes in big-endian byte order.
 pub fn to_be_bytes(self : UInt64) -> Bytes {
   [
     (self >> 56).to_byte(),
@@ -32,7 +33,8 @@ pub fn to_be_bytes(self : UInt64) -> Bytes {
   ]
 }
 
-///| Converts the UInt64 to a Bytes in little-endian byte order.
+///|
+/// Converts the UInt64 to a Bytes in little-endian byte order.
 pub fn to_le_bytes(self : UInt64) -> Bytes {
   [
     self.to_byte(),
@@ -50,21 +52,21 @@ pub fn to_le_bytes(self : UInt64) -> Bytes {
 test "to_be_bytes" {
   inspect(
     max_value.to_be_bytes(),
-    content=
+    content=(
       #|b"\xff\xff\xff\xff\xff\xff\xff\xff"
-    ,
+    ),
   )
   inspect(
     min_value.to_be_bytes(),
-    content=
+    content=(
       #|b"\x00\x00\x00\x00\x00\x00\x00\x00"
-    ,
+    ),
   )
   inspect(
     0x123456789ABCDEF0UL.to_be_bytes(),
-    content=
+    content=(
       #|b"\x12\x34\x56\x78\x9a\xbc\xde\xf0"
-    ,
+    ),
   )
 }
 
@@ -72,20 +74,20 @@ test "to_be_bytes" {
 test "to_le_bytes" {
   inspect(
     max_value.to_le_bytes(),
-    content=
+    content=(
       #|b"\xff\xff\xff\xff\xff\xff\xff\xff"
-    ,
+    ),
   )
   inspect(
     min_value.to_le_bytes(),
-    content=
+    content=(
       #|b"\x00\x00\x00\x00\x00\x00\x00\x00"
-    ,
+    ),
   )
   inspect(
     0x123456789ABCDEF0UL.to_le_bytes(),
-    content=
+    content=(
       #|b"\xf0\xde\xbc\x9a\x78\x56\x34\x12"
-    ,
+    ),
   )
 }

@@ -68,7 +68,7 @@ struct Hasher {
 ///   h2.combine(x)
 ///   inspect(h1.finalize() != h2.finalize(), content="true") // Different seeds produce different hashes
 /// ```
-pub fn Hasher::new(seed~ : Int = 0) -> Hasher {
+pub fn Hasher::new(seed? : Int = 0) -> Hasher {
   { acc: seed.reinterpret_as_uint() + GPRIME5 }
 }
 
@@ -462,13 +462,6 @@ pub impl Hash for String with hash_combine(self, hasher) {
 ///   let y = -42
 ///   inspect(Hash::hash(y), content="1617647962")
 /// ```
-/// TODO: This implementation is **different** from the default implementation of the hash trait. 
-/// So it will be replaced with the default implementation in the future **(breaking change)**, 
-/// and users should not rely on this particular hash value
-/// ```moonbit 
-///   let x = 42
-///   assert_not_eq(Hash::hash(x),Hasher::new()..combine(x).finalize())
-/// ```
 pub impl Hash for Int with hash(self) {
   let self = self.reinterpret_as_uint()
   let mut x = self ^ (self >> 17)
@@ -595,7 +588,7 @@ pub impl[X : Hash] Hash for X? with hash_combine(self, hasher) {
 /// ```
 pub impl[T : Hash, E : Hash] Hash for Result[T, E] with hash_combine(
   self,
-  hasher
+  hasher,
 ) {
   match self {
     Ok(x) => hasher..combine_int(0)..combine(x)

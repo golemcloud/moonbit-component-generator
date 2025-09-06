@@ -35,58 +35,8 @@ pub fn String::make(length : Int, value : Char) -> String {
 }
 
 ///|
-let min_leading_surrogate = 0xD800
-
-///|
-let max_leading_surrogate = 0xDBFF
-
-///|
-let min_trailing_surrogate = 0xDC00
-
-///|
-let max_trailing_surrogate = 0xDFFF
-
-///|
-fn is_leading_surrogate(c : Int) -> Bool {
-  min_leading_surrogate <= c && c <= max_leading_surrogate
-}
-
-///|
-fn is_trailing_surrogate(c : Int) -> Bool {
-  min_trailing_surrogate <= c && c <= max_trailing_surrogate
-}
-
-///|
 fn code_point_of_surrogate_pair(leading : Int, trailing : Int) -> Char {
   ((leading - 0xD800) * 0x400 + trailing - 0xDC00 + 0x10000).unsafe_to_char()
-}
-
-///|
-/// Returns the UTF-16 code unit at the given index.
-/// 
-/// This function will panic if the index is out of bounds.
-///
-/// # Examples
-///
-/// ```mbt
-///   let s = "Hello🤣";
-///   inspect(s.charcode_at(0), content="72");
-///   inspect(s.charcode_at(5), content="55358"); // First surrogate of 🤣
-///   inspect(s.charcode_at(6), content="56611"); // Second surrogate of 🤣
-/// ```
-///
-pub fn String::charcode_at(self : String, index : Int) -> Int = "%string_get"
-
-///|
-/// Returns the Unicode code point at the given index without bounds checking.
-pub fn String::unsafe_char_at(self : String, index : Int) -> Char {
-  let c1 = self.unsafe_charcode_at(index)
-  if is_leading_surrogate(c1) {
-    let c2 = self.unsafe_charcode_at(index + 1)
-    code_point_of_surrogate_pair(c1, c2)
-  } else {
-    c1.unsafe_to_char()
-  }
 }
 
 ///|
@@ -103,10 +53,11 @@ pub fn String::unsafe_char_at(self : String, index : Int) -> Char {
 ///   inspect(s.char_length(), content = "6"); // 6 actual characters
 ///   inspect(s.length(), content = "7");  // 5 ASCII chars + 2 surrogate pairs
 /// ```
+#alias(codepoint_length, deprecated)
 pub fn String::char_length(
   self : String,
-  start_offset~ : Int = 0,
-  end_offset? : Int
+  start_offset? : Int = 0,
+  end_offset? : Int,
 ) -> Int {
   let end_offset = if end_offset is Some(o) { o } else { self.length() }
   guard start_offset >= 0 &&
@@ -118,9 +69,9 @@ pub fn String::char_length(
       utf16_index < end_offset
       utf16_index = utf16_index + 1, char_count = char_count + 1 {
     let c1 = self.unsafe_charcode_at(utf16_index)
-    if is_leading_surrogate(c1) && utf16_index + 1 < end_offset {
+    if c1.is_leading_surrogate() && utf16_index + 1 < end_offset {
       let c2 = self.unsafe_charcode_at(utf16_index + 1)
-      if is_trailing_surrogate(c2) {
+      if c2.is_trailing_surrogate() {
         continue utf16_index + 2, char_count + 1
       } else {
         abort("invalid surrogate pair")
@@ -133,7 +84,11 @@ pub fn String::char_length(
 
 ///|
 #intrinsic("%string.substring")
-fn unsafe_substring(str : String, start : Int, end : Int) -> String {
+pub fn String::unsafe_substring(
+  str : String,
+  start~ : Int,
+  end~ : Int,
+) -> String {
   let len = end - start
   let bytes = FixedArray::make(len * 2, Byte::default())
   bytes.blit_from_string(0, str, start, len)
@@ -153,26 +108,15 @@ fn unsafe_substring(str : String, start : Int, end : Int) -> String {
 ///
 /// Returns a new string containing the specified substring.
 ///
-/// Example:
-///
-/// ```moonbit
-///   let s = "Hello world"
-///   inspect(s.substring(start=0, end=5), content="Hello")
-///   inspect(s.substring(start=6, end=11), content="world")
-///   inspect(s.substring(), content="Hello world")
-///
-///   let s = "test"
-///   inspect(s.substring(start=2, end=2), content="")
-///   inspect("".substring(), content="")
-/// ```
-pub fn String::substring(self : String, start~ : Int = 0, end? : Int) -> String {
+#deprecated("Use `str[:]` or `str[:].to_string()` instead")
+pub fn String::substring(self : String, start? : Int = 0, end? : Int) -> String {
   let len = self.length()
   let end = match end {
     Some(end) => end
     None => len
   }
   guard start >= 0 && start <= end && end <= len
-  unsafe_substring(self, start, end)
+  self.unsafe_substring(start~, end~)
 }
 
 ///|

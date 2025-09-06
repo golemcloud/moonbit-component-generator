@@ -23,6 +23,7 @@
 /// Do not convert large datas to `Array[Char]` and build a string with `String::from_array`.
 ///
 /// For efficiency considerations, it's recommended to use `Buffer` instead.
+#as_free_fn
 pub fn String::from_array(chars : Array[Char]) -> String {
   let buf = StringBuilder::new(size_hint=chars.length() * 4)
   for c in chars {
@@ -31,28 +32,17 @@ pub fn String::from_array(chars : Array[Char]) -> String {
   buf.to_string()
 }
 
-///| same as `String::from_array`
-pub fn from_array(chars : Array[Char]) -> String {
-  String::from_array(chars)
-}
-
 ///|
 /// Convert char iterator to string,
 /// a simple wrapper for `from_array`.
+#as_free_fn
 pub fn String::from_iter(iter : Iter[Char]) -> String {
   let chars = iter.collect()
   String::from_array(chars)
 }
 
 ///|
-/// same as `String::from_iter`
-pub fn from_iter(iter : Iter[Char]) -> String {
-  let chars = iter.collect()
-  String::from_array(chars)
-}
-
-///|
-/// Strings are ordered lexicographically by their charcodes(code unit). This 
+/// Strings are ordered based on shortlex order by their charcodes (code units). This 
 /// orders Unicode characters based on their positions in the code charts. This is
 /// not necessarily the same as "alphabetical" order, which varies by language
 /// and locale.
@@ -124,9 +114,9 @@ pub fn iter(self : String) -> Iter[Char] {
     let len = self.length()
     for index in 0..<len {
       let c1 = self.unsafe_charcode_at(index)
-      if is_leading_surrogate(c1) && index + 1 < len {
+      if c1.is_leading_surrogate() && index + 1 < len {
         let c2 = self.unsafe_charcode_at(index + 1)
-        if is_trailing_surrogate(c2) {
+        if c2.is_trailing_surrogate() {
           let c = code_point_of_surrogate_pair(c1, c2)
           guard yield_(c) is IterContinue else { break IterEnd }
           continue index + 2
@@ -146,9 +136,9 @@ pub fn iter2(self : String) -> Iter2[Int, Char] {
     let len = self.length()
     for index = 0, n = 0; index < len; index = index + 1, n = n + 1 {
       let c1 = self.unsafe_charcode_at(index)
-      if is_leading_surrogate(c1) && index + 1 < len {
+      if c1.is_leading_surrogate() && index + 1 < len {
         let c2 = self.unsafe_charcode_at(index + 1)
-        if is_trailing_surrogate(c2) {
+        if c2.is_trailing_surrogate() {
           let c = code_point_of_surrogate_pair(c1, c2)
           guard yield_(n, c) is IterContinue else { break IterEnd }
           continue index + 2, n + 1
@@ -195,9 +185,9 @@ pub fn rev_iter(self : String) -> Iter[Char] {
     let len = self.length()
     for index = len - 1; index >= 0; index = index - 1 {
       let c1 = self.unsafe_charcode_at(index)
-      if is_trailing_surrogate(c1) && index - 1 >= 0 {
+      if c1.is_trailing_surrogate() && index - 1 >= 0 {
         let c2 = self.unsafe_charcode_at(index - 1)
-        if is_leading_surrogate(c2) {
+        if c2.is_leading_surrogate() {
           let c = code_point_of_surrogate_pair(c2, c1)
           guard yield_(c) is IterContinue else { break IterEnd }
           continue index - 2
@@ -217,7 +207,7 @@ fn String::offset_of_nth_char_forward(
   self : String,
   n : Int,
   start_offset~ : Int,
-  end_offset~ : Int
+  end_offset~ : Int,
 ) -> Int? {
   guard start_offset >= 0 && start_offset <= end_offset else {
     abort("Invalid start index")
@@ -227,7 +217,7 @@ fn String::offset_of_nth_char_forward(
   while utf16_offset < end_offset && char_count < n {
     let c = self.unsafe_charcode_at(utf16_offset)
     // check if this is a surrogate pair
-    if is_leading_surrogate(c) {
+    if c.is_leading_surrogate() {
       utf16_offset = utf16_offset + 2
     } else {
       utf16_offset = utf16_offset + 1
@@ -252,7 +242,7 @@ fn String::offset_of_nth_char_backward(
   self : String,
   n : Int,
   start_offset~ : Int,
-  end_offset~ : Int
+  end_offset~ : Int,
 ) -> Int? {
   let mut char_count = 0
   let mut utf16_offset = end_offset
@@ -260,7 +250,7 @@ fn String::offset_of_nth_char_backward(
   // Invariant: utf16_offset always points to the previous character
   while utf16_offset - 1 >= start_offset && char_count < n {
     let c = self.unsafe_charcode_at(utf16_offset - 1)
-    if is_trailing_surrogate(c) {
+    if c.is_trailing_surrogate() {
       utf16_offset = utf16_offset - 2
     } else {
       utf16_offset = utf16_offset - 1
@@ -284,8 +274,8 @@ fn String::offset_of_nth_char_backward(
 pub fn String::offset_of_nth_char(
   self : String,
   i : Int,
-  start_offset~ : Int = 0,
-  end_offset? : Int
+  start_offset? : Int = 0,
+  end_offset? : Int,
 ) -> Int? {
   let end_offset = if end_offset is Some(o) { o } else { self.length() }
   if i >= 0 {
@@ -298,34 +288,23 @@ pub fn String::offset_of_nth_char(
 }
 
 ///|
-/// Returns the Unicode character at the given offset. Note this is not the n-th character.
-/// 
-/// This has O(1) complexity.
-pub fn String::char_at(self : String, offset : Int) -> Char {
-  guard offset >= 0 && offset < self.length() else {
-    abort("offset out of bounds")
-  }
-  self.unsafe_char_at(offset)
-}
-
-///|
 /// Test if the length of the string is equal to the given length.
 ///
 /// This has O(n) complexity where n is the length in the parameter.
 pub fn String::char_length_eq(
   self : String,
   len : Int,
-  start_offset~ : Int = 0,
-  end_offset? : Int
+  start_offset? : Int = 0,
+  end_offset? : Int,
 ) -> Bool {
   let end_offset = if end_offset is Some(o) { o } else { self.length() }
   for index = start_offset, count = 0
       index < end_offset && count < len
       index = index + 1, count = count + 1 {
     let c1 = self.unsafe_charcode_at(index)
-    if is_leading_surrogate(c1) && index + 1 < end_offset {
+    if c1.is_leading_surrogate() && index + 1 < end_offset {
       let c2 = self.unsafe_charcode_at(index + 1)
-      if is_trailing_surrogate(c2) {
+      if c2.is_trailing_surrogate() {
         continue index + 2, count + 1
       } else {
         abort("invalid surrogate pair")
@@ -343,17 +322,17 @@ pub fn String::char_length_eq(
 pub fn String::char_length_ge(
   self : String,
   len : Int,
-  start_offset~ : Int = 0,
-  end_offset? : Int
+  start_offset? : Int = 0,
+  end_offset? : Int,
 ) -> Bool {
   let end_offset = if end_offset is Some(o) { o } else { self.length() }
   for index = start_offset, count = 0
       index < end_offset && count < len
       index = index + 1, count = count + 1 {
     let c1 = self.unsafe_charcode_at(index)
-    if is_leading_surrogate(c1) && index + 1 < end_offset {
+    if c1.is_leading_surrogate() && index + 1 < end_offset {
       let c2 = self.unsafe_charcode_at(index + 1)
-      if is_trailing_surrogate(c2) {
+      if c2.is_trailing_surrogate() {
         continue index + 2, count + 1
       } else {
         abort("invalid surrogate pair")

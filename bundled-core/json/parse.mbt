@@ -23,7 +23,7 @@ pub fn valid(input : String) -> Bool {
 }
 
 ///|
-pub fn parse(input : String) -> JsonValue raise ParseError {
+pub fn parse(input : String) -> Json raise ParseError {
   let ctx = ParseContext::make(input)
   let val = ctx.parse_value()
   ctx.lex_skip_whitespace()
@@ -35,7 +35,7 @@ pub fn parse(input : String) -> JsonValue raise ParseError {
 }
 
 ///|
-fn ParseContext::parse_value(ctx : ParseContext) -> JsonValue raise ParseError {
+fn ParseContext::parse_value(ctx : ParseContext) -> Json raise ParseError {
   let tok = ctx.lex_value(allow_rbracket=false)
   ctx.parse_value2(tok)
 }
@@ -43,13 +43,13 @@ fn ParseContext::parse_value(ctx : ParseContext) -> JsonValue raise ParseError {
 ///|
 fn ParseContext::parse_value2(
   ctx : ParseContext,
-  tok : Token
-) -> JsonValue raise ParseError {
+  tok : Token,
+) -> Json raise ParseError {
   match tok {
-    Null => Json::null()
+    Null => null
     True => Json::boolean(true)
     False => Json::boolean(false)
-    Number(n) => Json::number(n)
+    Number(n, repr) => Json::number(n, repr?)
     String(s) => Json::string(s)
     LBrace => ctx.parse_object()
     LBracket => ctx.parse_array()
@@ -58,7 +58,7 @@ fn ParseContext::parse_value2(
 }
 
 ///|
-fn ParseContext::parse_object(ctx : ParseContext) -> JsonValue raise ParseError {
+fn ParseContext::parse_object(ctx : ParseContext) -> Json raise ParseError {
   let map = Map::new()
   loop ctx.lex_property_name() {
     RBrace => Json::object(map)
@@ -76,7 +76,7 @@ fn ParseContext::parse_object(ctx : ParseContext) -> JsonValue raise ParseError 
 }
 
 ///|
-fn ParseContext::parse_array(ctx : ParseContext) -> JsonValue raise ParseError {
+fn ParseContext::parse_array(ctx : ParseContext) -> Json raise ParseError {
   let vec = []
   loop ctx.lex_value(allow_rbracket=true) {
     RBracket => Json::array(vec)

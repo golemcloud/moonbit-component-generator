@@ -262,9 +262,9 @@ test "intersperse" {
   let el : @list.T[String] = Nil
   inspect(
     ls.intersperse("|"),
-    content=
+    content=(
       #|@list.of(["1", "|", "2", "|", "3", "|", "4", "|", "5"])
-    ,
+    ),
   )
   inspect(el.intersperse("|"), content="@list.of([])")
 }
@@ -401,9 +401,9 @@ test "lookup" {
   inspect(el.lookup(1), content="None")
   inspect(
     ls.lookup(3),
-    content=
+    content=(
       #|Some("c")
-    ,
+    ),
   )
   inspect(ls.lookup(4), content="None")
 }
@@ -447,15 +447,15 @@ test "remove_at" {
   inspect(ls.remove_at(0), content="@list.of([2, 3, 4, 5])")
   inspect(
     @list.of(["a", "b", "c", "d", "e"]).remove_at(2),
-    content=
+    content=(
       #|@list.of(["a", "b", "d", "e"])
-    ,
+    ),
   )
   inspect(
     @list.of(["a", "b", "c", "d", "e"]).remove_at(5),
-    content=
+    content=(
       #|@list.of(["a", "b", "c", "d", "e"])
-    ,
+    ),
   )
 }
 
@@ -464,15 +464,15 @@ test "remove" {
   inspect(@list.of([1, 2, 3, 4, 5]).remove(3), content="@list.of([1, 2, 4, 5])")
   inspect(
     @list.of(["a", "b", "c", "d", "e"]).remove("c"),
-    content=
+    content=(
       #|@list.of(["a", "b", "d", "e"])
-    ,
+    ),
   )
   inspect(
     @list.of(["a", "b", "c", "d", "e"]).remove("f"),
-    content=
+    content=(
       #|@list.of(["a", "b", "c", "d", "e"])
-    ,
+    ),
   )
 }
 
@@ -641,22 +641,22 @@ test "op_add" {
 }
 
 ///|
-test "from_iter multiple elements iter" {
+test "@list.from_iter multiple elements iter" {
   inspect(@list.from_iter([1, 2, 3].iter()), content="@list.of([1, 2, 3])")
 }
 
 ///|
-test "from_iter_rev multiple elements iter" {
+test "@list.from_iter_rev multiple elements iter" {
   inspect(@list.from_iter_rev([1, 2, 3].iter()), content="@list.of([3, 2, 1])")
 }
 
 ///|
-test "from_iter single element iter" {
+test "@list.from_iter single element iter" {
   inspect(@list.from_iter([1].iter()), content="@list.of([1])")
 }
 
 ///|
-test "from_iter empty iter" {
+test "@list.from_iter empty iter" {
   let pq : @list.T[Int] = @list.from_iter(Iter::empty())
   inspect(pq, content="@list.of([])")
 }
@@ -676,7 +676,7 @@ test "hash" {
 ///|
 test "stackover flow" {
   let iter = Int::until(0, 1 << 20)
-  let lst = from_iter(iter)
+  let lst = @list.from_iter(iter)
   inspect(
     lst.fold(init=0.0, (acc, x) => acc + x.to_double()),
     content="549755289600",
@@ -697,9 +697,9 @@ test "compare" {
   let list2 = @list.of([1, 2, 4])
   let list3 = @list.of([1, 2])
   let empty : @list.T[Int] = @list.Nil
-  assert_eq(list1.compare(list2), -1)
-  assert_eq(list1.compare(list3), 1)
-  assert_eq(list3.compare(list1), -1)
-  assert_eq(list1.compare(list1), 0)
-  assert_eq(empty.compare(empty), 0)
+  inspect(list1.compare(list2), content="-1")
+  inspect(list1.compare(list3), content="1")
+  inspect(list3.compare(list1), content="-1")
+  inspect(list1.compare(list1), content="0")
+  inspect(empty.compare(empty), content="0")
 }

@@ -50,11 +50,13 @@ test "copy" {
 pub fn FixedArray::blit_from_bytesview(
   self : FixedArray[Byte],
   bytes_offset : Int,
-  src : @bytes.View
+  src : @bytes.View,
 ) -> Unit {
-  let src_len = src.length()
-  guard bytes_offset >= 0 && bytes_offset + src_len - 1 < self.length()
-  for i = 0, j = bytes_offset; i < src_len; i = i + 1, j = j + 1 {
-    self[j] = src[i]
-  }
+  FixedArray::blit_from_bytes(
+    self,
+    bytes_offset,
+    src.data(),
+    src.start_offset(),
+    src.length(),
+  )
 }

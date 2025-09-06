@@ -29,16 +29,17 @@ fn[T] set_null(buffer : UninitializedArray[T], index : Int) = "%fixedarray.set_n
 ///# Example
 ///
 /// ```moonbit
-///   let dq : @deque.T[Int] = @deque.new()
+///   let dq : @deque.Deque[Int] = @deque.new()
 ///   inspect(dq.length(), content="0")
 ///   inspect(dq.capacity(), content="0")
 ///
-///   let dq : @deque.T[Int] = @deque.new(capacity=10)
+///   let dq : @deque.Deque[Int] = @deque.new(capacity=10)
 ///   inspect(dq.length(), content="0")
 ///   inspect(dq.capacity(), content="10")
 /// ```
-pub fn[A] new(capacity~ : Int = 0) -> T[A] {
-  T::{ buf: UninitializedArray::make(capacity), len: 0, head: 0, tail: 0 }
+#as_free_fn
+pub fn[A] Deque::new(capacity? : Int = 0) -> Deque[A] {
+  Deque::{ buf: UninitializedArray::make(capacity), len: 0, head: 0, tail: 0 }
 }
 
 ///|
@@ -58,7 +59,7 @@ pub fn[A] new(capacity~ : Int = 0) -> T[A] {
 ///   inspect(dq, content="@deque.of([1, 2, 3])")
 /// ```
 ///
-pub impl[A : Show] Show for T[A] with output(self, logger) {
+pub impl[A : Show] Show for Deque[A] with output(self, logger) {
   logger.write_iter(self.iter(), prefix="@deque.of([", suffix="])")
 }
 
@@ -79,8 +80,9 @@ pub impl[A : Show] Show for T[A] with output(self, logger) {
 ///   let dq = @deque.from_array(arr)
 ///   inspect(dq, content="@deque.of([1, 2, 3, 4, 5])")
 /// ```
-pub fn[A] from_array(arr : Array[A]) -> T[A] {
-  let deq = T::{
+#as_free_fn
+pub fn[A] Deque::from_array(arr : Array[A]) -> Deque[A] {
+  let deq = Deque::{
     buf: UninitializedArray::make(arr.length()),
     len: arr.length(),
     head: 0,
@@ -111,9 +113,9 @@ pub fn[A] from_array(arr : Array[A]) -> T[A] {
 ///   let copied = dq.copy()
 ///   inspect(copied, content="@deque.of([1, 2, 3, 4, 5])")
 /// ```
-pub fn[A] copy(self : T[A]) -> T[A] {
+pub fn[A] copy(self : Deque[A]) -> Deque[A] {
   let len = self.len
-  let deq = T::{
+  let deq = Deque::{
     buf: UninitializedArray::make(len),
     len,
     head: 0,
@@ -123,6 +125,55 @@ pub fn[A] copy(self : T[A]) -> T[A] {
     deq.buf[i] = x
   }
   deq
+}
+
+///|
+/// Appends all elements from one deque to the end of another deque. The elements
+/// are added in-place, modifying the original deque.
+///
+/// Parameters:
+///
+/// * `self` : The deque to append to.
+/// * `other` : The deque whose elements will be appended.
+///
+/// Example:
+///
+/// ```moonbit
+/// let v1 = @deque.of([1, 2, 3])
+/// let v2 = @deque.of([4, 5, 6])
+/// v1.append(v2)
+/// inspect(v1, content="@deque.of([1, 2, 3, 4, 5, 6])")
+/// let v1 = @deque.of([1, 2, 3])
+/// let v2 = @deque.of([])
+/// v1.append(v2)
+/// inspect(v1, content="@deque.of([1, 2, 3])")
+/// ```
+pub fn[A] append(self : Deque[A], other : Deque[A]) -> Unit {
+  guard other.len != 0 else { return }
+  let space = if self.buf.length() != 0 {
+    (self.head - self.tail - 1 + self.buf.length()) % self.buf.length()
+  } else {
+    0
+  }
+  if space < other.len {
+    let new_cap = if self.len + other.len > self.buf.length() * 2 {
+      self.len + other.len
+    } else {
+      self.buf.length() * 2
+    }
+    let new_buf = UninitializedArray::make(new_cap)
+    for i, x in self {
+      new_buf[i] = x
+    }
+    self.buf = new_buf
+    self.head = 0
+    self.tail = self.len - 1
+  }
+  for _, y in other {
+    self.tail = (self.tail + 1) % self.buf.length()
+    self.buf[self.tail] = y
+    self.len += 1
+  }
 }
 
 ///|
@@ -140,8 +191,9 @@ pub fn[A] copy(self : T[A]) -> T[A] {
 ///   let dq = @deque.of([1, 2, 3])
 ///   inspect(dq, content="@deque.of([1, 2, 3])")
 /// ```
-pub fn[A] of(arr : FixedArray[A]) -> T[A] {
-  let deq = T::{
+#as_free_fn
+pub fn[A] Deque::of(arr : FixedArray[A]) -> Deque[A] {
+  let deq = Deque::{
     buf: UninitializedArray::make(arr.length()),
     len: arr.length(),
     head: 0,
@@ -170,7 +222,7 @@ pub fn[A] of(arr : FixedArray[A]) -> T[A] {
 ///   dq.push_back(4)
 ///   inspect(dq.length(), content="4")
 /// ```
-pub fn[A] length(self : T[A]) -> Int {
+pub fn[A] length(self : Deque[A]) -> Int {
   self.len
 }
 
@@ -192,13 +244,13 @@ pub fn[A] length(self : T[A]) -> Int {
 ///   dq.push_back(2)
 ///   inspect(dq.capacity(), content="10")
 /// ```
-pub fn[A] capacity(self : T[A]) -> Int {
+pub fn[A] capacity(self : Deque[A]) -> Int {
   self.buf.length()
 }
 
 ///|
 /// Reallocate the deque with a new capacity.
-fn[A] realloc(self : T[A]) -> Unit {
+fn[A] realloc(self : Deque[A]) -> Unit {
   let old_cap = self.len
   let new_cap = if old_cap == 0 { 8 } else { old_cap * 2 }
   let new_buf = UninitializedArray::make(new_cap)
@@ -234,7 +286,7 @@ fn[A] realloc(self : T[A]) -> Unit {
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   assert_eq(dv.front(), Some(1))
 /// ```
-pub fn[A] front(self : T[A]) -> A? {
+pub fn[A] front(self : Deque[A]) -> A? {
   if self.len == 0 {
     None
   } else {
@@ -250,7 +302,7 @@ pub fn[A] front(self : T[A]) -> A? {
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   assert_eq(dv.back(), Some(5))
 /// ```
-pub fn[A] back(self : T[A]) -> A? {
+pub fn[A] back(self : Deque[A]) -> A? {
   if self.len == 0 {
     None
   } else {
@@ -269,7 +321,7 @@ pub fn[A] back(self : T[A]) -> A? {
 ///   dv.push_front(0)
 ///   assert_eq(dv.front(), Some(0))
 /// ```
-pub fn[A] push_front(self : T[A], value : A) -> Unit {
+pub fn[A] push_front(self : Deque[A], value : A) -> Unit {
   if self.len == self.buf.length() {
     self.realloc()
   }
@@ -291,7 +343,7 @@ pub fn[A] push_front(self : T[A], value : A) -> Unit {
 ///   dv.push_back(6)
 ///   assert_eq(dv.back(), Some(6))
 /// ```
-pub fn[A] push_back(self : T[A], value : A) -> Unit {
+pub fn[A] push_back(self : Deque[A], value : A) -> Unit {
   if self.len == self.buf.length() {
     self.realloc()
   }
@@ -312,7 +364,7 @@ pub fn[A] push_back(self : T[A], value : A) -> Unit {
 ///   assert_eq(dv.front(), Some(2))
 /// ```
 #internal(unsafe, "Panic if the deque is empty.")
-pub fn[A] unsafe_pop_front(self : T[A]) -> Unit {
+pub fn[A] unsafe_pop_front(self : Deque[A]) -> Unit {
   match self.len {
     0 => abort("The deque is empty!")
     1 => {
@@ -360,7 +412,7 @@ pub fn[A] unsafe_pop_front(self : T[A]) -> Unit {
 ///   assert_eq(dv.back(), Some(4))
 /// ```
 #internal(unsafe, "Panic if the deque is empty.")
-pub fn[A] unsafe_pop_back(self : T[A]) -> Unit {
+pub fn[A] unsafe_pop_back(self : Deque[A]) -> Unit {
   match self.len {
     0 => abort("The deque is empty!")
     1 => {
@@ -408,7 +460,7 @@ pub fn[A] unsafe_pop_back(self : T[A]) -> Unit {
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   assert_eq(dv.pop_front(), Some(1))
 /// ```
-pub fn[A] pop_front(self : T[A]) -> A? {
+pub fn[A] pop_front(self : Deque[A]) -> A? {
   match self.len {
     0 => None
     1 => {
@@ -439,7 +491,7 @@ pub fn[A] pop_front(self : T[A]) -> A? {
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   assert_eq(dv.pop_back(), Some(5))
 /// ```
-pub fn[A] pop_back(self : T[A]) -> A? {
+pub fn[A] pop_back(self : Deque[A]) -> A? {
   match self.len {
     0 => None
     1 => {
@@ -470,9 +522,9 @@ pub fn[A] pop_back(self : T[A]) -> A? {
 /// # Example
 /// ```mbt
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
-///   assert_eq(dv[2], 3)
+///   inspect(dv[2], content="3")
 /// ```
-pub fn[A] op_get(self : T[A], index : Int) -> A {
+pub fn[A] op_get(self : Deque[A], index : Int) -> A {
   if index < 0 || index >= self.len {
     let len = self.len
     abort(
@@ -495,9 +547,9 @@ pub fn[A] op_get(self : T[A], index : Int) -> A {
 /// ```mbt
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   dv[2] = 1
-///   assert_eq(dv[2], 1)
+///   inspect(dv[2], content="1")
 /// ```
-pub fn[A] op_set(self : T[A], index : Int, value : A) -> Unit {
+pub fn[A] op_set(self : Deque[A], index : Int, value : A) -> Unit {
   if index < 0 || index >= self.len {
     let len = self.len
     abort(
@@ -535,7 +587,7 @@ pub fn[A] op_set(self : T[A], index : Int, value : A) -> Unit {
 ///   inspect(v1.length(), content="5")
 ///   inspect(v2.length(), content="0")
 /// ```
-pub fn[A] T::as_views(self : T[A]) -> (@array.View[A], @array.View[A]) {
+pub fn[A] Deque::as_views(self : Deque[A]) -> (@array.View[A], @array.View[A]) {
   guard self.len != 0 else { ([][:], [][:]) }
   let { buf, head, len, .. } = self
   let cap = buf.length()
@@ -567,7 +619,7 @@ pub fn[A] T::as_views(self : T[A]) -> (@array.View[A], @array.View[A]) {
 ///   inspect(dq1 == dq2, content="true")
 ///   inspect(dq1 == dq3, content="false")
 /// ```
-pub impl[A : Eq] Eq for T[A] with op_equal(self, other) {
+pub impl[A : Eq] Eq for Deque[A] with equal(self, other) {
   if self.len != other.len {
     return false
   }
@@ -587,9 +639,9 @@ pub impl[A : Eq] Eq for T[A] with op_equal(self, other) {
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   let mut sum = 0
 ///   dv.each((x) => {sum = sum + x})
-///   assert_eq(sum, 15)
+///   inspect(sum, content="15")
 /// ```
-pub fn[A] each(self : T[A], f : (A) -> Unit) -> Unit {
+pub fn[A] each(self : Deque[A], f : (A) -> Unit) -> Unit {
   for v in self {
     f(v)
   }
@@ -603,9 +655,9 @@ pub fn[A] each(self : T[A], f : (A) -> Unit) -> Unit {
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   let mut idx_sum = 0
 ///   dv.eachi((i, _x) => {idx_sum = idx_sum + i})
-///   assert_eq(idx_sum, 10)
+///   inspect(idx_sum, content="10")
 /// ```
-pub fn[A] eachi(self : T[A], f : (Int, A) -> Unit) -> Unit {
+pub fn[A] eachi(self : Deque[A], f : (Int, A) -> Unit) -> Unit {
   for i, v in self {
     f(i, v)
   }
@@ -619,9 +671,9 @@ pub fn[A] eachi(self : T[A], f : (Int, A) -> Unit) -> Unit {
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   let mut sum = 0
 ///   dv.rev_each((x) => {sum = sum + x})
-///   assert_eq(sum, 15)
+///   inspect(sum, content="15")
 /// ```
-pub fn[A] rev_each(self : T[A], f : (A) -> Unit) -> Unit {
+pub fn[A] rev_each(self : Deque[A], f : (A) -> Unit) -> Unit {
   for v in self.rev_iter() {
     f(v)
   }
@@ -635,9 +687,9 @@ pub fn[A] rev_each(self : T[A], f : (A) -> Unit) -> Unit {
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   let mut idx_sum = 0
 ///   dv.rev_eachi((i, _x) => {idx_sum = idx_sum + i})
-///   assert_eq(idx_sum, 10)
+///   inspect(idx_sum, content="10")
 /// ```
-pub fn[A] rev_eachi(self : T[A], f : (Int, A) -> Unit) -> Unit {
+pub fn[A] rev_eachi(self : Deque[A], f : (Int, A) -> Unit) -> Unit {
   for i, v in self.rev_iter2() {
     f(i, v)
   }
@@ -652,9 +704,9 @@ pub fn[A] rev_eachi(self : T[A], f : (Int, A) -> Unit) -> Unit {
 /// ```mbt
 ///   let dv = @deque.of([1, 2, 3, 4, 5])
 ///   dv.clear()
-///   assert_eq(dv.length(), 0)
+///   inspect(dv.length(), content="0")
 /// ```
-pub fn[A] clear(self : T[A]) -> Unit {
+pub fn[A] clear(self : Deque[A]) -> Unit {
   let { head, buf, len, .. } = self
   let cap = buf.length()
   let head_len = cap - head
@@ -684,15 +736,16 @@ pub fn[A] clear(self : T[A]) -> Unit {
 ///   let dv2 = dv.map((x) => {x + 1})
 ///   assert_eq(dv2, @deque.of([4, 5, 6]))
 /// ```
-pub fn[A, U] map(self : T[A], f : (A) -> U) -> T[U] {
+pub fn[A, U] map(self : Deque[A], f : (A) -> U) -> Deque[U] {
   if self.len == 0 {
     new()
   } else {
     let buf : UninitializedArray[U] = UninitializedArray::make(self.len)
     for i in 0..<self.len {
-      buf[i] = f(self.buf[i])
+      let idx = (self.head + i) % self.len
+      buf[i] = f(self.buf[idx])
     }
-    T::{ buf, len: self.len, head: 0, tail: self.len - 1 }
+    Deque::{ buf, len: self.len, head: 0, tail: self.len - 1 }
   }
 }
 
@@ -705,15 +758,16 @@ pub fn[A, U] map(self : T[A], f : (A) -> U) -> T[U] {
 ///   let dv2 = dv.mapi((i, x) => {x + i}) // @deque.of([3, 5, 7])
 ///   assert_eq(dv2, @deque.of([3, 5, 7]))
 /// ```
-pub fn[A, U] mapi(self : T[A], f : (Int, A) -> U) -> T[U] {
+pub fn[A, U] mapi(self : Deque[A], f : (Int, A) -> U) -> Deque[U] {
   if self.len == 0 {
     new()
   } else {
     let buf : UninitializedArray[U] = UninitializedArray::make(self.len)
     for i in 0..<self.len {
-      buf[i] = f(i, self.buf[i])
+      let idx = (self.head + i) % self.len
+      buf[i] = f(i, self.buf[idx])
     }
-    T::{ buf, len: self.len, head: 0, tail: self.len - 1 }
+    Deque::{ buf, len: self.len, head: 0, tail: self.len - 1 }
   }
 }
 
@@ -723,11 +777,11 @@ pub fn[A, U] mapi(self : T[A], f : (Int, A) -> U) -> T[U] {
 /// # Example
 /// ```mbt
 ///   let dv = @deque.new()
-///   assert_eq(dv.is_empty(), true)
+///   inspect(dv.is_empty(), content="true")
 ///   dv.push_back(1)
-///   assert_eq(dv.is_empty(), false)
+///   inspect(dv.is_empty(), content="false")
 /// ```
-pub fn[A] is_empty(self : T[A]) -> Bool {
+pub fn[A] is_empty(self : Deque[A]) -> Bool {
   self.len == 0
 }
 
@@ -749,9 +803,10 @@ pub fn[A] is_empty(self : T[A]) -> Bool {
 ///   inspect(dq.search(2), content="Some(1)")
 ///   inspect(dq.search(4), content="None")
 /// ```
-pub fn[A : Eq] search(self : T[A], value : A) -> Int? {
+pub fn[A : Eq] search(self : Deque[A], value : A) -> Int? {
   for i in 0..<self.len {
-    if self.buf[i] == value {
+    let idx = (self.head + i) % self.len
+    if self.buf[idx] == value {
       return Some(i)
     }
   }
@@ -776,7 +831,7 @@ pub fn[A : Eq] search(self : T[A], value : A) -> Int? {
 ///   inspect(dq.contains(3), content="true")
 ///   inspect(dq.contains(6), content="false")
 /// ```
-pub fn[A : Eq] contains(self : T[A], value : A) -> Bool {
+pub fn[A : Eq] contains(self : Deque[A], value : A) -> Bool {
   self.iter().contains(value)
 }
 
@@ -789,9 +844,9 @@ pub fn[A : Eq] contains(self : T[A], value : A) -> Bool {
 /// ```mbt
 ///   let dv = @deque.of([1])
 ///   dv.reserve_capacity(10)
-///   assert_eq(dv.capacity(), 10)
+///   inspect(dv.capacity(), content="10")
 /// ```
-pub fn[A] reserve_capacity(self : T[A], capacity : Int) -> Unit {
+pub fn[A] reserve_capacity(self : Deque[A], capacity : Int) -> Unit {
   if self.capacity() >= capacity {
     return
   }
@@ -799,11 +854,10 @@ pub fn[A] reserve_capacity(self : T[A], capacity : Int) -> Unit {
   let { buf, len, head, .. } = self
   self.buf = new_buf
   self.head = 0
-  self.tail = 0
+  self.tail = if len == 0 { 0 } else { len - 1 }
   for i in 0..<len {
     let idx = (head + i) % buf.length()
     self.buf[i] = buf[idx]
-    self.tail += 1
   }
 }
 
@@ -817,18 +871,18 @@ pub fn[A] reserve_capacity(self : T[A], capacity : Int) -> Unit {
 ///   dv.push_back(1)
 ///   dv.push_back(2)
 ///   dv.push_back(3)
-///   assert_eq(dv.capacity(), 10)
+///   inspect(dv.capacity(), content="10")
 ///   dv.shrink_to_fit()
-///   assert_eq(dv.capacity(), 3)
+///   inspect(dv.capacity(), content="3")
 /// ```
-pub fn[A] shrink_to_fit(self : T[A]) -> Unit {
+pub fn[A] shrink_to_fit(self : Deque[A]) -> Unit {
   if self.capacity() <= self.length() {
     return
   }
   let { buf, len, head, .. } = self
   self.buf = UninitializedArray::make(len)
   self.head = 0
-  self.tail = 0
+  self.tail = if len == 0 { 0 } else { len - 1 }
   for i in 0..<len {
     let idx = (head + i) % buf.length()
     self.buf[i] = buf[idx]
@@ -839,7 +893,7 @@ pub fn[A] shrink_to_fit(self : T[A]) -> Unit {
 /// Shortens the deque in-place, keeping the first `len` elements and dropping
 /// the rest.
 ///
-/// If `len` is greater than or equal to the deque's current length or negative, 
+/// If `len` is greater than or equal to the deque's current length or negative,
 /// this has no effect
 ///
 /// Parameters:
@@ -854,7 +908,7 @@ pub fn[A] shrink_to_fit(self : T[A]) -> Unit {
 ///   dq.truncate(3)
 ///   inspect(dq, content="@deque.of([1, 2, 3])")
 /// ```
-pub fn[A] truncate(self : T[A], len : Int) -> Unit {
+pub fn[A] truncate(self : Deque[A], len : Int) -> Unit {
   guard len >= 0 && len < self.len else { return }
   if len == 0 {
     self.clear()
@@ -905,8 +959,8 @@ pub fn[A] truncate(self : T[A], len : Int) -> Unit {
 ///   dq.retain_map((x) => { if x % 2 == 0 { Some(x * 2) } else { None } })
 ///   inspect(dq, content="@deque.of([4, 8])")
 /// ```
-pub fn[A] retain_map(self : T[A], f : (A) -> A?) -> Unit {
-  guard not(self.is_empty()) else { return }
+pub fn[A] retain_map(self : Deque[A], f : (A) -> A?) -> Unit {
+  guard !self.is_empty() else { return }
   let { head, buf, .. } = self
   let cap = buf.length()
   let head_len = cap - head
@@ -962,8 +1016,8 @@ pub fn[A] retain_map(self : T[A], f : (A) -> A?) -> Unit {
 ///   dq.retain((x) => { x % 2 == 0 })
 ///   inspect(dq, content="@deque.of([2, 4])")
 /// ```
-pub fn[A] retain(self : T[A], f : (A) -> Bool) -> Unit {
-  guard not(self.is_empty()) else { return }
+pub fn[A] retain(self : Deque[A], f : (A) -> Bool) -> Unit {
+  guard !self.is_empty() else { return }
   let { head, buf, .. } = self
   let cap = buf.length()
   let head_len = cap - head
@@ -1013,9 +1067,9 @@ pub fn[A] retain(self : T[A], f : (A) -> Bool) -> Unit {
 ///   dq.iter().each((x) => { sum = sum + x })
 ///   inspect(sum, content="15")
 /// ```
-pub fn[A] iter(self : T[A]) -> Iter[A] {
+pub fn[A] iter(self : Deque[A]) -> Iter[A] {
   Iter::new(yield_ => {
-    guard not(self.is_empty()) else { IterContinue }
+    guard !self.is_empty() else { IterContinue }
     let { head, buf, len, .. } = self
     let cap = buf.length()
     let head_len = cap - head
@@ -1055,9 +1109,9 @@ pub fn[A] iter(self : T[A]) -> Iter[A] {
 ///   dq.iter2().each((i, x) => { sum = sum + i * x })
 ///   inspect(sum, content="80") // 0*10 + 1*20 + 2*30 = 80
 /// ```
-pub fn[A] iter2(self : T[A]) -> Iter2[Int, A] {
+pub fn[A] iter2(self : Deque[A]) -> Iter2[Int, A] {
   Iter2::new(yield_ => {
-    guard not(self.is_empty()) else { IterContinue }
+    guard !self.is_empty() else { IterContinue }
     let { head, buf, len, .. } = self
     let cap = buf.length()
     let head_len = cap - head
@@ -1099,9 +1153,9 @@ pub fn[A] iter2(self : T[A]) -> Iter2[Int, A] {
 ///   dq.rev_iter().each((x) => { sum = sum * 10 + x })
 ///   inspect(sum, content="321")
 /// ```
-pub fn[A] rev_iter(self : T[A]) -> Iter[A] {
+pub fn[A] rev_iter(self : Deque[A]) -> Iter[A] {
   Iter::new(yield_ => {
-    guard not(self.is_empty()) else { IterContinue }
+    guard !self.is_empty() else { IterContinue }
     let { head, buf, len, .. } = self
     let cap = buf.length()
     let head_len = cap - head
@@ -1141,9 +1195,9 @@ pub fn[A] rev_iter(self : T[A]) -> Iter[A] {
 ///   dq.rev_iter2().each((i, x) => { s = s + "\{i}:\{x} " })
 ///   inspect(s, content="0:3 1:2 2:1 ")
 /// ```
-pub fn[A] rev_iter2(self : T[A]) -> Iter2[Int, A] {
+pub fn[A] rev_iter2(self : Deque[A]) -> Iter2[Int, A] {
   Iter2::new(yield_ => {
-    guard not(self.is_empty()) else { IterContinue }
+    guard !self.is_empty() else { IterContinue }
     let { head, buf, len, .. } = self
     let cap = buf.length()
     let head_len = cap - head
@@ -1184,7 +1238,8 @@ pub fn[A] rev_iter2(self : T[A]) -> Iter2[Int, A] {
 ///   let dq = @deque.from_iter(arr.iter())
 ///   inspect(dq, content="@deque.of([1, 2, 3, 4, 5])")
 /// ```
-pub fn[A] from_iter(iter : Iter[A]) -> T[A] {
+#as_free_fn
+pub fn[A] Deque::from_iter(iter : Iter[A]) -> Deque[A] {
   let dq = new()
   iter.each(e => dq.push_back(e))
   dq
@@ -1208,7 +1263,7 @@ pub fn[A] from_iter(iter : Iter[A]) -> T[A] {
 ///   inspect(arr, content="[1, 2, 3, 4, 5]")
 /// ```
 ///
-pub fn[A] to_array(self : T[A]) -> Array[A] {
+pub fn[A] to_array(self : Deque[A]) -> Array[A] {
   let len = self.length()
   if len == 0 {
     []
@@ -1222,7 +1277,7 @@ pub fn[A] to_array(self : T[A]) -> Array[A] {
 }
 
 ///|
-/// Joins the elements of a string deque into a single string, 
+/// Joins the elements of a string deque into a single string,
 /// separated by the specified separator.
 ///
 /// Parameters:
@@ -1230,7 +1285,7 @@ pub fn[A] to_array(self : T[A]) -> Array[A] {
 /// * `self` : The deque of strings to join.
 /// * `separator` : The separator to insert between elements (as a string view).
 ///
-/// Returns the concatenated string. 
+/// Returns the concatenated string.
 ///   - If the deque is empty, returns an empty string.
 ///   - Efficiently pre-allocates memory based on calculated size hint.
 ///   - Handles empty separators efficiently by direct concatenation.
@@ -1241,11 +1296,11 @@ pub fn[A] to_array(self : T[A]) -> Array[A] {
 ///   let deque = @deque.of(["a","b","c"])
 ///   let s1 = deque.join("")
 ///   inspect(s1, content="abc")
-/// 
+///
 ///   let s2 = deque.join(",")
 ///   inspect(s2, content="a,b,c")
 /// ```
-pub fn T::join(self : T[String], separator : @string.View) -> String {
+pub fn Deque::join(self : Deque[String], separator : @string.View) -> String {
   let str = separator.to_string()
   self.iter().join(str)
 }
@@ -1265,8 +1320,8 @@ pub fn T::join(self : T[String], separator : @string.View) -> String {
 ///   inspect(json, content="Array([Number(1), Number(2), Number(3)])")
 /// ```
 ///
-pub impl[A : ToJson] ToJson for T[A] with to_json(self : T[A]) -> Json {
-  let res = Array::make(self.length(), Json::null())
+pub impl[A : ToJson] ToJson for Deque[A] with to_json(self : Deque[A]) -> Json {
+  let res = Array::make(self.length(), null)
   for i, x in self {
     res[i] = x.to_json()
   }
@@ -1291,19 +1346,22 @@ pub impl[A : ToJson] ToJson for T[A] with to_json(self : T[A]) -> Json {
 /// Example:
 ///
 /// ```moonbit
-///   let json = @json.parse("[1, 2, 3]")
-///   let dq : @deque.T[Int] = @json.from_json(json)
-///   inspect(dq, content="@deque.of([1, 2, 3])")
+/// let json = @json.parse("[1, 2, 3]")
+/// let dq : @deque.Deque[Int] = @json.from_json(json)
+/// inspect(dq, content="@deque.of([1, 2, 3])")
 /// ```
 ///
-pub impl[A : @json.FromJson] @json.FromJson for T[A] with from_json(json, path) {
+pub impl[A : @json.FromJson] @json.FromJson for Deque[A] with from_json(
+  json,
+  path,
+) {
   guard json is Array(arr) else {
     raise @json.JsonDecodeError((path, "Deque::from_json: expected array"))
   }
   let len = arr.length()
   let buf = UninitializedArray::make(len)
   let head = 0
-  let tail = len
+  let tail = if len == 0 { 0 } else { len - 1 }
   for i, x in arr {
     buf[i] = @json.FromJson::from_json(x, path.add_index(i))
   }
@@ -1318,7 +1376,7 @@ pub impl[A : @json.FromJson] @json.FromJson for T[A] with from_json(json, path) 
 ///
 /// * `self` : The high-dimensional deque to flatten.
 ///
-/// Returns a new lower-dimensional deque containing all elements 
+/// Returns a new lower-dimensional deque containing all elements
 /// from inner deques in sequence.
 ///
 /// Note:
@@ -1332,12 +1390,12 @@ pub impl[A : @json.FromJson] @json.FromJson for T[A] with from_json(json, path) 
 ///   let deque_test = deque.flatten()
 ///   inspect(deque_test, content="@deque.of([1, 2, 3, 4, 5, 6, 7, 8])")
 /// ```
-pub fn[A] T::flatten(self : T[T[A]]) -> T[A] {
+pub fn[A] Deque::flatten(self : Deque[Deque[A]]) -> Deque[A] {
   let mut len = 0
   for deque in self {
     len += deque.length()
   }
-  let target = T::{
+  let target = Deque::{
     buf: UninitializedArray::make(len),
     len,
     head: 0,
@@ -1377,7 +1435,7 @@ pub fn[A] T::flatten(self : T[T[A]]) -> T[A] {
 /// inspect(deque_test, content="@deque.of([3, 4, 5, 6])")
 /// inspect(deque, content="@deque.of([1, 2, 7, 8, 9])")
 /// ```
-pub fn[A] T::drain(self : T[A], start~ : Int, len? : Int) -> T[A] {
+pub fn[A] Deque::drain(self : Deque[A], start~ : Int, len? : Int) -> Deque[A] {
   let len = match len {
     Some(l) => if l > self.len { self.len } else { l }
     None => self.len - start
@@ -1385,7 +1443,7 @@ pub fn[A] T::drain(self : T[A], start~ : Int, len? : Int) -> T[A] {
   if len == 0 {
     return new()
   }
-  let deque = T::{
+  let deque = Deque::{
     buf: UninitializedArray::make(len),
     len,
     head: 0,
@@ -1448,27 +1506,15 @@ pub fn[A] T::drain(self : T[A], start~ : Int, len? : Int) -> T[A] {
 /// ```moonbit
 /// let dq = @deque.of([1, 3, 5, 7, 9])
 ///
-/// 
-/// let find_3 = dq.binary_search_by(x => {
-///   if x < 3 {
-///     -1
-///   } else if x > 3 {
-///     1
-///   } else {
-///     0
-///   }
+///
+/// let find_3 = dq.binary_search_by((x) => {
+///   x.compare(3)
 /// })
 /// inspect(find_3, content="Ok(1)")
 ///
-/// 
-/// let find_4 = dq.binary_search_by(x => {
-///   if x < 4 {
-///     -1
-///   } else if x > 4 {
-///     1
-///   } else {
-///     0
-///   }
+///
+/// let find_4 = dq.binary_search_by((x) => {
+///   x.compare(4)
 /// })
 /// inspect(find_4, content="Err(2)")
 /// ```
@@ -1483,42 +1529,41 @@ pub fn[A] T::drain(self : T[A], start~ : Int, len? : Int) -> T[A] {
 /// * Handles the deque's ring buffer structure internally
 /// * For empty deques, returns `Err(0)`
 #locals(cmp)
-pub fn[A] binary_search_by(self : T[A], cmp : (A) -> Int) -> Result[Int, Int] {
+pub fn[A] binary_search_by(
+  self : Deque[A],
+  cmp : (A) -> Int,
+) -> Result[Int, Int] {
   let len = self.len
-  let mut i = 0
-  let mut j = len
-  while i < j {
+
+  // Functional loop with two evolving bounds `i` (inclusive) and `j` (exclusive).
+  // `continue new_i, new_j` updates the pair for the next iteration, eliminating
+  // the need for mutable variables.
+  for i = 0, j = len; i < j; {
     let h = i + (j - i) / 2
-    match self.get(h) {
-      Some(element) =>
-        match cmp(element) {
-          _..<0 => i = h + 1 // Continue searching right
-          1..<_ => j = h // Continue searching left
-          _ => { // Found match, find leftmost
-            j = h
-            while i < j {
-              let mid = i + (j - i) / 2
-              match self.get(mid) {
-                Some(v) =>
-                  match cmp(v) {
-                    0 => j = mid
-                    _ => i = mid + 1
-                  }
-                None => break
-              }
-            }
-            return Ok(i)
-          }
-        }
-      None => return Err(i)
+    let ord = cmp(self[h])
+    if ord < 0 {
+      // Search the right half
+      continue h + 1, j
+    } else {
+      // ord == 0 (match) or ord > 0 (too large): keep searching left half to
+      // guarantee we land on the left-most occurrence.
+      continue i, h
+    }
+  } else {
+    // When the loop finishes, `i == j`.  If the deque is non-empty and the
+    // element at `i` matches, we found the left-most index; otherwise `i` is
+    // the correct insertion point.
+    if i < len && cmp(self[i]) == 0 {
+      Ok(i)
+    } else {
+      Err(i)
     }
   }
-  Err(i)
 }
 
 ///|
 /// Safe element access with bounds checking
-pub fn[A] get(self : T[A], index : Int) -> A? {
+pub fn[A] get(self : Deque[A], index : Int) -> A? {
   if index >= 0 && index < self.len {
     let physical_index = (self.head + index) % self.buf.length()
     Some(self.buf[physical_index])
@@ -1555,6 +1600,166 @@ pub fn[A] get(self : T[A], index : Int) -> A? {
 /// * Assumes the deque is sorted in ascending order
 /// * For multiple matches, returns the leftmost matching position
 /// * Returns an insertion point that maintains the sort order when no match is found
-pub fn[A : Compare] binary_search(self : T[A], value : A) -> Result[Int, Int] {
+pub fn[A : Compare] binary_search(
+  self : Deque[A],
+  value : A,
+) -> Result[Int, Int] {
   self.binary_search_by(x => x.compare(value))
+}
+
+///|
+/// Compares two deques based on shortlex order.
+///
+/// First compares the lengths of the deques. If they differ, returns -1 if the
+/// first deque is shorter, 1 if it's longer. If the lengths are equal, compares
+/// elements pairwise until a difference is found or all elements have been
+/// compared.
+///
+/// Parameters:
+///
+/// * `self` : The first deque to compare.
+/// * `other` : The second deque to compare.
+///
+/// Returns an integer that indicates the relative order:
+///
+/// * A negative value if `self` is less than `other`
+/// * Zero if `self` equals `other`
+/// * A positive value if `self` is greater than `other`
+///
+/// Example:
+///
+/// ```moonbit
+///   let dq1 = @deque.of([1, 2, 3])
+///   let dq2 = @deque.of([1, 2, 4])
+///   let dq3 = @deque.of([1, 2])
+///   inspect(dq1.compare(dq2), content="-1") // dq1 < dq2
+///   inspect(dq2.compare(dq1), content="1") // dq2 > dq1
+///   inspect(dq1.compare(dq3), content="1") // dq1 > dq3 (longer)
+///   inspect(dq1.compare(dq1), content="0") // dq1 = dq1
+/// ```
+pub impl[A : Compare] Compare for Deque[A] with compare(self, other) {
+  let len_self = self.length()
+  let len_other = other.length()
+  let cmp = len_self.compare(len_other)
+  guard cmp is 0 else { return cmp }
+  for i in 0..<len_self {
+    let cmp = self[i].compare(other[i])
+    guard cmp is 0 else { return cmp }
+  }
+  0
+}
+
+///|
+/// Reverses the order of elements in the deque in place, modifying the original
+/// deque.
+///
+/// Parameters:
+///
+/// * `self` : The deque to be reversed.
+///
+/// Example:
+///
+/// ```moonbit
+///   let dq = @deque.of([1, 2, 3, 4, 5])
+///   dq.rev_inplace()
+///   inspect(dq, content="@deque.of([5, 4, 3, 2, 1])")
+///
+///   let dq : @deque.Deque[Int] = @deque.new()
+///   dq.rev_inplace()
+///   inspect(dq, content="@deque.of([])")
+/// ```
+pub fn[A] Deque::rev_inplace(self : Deque[A]) -> Unit {
+  guard self.len > 0 else { return }
+  let cap = self.buf.length()
+  let mut left = self.head
+  let mut right = self.tail
+  for _ in 0..<(self.len / 2) {
+    let temp = self.buf[left]
+    self.buf[left] = self.buf[right]
+    self.buf[right] = temp
+    left = (left + 1) % cap
+    right = (right - 1 + cap) % cap
+  }
+}
+
+///|
+/// Creates a new deque with elements in reversed order.
+///
+/// Parameters:
+///
+/// * `self` : The deque to be reversed.
+///
+/// Returns a new deque containing the same elements as the input deque but in
+/// reverse order. The original deque remains unchanged.
+///
+/// Example:
+///
+/// ```moonbit
+///   let dq = @deque.of([1, 2, 3, 4, 5])
+///   inspect(dq.rev(), content="@deque.of([5, 4, 3, 2, 1])")
+///   inspect(dq, content="@deque.of([1, 2, 3, 4, 5])") // original deque unchanged
+/// ```
+pub fn[A] Deque::rev(self : Deque[A]) -> Deque[A] {
+  let len = self.len
+  let new_buf = UninitializedArray::make(len)
+  // Copy elements in reverse order
+  for i in 0..<len {
+    let src_idx = (self.head + len - i - 1) % self.buf.length()
+    new_buf[i] = self.buf[src_idx]
+  }
+  // Create new deque with reversed elements
+  Deque::{
+    buf: new_buf,
+    len,
+    head: 0,
+    tail: if len == 0 {
+      0
+    } else {
+      len - 1
+    },
+  }
+}
+
+///|
+/// Shuffle the deque in place using Knuth shuffle (Fisher-Yates algorithm)
+///
+/// To use this function, you need to provide a rand function, which takes an integer as its upper bound
+/// and returns an integer.
+/// *rand n* is expected to return a uniformly distributed integer between 0 and n - 1
+///
+/// # Note
+/// This function handles the circular buffer nature of the deque internally.
+pub fn[A] Deque::shuffle_in_place(
+  self : Deque[A],
+  rand~ : (Int) -> Int,
+) -> Unit {
+  let n = self.len
+  let buf_length = self.buf.length()
+  for i = n - 1; i > 0; i = i - 1 {
+    let j = rand(i + 1)
+    // Calculate circular buffer positions
+    let i_pos = (self.head + i) % buf_length
+    let j_pos = (self.head + j) % buf_length
+    // Swap elements
+    let tmp = self.buf[i_pos]
+    self.buf[i_pos] = self.buf[j_pos]
+    self.buf[j_pos] = tmp
+  }
+}
+
+///|
+/// Shuffle the deque using Knuth shuffle (Fisher-Yates algorithm)
+///
+/// Returns a new shuffled deque without modifying the original deque.
+///
+/// To use this function, you need to provide a rand function, which takes an integer as its upper bound
+/// and returns an integer.
+/// *rand n* is expected to return a uniformly distributed integer between 0 and n - 1
+pub fn[A] shuffle(self : Deque[A], rand~ : (Int) -> Int) -> Deque[A] {
+  // Create a copy of the original deque
+  let new_deque = self.copy()
+  // Shuffle the copy in place
+  new_deque.shuffle_in_place(rand~)
+  // Return the shuffled copy
+  new_deque
 }

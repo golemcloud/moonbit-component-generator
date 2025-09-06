@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///|
 // when we write the string into the buffer
 // we assume the string is utf16 and blit
 // we assume the bytes (in valid region [0, len)) is utf16
 // so that
+
+///|
 fn id(s : String) -> String {
   StringBuilder::new()..write_string(s).to_string()
 }
@@ -53,7 +54,7 @@ test "write_iter" {
   let sb = StringBuilder::new()
   sb.write_iter(str.iter())
   inspect(sb.to_string(), content="Hello🤣🤣🤣")
-  let str_view = str.view(start_offset=1, end_offset=7)
+  let str_view = str[1:7]
   sb.write_iter(str_view.iter())
   inspect(sb.to_string(), content="Hello🤣🤣🤣ello🤣")
 }

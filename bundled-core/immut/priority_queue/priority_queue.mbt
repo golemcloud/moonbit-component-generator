@@ -20,7 +20,8 @@
 ///   let queue = @priority_queue.new()
 ///   assert_eq(queue.push(1).length(), 1)
 /// ```
-pub fn[A] new() -> T[A] {
+#as_free_fn
+pub fn[A] PriorityQueue::new() -> PriorityQueue[A] {
   { node: Empty, size: 0 }
 }
 
@@ -30,9 +31,12 @@ pub fn[A] new() -> T[A] {
 /// # Example
 /// ```mbt
 ///   let queue = @priority_queue.of([1, 2, 3, 4, 5])
-///   assert_eq(queue.length(), 5)
+///   inspect(queue.length(), content="5")
 /// ```
-pub fn[A : Compare] from_array(array : Array[A]) -> T[A] {
+#as_free_fn
+pub fn[A : Compare] PriorityQueue::from_array(
+  array : Array[A],
+) -> PriorityQueue[A] {
   let mut pq = new()
   for i in 0..<array.length() {
     pq = pq.push(array[i])
@@ -41,27 +45,27 @@ pub fn[A : Compare] from_array(array : Array[A]) -> T[A] {
 }
 
 ///|
-pub fn[A : Compare] to_array(self : T[A]) -> Array[A] {
+pub fn[A : Compare] to_array(self : PriorityQueue[A]) -> Array[A] {
   let arr : Array[A] = []
-  fn go(x : Node[A]) {
-    match x {
-      Empty => return
+  let stack : Array[Node[A]] = [self.node]
+  while stack.pop() is Some(node) {
+    match node {
+      Empty => ()
       Leaf(a) => arr.push(a)
       Branch(a, left=l, right=r) => {
         arr.push(a)
-        go(l)
-        go(r)
+        stack.push(l)
+        stack.push(r)
       }
     }
   }
-
-  go(self.node)
-  arr.sort_by((x, y) => y.compare(x))
+  arr.sort()
+  arr.rev_inplace()
   arr
 }
 
 ///|
-pub fn[A : Compare] iter(self : T[A]) -> Iter[A] {
+pub fn[A : Compare] iter(self : PriorityQueue[A]) -> Iter[A] {
   Iter::new(yield_ => {
     let arr = self.to_array()
     for i in 0..<arr.length() {
@@ -73,12 +77,15 @@ pub fn[A : Compare] iter(self : T[A]) -> Iter[A] {
 }
 
 ///|
-pub fn[A : Compare] T::from_iter(iter : Iter[A]) -> T[A] {
+#as_free_fn
+pub fn[A : Compare] PriorityQueue::from_iter(
+  iter : Iter[A],
+) -> PriorityQueue[A] {
   iter.fold(init=new(), (s, e) => s.push(e))
 }
 
 ///|
-priv type Path Int
+priv struct Path(Int)
 
 ///|
 /// require: size >= 2
@@ -91,12 +98,12 @@ fn path(size : Int) -> Path {
 
 ///|
 fn is_left(self : Path) -> Bool {
-  (self.inner() & 1) == 0
+  (self.0 & 1) == 0
 }
 
 ///|
 fn next(self : Path) -> Path {
-  Path(self.inner() >> 1)
+  Path(self.0 >> 1)
 }
 
 ///|
@@ -108,7 +115,7 @@ fn next(self : Path) -> Path {
 ///   let first = queue.pop()
 ///   assert_eq(first, Some(@priority_queue.of([1, 2, 3])))
 /// ```
-pub fn[A : Compare] pop(self : T[A]) -> T[A]? {
+pub fn[A : Compare] pop(self : PriorityQueue[A]) -> PriorityQueue[A]? {
   match self.node {
     Empty => None
     Leaf(_) => Some({ node: Empty, size: 0 })
@@ -173,7 +180,7 @@ fn[A : Compare] change_and_down(self : Node[A], value : A) -> Node[A] {
 ///   assert_eq(first, @priority_queue.of([1, 2, 3]))
 /// ```
 #internal(unsafe, "Panics if the queue is empty.")
-pub fn[A : Compare] unsafe_pop(self : T[A]) -> T[A] {
+pub fn[A : Compare] unsafe_pop(self : PriorityQueue[A]) -> PriorityQueue[A] {
   match self.node {
     Empty => abort("Priority queue is empty!")
     Leaf(_) => { node: Empty, size: 0 }
@@ -184,14 +191,18 @@ pub fn[A : Compare] unsafe_pop(self : T[A]) -> T[A] {
   }
 }
 
-///| Adds a value to the immutable priority queue.
+///|
+/// Adds a value to the immutable priority queue.
 ///
 /// # Example
 /// ```mbt
 ///   let queue = @priority_queue.new()
 ///   assert_eq(queue.push(1).length(), 1)
 /// ```
-pub fn[A : Compare] push(self : T[A], value : A) -> T[A] {
+pub fn[A : Compare] push(
+  self : PriorityQueue[A],
+  value : A,
+) -> PriorityQueue[A] {
   match self.node {
     Empty => { node: Leaf(value), size: 1 }
     Leaf(_) | Branch(_) => {
@@ -228,7 +239,7 @@ fn[A : Compare] Node::push(self : Node[A], value : A, path : Path) -> Node[A] {
 ///   let queue = @priority_queue.of([1, 2, 3, 4])
 ///   assert_eq(queue.peek(), Some(4))
 /// ```
-pub fn[A] peek(self : T[A]) -> A? {
+pub fn[A] peek(self : PriorityQueue[A]) -> A? {
   match self.node {
     Empty => None
     Leaf(a) => Some(a)
@@ -242,10 +253,10 @@ pub fn[A] peek(self : T[A]) -> A? {
 /// # Example
 /// ```mbt
 ///   let queue = @priority_queue.new()
-///   assert_eq(queue.is_empty(), true)
+///   inspect(queue.is_empty(), content="true")
 ///   assert_eq(queue.push(1).is_empty(), false)
 /// ```
-pub fn[A] is_empty(self : T[A]) -> Bool {
+pub fn[A] is_empty(self : PriorityQueue[A]) -> Bool {
   self.node is Empty
 }
 
@@ -255,15 +266,16 @@ pub fn[A] is_empty(self : T[A]) -> Bool {
 /// # Example
 /// ```mbt
 ///   let queue = @priority_queue.new()
-///   assert_eq(queue.length(), 0)
+///   inspect(queue.length(), content="0")
 ///   assert_eq(queue.push(1).length(), 1)
 /// ```
-pub fn[A] length(self : T[A]) -> Int {
+pub fn[A] length(self : PriorityQueue[A]) -> Int {
   self.size
 }
 
 ///|
-pub fn[A : Compare] of(arr : FixedArray[A]) -> T[A] {
+#as_free_fn
+pub fn[A : Compare] PriorityQueue::of(arr : FixedArray[A]) -> PriorityQueue[A] {
   let mut pq = new()
   for i in 0..<arr.length() {
     pq = pq.push(arr[i])
@@ -272,7 +284,7 @@ pub fn[A : Compare] of(arr : FixedArray[A]) -> T[A] {
 }
 
 ///|
-pub impl[A : Show + Compare] Show for T[A] with output(self, logger) {
+pub impl[A : Show + Compare] Show for PriorityQueue[A] with output(self, logger) {
   logger.write_iter(
     self.iter(),
     prefix="@immut/priority_queue.of([",
@@ -281,27 +293,29 @@ pub impl[A : Show + Compare] Show for T[A] with output(self, logger) {
 }
 
 ///|
-pub impl[X : @quickcheck.Arbitrary + Compare] @quickcheck.Arbitrary for T[X] with arbitrary(
-  size,
-  rs
-) {
+pub impl[X : @quickcheck.Arbitrary + Compare] @quickcheck.Arbitrary for PriorityQueue[
+  X,
+] with arbitrary(size, rs) {
   @quickcheck.Arbitrary::arbitrary(size, rs) |> from_array
 }
 
 ///|
-pub impl[A : Compare] Eq for T[A] with op_equal(self, other) {
+pub impl[A : Compare] Eq for PriorityQueue[A] with equal(self, other) {
   self.length() == other.length() && self.to_array() == other.to_array()
 }
 
 ///|
-pub impl[A : Hash + Compare] Hash for T[A] with hash_combine(self, hasher) {
+pub impl[A : Hash + Compare] Hash for PriorityQueue[A] with hash_combine(
+  self,
+  hasher,
+) {
   for e in self {
     hasher.combine(e)
   }
 }
 
 ///|
-/// Compare two priority queues lexicographically by comparing their sorted contents.
+/// Compare two priority queues based on shortlex order by comparing their sorted contents.
 ///
 /// Parameters:
 ///
@@ -320,12 +334,12 @@ pub impl[A : Hash + Compare] Hash for T[A] with hash_combine(self, hasher) {
 ///   let pq1 = @priority_queue.of([1, 2, 3])
 ///   let pq2 = @priority_queue.of([1, 2, 4])
 ///   let pq3 = @priority_queue.of([1, 2])
-///   assert_eq(pq1.compare(pq2), -1) // pq1 < pq2
-///   assert_eq(pq1.compare(pq3), 1)  // pq2 > pq1
-///   assert_eq(pq3.compare(pq1), -1) // pq1 > pq3 (longer)
-///   assert_eq(pq1.compare(pq1), 0)  // pq1 = pq1
+///   inspect(pq1.compare(pq2), content="-1") // pq1 < pq2
+///   inspect(pq1.compare(pq3), content="1")  // pq2 > pq1
+///   inspect(pq3.compare(pq1), content="-1") // pq1 > pq3 (longer)
+///   inspect(pq1.compare(pq1), content="0")  // pq1 = pq1
 /// ```
-pub impl[A : Compare] Compare for T[A] with compare(self, other) {
+pub impl[A : Compare] Compare for PriorityQueue[A] with compare(self, other) {
   let len_cmp = self.length().compare(other.length())
   if len_cmp != 0 {
     return len_cmp

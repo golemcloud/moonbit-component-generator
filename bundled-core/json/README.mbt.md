@@ -16,7 +16,7 @@ test "parse and validate jsons" {
 
   // Parse JSON string into Json value
   let json = @json.parse("{\"key\": 42}") catch {
-    (_ : ParseError) => panic()
+    (_ : @json.ParseError) => panic()
     // _ => panic() // redundant, the type checker won't refine further
   }
 
@@ -46,9 +46,9 @@ test "json object navigation" {
   let string_opt = json.value("string").unwrap().as_string()
   inspect(
     string_opt,
-    content=
+    content=(
       #|Some("hello")
-    ,
+    ),
   )
 
   // Access number
@@ -108,9 +108,9 @@ test "json decode" {
   let map : Map[String, Int] = @json.from_json(json_map)
   inspect(
     map,
-    content=
+    content=(
       #|{"a": 1, "b": 2}
-    ,
+    ),
   )
 }
 ```
@@ -139,7 +139,7 @@ This is particularly true for deeply-nested data structures.
 
 ```moonbit
 test "json inspection" {
-  let null = Json::null() 
+  let null = null 
 
   // Simple json values
   let json_value : Json = { "key": "value", "numbers": [1, 2, 3] }

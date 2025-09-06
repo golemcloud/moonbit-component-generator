@@ -33,10 +33,12 @@ fn ParseContext::read_char(ctx : ParseContext) -> Char? {
   }
 }
 
-///| low surrogate
+///|
+/// low surrogate
 const SURROGATE_LOW_CHAR = 0xD800
 
-///| high surrogate
+///|
+/// high surrogate
 const SURROGATE_HIGH_CHAR = 0xDFFF
 
 ///|
@@ -45,7 +47,7 @@ const SURROGATE_HIGH_CHAR = 0xDFFF
 /// otherwise raise an error, when it is an error, the position is unspecified.
 fn ParseContext::expect_char(
   ctx : ParseContext,
-  c : Char
+  c : Char,
 ) -> Unit raise ParseError {
   guard ctx.offset < ctx.end_offset else { raise InvalidEof }
   let c1 = ctx.input.unsafe_charcode_at(ctx.offset)
@@ -79,7 +81,7 @@ fn ParseContext::expect_char(
 /// 
 fn ParseContext::expect_ascii_char(
   ctx : ParseContext,
-  c : Byte
+  c : Byte,
 ) -> Unit raise ParseError {
   guard ctx.offset < ctx.end_offset else { raise InvalidEof }
   let c1 = ctx.input.unsafe_charcode_at(ctx.offset)
@@ -95,7 +97,7 @@ test "expect_char" {
   ctx.expect_char('a')
   ctx.expect_char('b')
   ctx.expect_char('c')
-  inspect(try? ctx.expect_char('d'), content={ "Err": { "$tag": "InvalidEof" } })
+  inspect(try? ctx.expect_char('d'), content={ "Err": "InvalidEof" })
 }
 
 ///|
@@ -108,7 +110,7 @@ test "expect_char with surrogate pair" {
   ctx.expect_char('c')
   ctx.expect_char((0x1F600).unsafe_to_char())
   ctx.expect_char('c')
-  inspect(try? ctx.expect_char('d'), content={ "Err": { "$tag": "InvalidEof" } })
+  inspect(try? ctx.expect_char('d'), content={ "Err": "InvalidEof" })
 }
 
 ///|
@@ -130,7 +132,7 @@ fn ParseContext::lex_skip_whitespace(ctx : ParseContext) -> Unit {
 
 ///|
 fn ParseContext::lex_after_array_value(
-  ctx : ParseContext
+  ctx : ParseContext,
 ) -> Token raise ParseError {
   ctx.lex_skip_whitespace()
   match ctx.read_char() {
@@ -143,7 +145,7 @@ fn ParseContext::lex_after_array_value(
 
 ///|
 fn ParseContext::lex_after_property_name(
-  ctx : ParseContext
+  ctx : ParseContext,
 ) -> Unit raise ParseError {
   ctx.lex_skip_whitespace()
   match ctx.read_char() {
@@ -155,7 +157,7 @@ fn ParseContext::lex_after_property_name(
 
 ///|
 fn ParseContext::lex_after_object_value(
-  ctx : ParseContext
+  ctx : ParseContext,
 ) -> Token raise ParseError {
   ctx.lex_skip_whitespace()
   match ctx.read_char() {
@@ -170,7 +172,7 @@ fn ParseContext::lex_after_object_value(
 /// In the context of `{`, try to lex token `}` or a property name,
 /// otherwise raise an error.
 fn ParseContext::lex_property_name(
-  ctx : ParseContext
+  ctx : ParseContext,
 ) -> Token raise ParseError {
   ctx.lex_skip_whitespace()
   match ctx.read_char() {
@@ -189,7 +191,7 @@ fn ParseContext::lex_property_name(
 /// otherwise raise an error.
 /// since it is in comma context, `}` is not allowed.
 fn ParseContext::lex_property_name2(
-  ctx : ParseContext
+  ctx : ParseContext,
 ) -> Token raise ParseError {
   ctx.lex_skip_whitespace()
   match ctx.read_char() {

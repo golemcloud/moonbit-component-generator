@@ -30,7 +30,7 @@ const INT64_MAX = 0x7fffffffffffffffL
 /// The boolean flag `allow_underscore` is used to check validity of underscores.
 fn check_and_consume_base(
   view : @string.View,
-  base : Int
+  base : Int,
 ) -> (Int, @string.View, Bool) raise StrConvError {
   // if the base is not given, we need to determine it from the prefix
   if base == 0 {
@@ -70,17 +70,20 @@ test {
 /// These underscores do not affect the value.
 /// Examples:
 /// ```mbt
-///   inspect(parse_int64("123"), content="123")
-///   inspect(parse_int64("0xff", base=0), content="255") 
-///   inspect(parse_int64("0o10"), content="8")
-///   inspect(parse_int64("0b1010"), content="10")
-///   inspect(parse_int64("1_234"), content="1234")
-///   inspect(parse_int64("-123"), content="-123")
-///   inspect(parse_int64("ff", base=16), content="255")
-///   inspect(parse_int64("zz", base=36), content="1295")
+///   inspect(@strconv.parse_int64("123"), content="123")
+///   inspect(@strconv.parse_int64("0xff", base=0), content="255") 
+///   inspect(@strconv.parse_int64("0o10"), content="8")
+///   inspect(@strconv.parse_int64("0b1010"), content="10")
+///   inspect(@strconv.parse_int64("1_234"), content="1234")
+///   inspect(@strconv.parse_int64("-123"), content="-123")
+///   inspect(@strconv.parse_int64("ff", base=16), content="255")
+///   inspect(@strconv.parse_int64("zz", base=36), content="1295")
 /// ```
 /// 
-pub fn parse_int64(str : String, base~ : Int = 0) -> Int64 raise StrConvError {
+pub fn parse_int64(
+  str : @string.View,
+  base? : Int = 0,
+) -> Int64 raise StrConvError {
   guard str != "" else { syntax_err() }
   let (neg, rest) = match str.view() {
     ['+', .. rest] => (false, rest)
@@ -132,7 +135,7 @@ pub fn parse_int64(str : String, base~ : Int = 0) -> Int64 raise StrConvError {
 ///|
 /// Parse a string in the given base (0, 2 to 36), return a Int number or an error.
 /// If the `~base` argument is 0, the base will be inferred by the prefix.
-pub fn parse_int(str : String, base~ : Int = 0) -> Int raise StrConvError {
+pub fn parse_int(str : @string.View, base? : Int = 0) -> Int raise StrConvError {
   let n = parse_int64(str, base~)
   if n < INT_MIN.to_int64() || n > INT_MAX.to_int64() {
     range_err()
@@ -140,10 +143,11 @@ pub fn parse_int(str : String, base~ : Int = 0) -> Int raise StrConvError {
   n.to_int()
 }
 
-///|
 // Check whether the underscores are correct.
 // Underscores must appear only between digits or between a base prefix and a digit.
-fn check_underscore(str : String) -> Bool {
+
+///|
+fn check_underscore(str : @string.View) -> Bool {
   // skip the sign
   let rest = match str {
     ['+' | '-', .. rest] => rest
@@ -191,8 +195,9 @@ fn check_underscore(str : String) -> Bool {
   }
 }
 
-///|
 // Determine the base of the value.
+
+///|
 fn determine_base(s : String) -> Int {
   match s {
     ['0', 'x' | 'X', ..] => 16
@@ -204,7 +209,7 @@ fn determine_base(s : String) -> Int {
 
 ///|
 fn overflow_threshold(base : Int, neg : Bool) -> Int64 {
-  if not(neg) {
+  if !neg {
     if base == 10 {
       INT64_MAX / 10L + 1L
     } else if base == 16 {
@@ -238,13 +243,13 @@ test "check_underscore" {
 
 ///|
 test "determine_base" {
-  assert_eq(determine_base("1234"), 10)
-  assert_eq(determine_base("0x1234"), 16)
-  assert_eq(determine_base("0X1234"), 16)
-  assert_eq(determine_base("0o1234"), 8)
-  assert_eq(determine_base("0O1234"), 8)
-  assert_eq(determine_base("0b1010"), 2)
-  assert_eq(determine_base("0B1010"), 2)
+  inspect(determine_base("1234"), content="10")
+  inspect(determine_base("0x1234"), content="16")
+  inspect(determine_base("0X1234"), content="16")
+  inspect(determine_base("0o1234"), content="8")
+  inspect(determine_base("0O1234"), content="8")
+  inspect(determine_base("0b1010"), content="2")
+  inspect(determine_base("0B1010"), content="2")
 }
 
 ///|

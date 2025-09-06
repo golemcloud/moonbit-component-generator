@@ -18,13 +18,15 @@
 
 ///|
 /// Return a new empty array
-pub fn[A] new() -> T[A] {
+#as_free_fn
+pub fn[A] T::new() -> T[A] {
   { tree: Tree::empty(), size: 0, shift: 0 }
 }
 
 ///|
 /// Create a persistent array with a given length and value.
-pub fn[A] make(len : Int, value : A) -> T[A] {
+#as_free_fn
+pub fn[A] T::make(len : Int, value : A) -> T[A] {
   let quot = len / branching_factor
   let rem = len % branching_factor
   let leaves = if rem == 0 {
@@ -45,7 +47,8 @@ pub fn[A] make(len : Int, value : A) -> T[A] {
 
 ///|
 /// Create a persistent array with a given length and a function to generate values.
-pub fn[A] makei(len : Int, f : (Int) -> A raise?) -> T[A] raise? {
+#as_free_fn
+pub fn[A] T::makei(len : Int, f : (Int) -> A raise?) -> T[A] raise? {
   let quot = len / branching_factor
   let rem = len % branching_factor
   let leaves = if rem == 0 {
@@ -70,7 +73,8 @@ pub fn[A] makei(len : Int, f : (Int) -> A raise?) -> T[A] raise? {
 
 ///|
 /// Convert a FixedArray to an @immut/array.
-pub fn[A] of(arr : FixedArray[A]) -> T[A] {
+#as_free_fn
+pub fn[A] T::of(arr : FixedArray[A]) -> T[A] {
   makei(arr.length(), i => arr[i])
 }
 
@@ -108,12 +112,14 @@ pub fn[A] copy(self : T[A]) -> T[A] {
 ///   let v = @array.of([1, 2, 3])
 ///   assert_eq(v, @array.from_array([1, 2, 3]))
 /// ```
-pub fn[A] from_array(arr : Array[A]) -> T[A] {
+#as_free_fn
+pub fn[A] T::from_array(arr : Array[A]) -> T[A] {
   makei(arr.length(), i => arr[i])
 }
 
 ///|
-pub fn[A] from_iter(iter : Iter[A]) -> T[A] {
+#as_free_fn
+pub fn[A] T::from_iter(iter : Iter[A]) -> T[A] {
   let mut buf : FixedArray[A] = []
   let mut index = 0
   let leaves = []
@@ -180,7 +186,7 @@ pub fn[A] length(self : T[A]) -> Int {
 /// # Examples
 /// ```mbt
 ///   let v = @array.of([1, 2, 3, 4, 5])
-///   assert_eq(v[0], 1)
+///   inspect(v[0], content="1")
 /// ```
 pub fn[A] op_get(self : T[A], index : Int) -> A {
   if index == 0 {
@@ -271,7 +277,7 @@ pub fn[A] concat(self : T[A], other : T[A]) -> T[A] {
 
 ///|
 /// Concat two arrays.
-pub impl[A] Add for T[A] with op_add(self, other) {
+pub impl[A] Add for T[A] with add(self, other) {
   self.concat(other)
 }
 
@@ -336,7 +342,7 @@ pub fn[A, B] fold(self : T[A], init~ : B, f : (B, A) -> B raise?) -> B raise? {
 pub fn[A, B] rev_fold(
   self : T[A],
   init~ : B,
-  f : (B, A) -> B raise?
+  f : (B, A) -> B raise?,
 ) -> B raise? {
   self.tree.rev_fold(init, f)
 }
@@ -368,7 +374,7 @@ pub fn[A] fold_left(self : T[A], f : (A, A) -> A raise?, init~ : A) -> A raise? 
 pub fn[A] fold_right(
   self : T[A],
   f : (A, A) -> A raise?,
-  init~ : A
+  init~ : A,
 ) -> A raise? {
   self.rev_fold(init~, f)
 }
@@ -392,7 +398,7 @@ pub fn[A, B] map(self : T[A], f : (A) -> B raise?) -> T[B] raise? {
 ///|
 pub impl[X : @quickcheck.Arbitrary] @quickcheck.Arbitrary for T[X] with arbitrary(
   size,
-  rs
+  rs,
 ) {
   @quickcheck.Arbitrary::arbitrary(size, rs) |> from_array
 }
@@ -405,7 +411,7 @@ pub impl[A : Hash] Hash for T[A] with hash_combine(self, hasher) {
 }
 
 ///|
-pub impl[A : Eq] Eq for T[A] with op_equal(self, other) {
+pub impl[A : Eq] Eq for T[A] with equal(self, other) {
   self.size == other.size && self.tree == other.tree
 }
 
@@ -415,7 +421,7 @@ pub impl[A : Show] Show for T[A] with output(self, logger) {
 }
 
 ///|
-/// Compares two arrays lexicographically.
+/// Compares two arrays based on shortlex order.
 ///
 /// First compares the lengths of the arrays. If they differ, returns -1 if the
 /// first array is shorter, 1 if it's longer. If the lengths are equal, compares
@@ -439,10 +445,10 @@ pub impl[A : Show] Show for T[A] with output(self, logger) {
 ///   let arr1 = @array.of([1, 2, 3])
 ///   let arr2 = @array.of([1, 2, 4])
 ///   let arr3 = @array.of([1, 2])
-///   assert_eq(arr1.compare(arr2), -1) // arr1 < arr2
-///   assert_eq(arr1.compare(arr3), 1) // arr2 > arr1
-///   assert_eq(arr3.compare(arr1), -1) // arr1 > arr3 (longer)
-///   assert_eq(arr1.compare(arr1), 0) // arr1 = arr1
+///   inspect(arr1.compare(arr2), content="-1") // arr1 < arr2
+///   inspect(arr1.compare(arr3), content="1") // arr2 > arr1
+///   inspect(arr3.compare(arr1), content="-1") // arr1 > arr3 (longer)
+///   inspect(arr1.compare(arr1), content="0") // arr1 = arr1
 /// ```
 pub impl[A : Compare] Compare for T[A] with compare(self, other) {
   let len_self = self.length()
@@ -464,7 +470,7 @@ pub impl[A : Compare] Compare for T[A] with compare(self, other) {
 ///|
 fn[A] from_leaves(
   leaves : @core/array.View[FixedArray[A]],
-  cap : Int
+  cap : Int,
 ) -> Tree[A] {
   if cap == branching_factor {
     Leaf(leaves[0])

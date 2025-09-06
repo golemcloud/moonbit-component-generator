@@ -29,10 +29,23 @@ test "panic @list.exn with empty list" {
 
 ///|
 test "panic @list.unsafe_maximum with empty list" {
-  inspect((@list.empty() : @list.T[Int]).unsafe_maximum())
+  inspect((@list.empty() : @list.List[Int]).unsafe_maximum())
 }
 
 ///|
 test "panic @list.unsafe_minimum with empty list" {
-  inspect((@list.empty() : @list.T[Int]).unsafe_minimum())
+  inspect((@list.empty() : @list.List[Int]).unsafe_minimum())
+}
+
+///|
+test "unsafe_head with non-empty list" {
+  // Test the non-panic path of unsafe_head to cover line 407
+  let list = @list.of([1, 2, 3])
+  inspect(list.unsafe_head(), content="1")
+}
+
+///|
+test "panic unsafe_last with empty list" {
+  // Test the panic path of unsafe_last to cover line 469
+  @list.empty().unsafe_last()
 }

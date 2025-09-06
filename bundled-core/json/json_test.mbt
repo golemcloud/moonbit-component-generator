@@ -14,7 +14,7 @@
 
 ///|
 test "get as null" {
-  inspect(Json::null().as_null(), content="Some(())")
+  inspect(null.as_null(), content="Some(())")
   inspect(Json::boolean(true).as_null(), content="None")
   inspect(Json::boolean(false).as_null(), content="None")
   inspect(Json::number(1.0).as_null(), content="None")
@@ -28,7 +28,7 @@ test "get as null" {
 
 ///|
 test "get as bool" {
-  inspect(Json::null().as_bool(), content="None")
+  inspect(null.as_bool(), content="None")
   inspect(Json::boolean(true).as_bool(), content="Some(true)")
   inspect(Json::boolean(false).as_bool(), content="Some(false)")
   inspect(Json::number(1.0).as_bool(), content="None")
@@ -49,7 +49,7 @@ fn _check2(x : String) -> Json raise @json.ParseError {
 
 ///|
 test "get as number" {
-  inspect(Json::null().as_number(), content="None")
+  inspect(null.as_number(), content="None")
   inspect(Json::boolean(false).as_number(), content="None")
   inspect(Json::boolean(true).as_number(), content="None")
   inspect(Json::number(1.0).as_number(), content="Some(1)")
@@ -68,15 +68,15 @@ test "get as number" {
 
 ///|
 test "get as string" {
-  inspect(Json::null().as_string(), content="None")
+  inspect(null.as_string(), content="None")
   inspect(Json::boolean(true).as_string(), content="None")
   inspect(Json::boolean(false).as_string(), content="None")
   inspect(Json::number(1.0).as_string(), content="None")
   inspect(
     Json::string("Hello World").as_string(),
-    content=
+    content=(
       #|Some("Hello World")
-    ,
+    ),
   )
   inspect(
     Json::array([Json::string("Hello World")]).as_string(),
@@ -92,22 +92,22 @@ test "get as string" {
 
 ///|
 test "get as array" {
-  inspect(Json::null().as_array(), content="None")
+  inspect(null.as_array(), content="None")
   inspect(Json::boolean(true).as_array(), content="None")
   inspect(Json::boolean(false).as_array(), content="None")
   inspect(Json::number(1.0).as_array(), content="None")
   inspect(Json::string("Hello World").as_array(), content="None")
   inspect(
     Json::array([Json::string("Hello World")]).as_array(),
-    content=
+    content=(
       #|Some([String("Hello World")])
-    ,
+    ),
   )
   inspect(
     Json::array([Json::string("Hello World")]).item(0).bind(Json::as_string),
-    content=
+    content=(
       #|Some("Hello World")
-    ,
+    ),
   )
   inspect(
     Json::array([Json::string("Hello World")]).item(1).bind(Json::as_string),
@@ -127,7 +127,7 @@ test "get as array" {
 
 ///|
 test "get as object" {
-  inspect(Json::null().as_object().map(_.to_array()), content="None")
+  inspect(null.as_object().map(_.to_array()), content="None")
   inspect(Json::boolean(true).as_object().map(_.to_array()), content="None")
   inspect(Json::boolean(false).as_object().map(_.to_array()), content="None")
   inspect(Json::number(1.0).as_object().map(_.to_array()), content="None")
@@ -145,9 +145,9 @@ test "get as object" {
     )
     .as_object()
     .map(_.to_array()),
-    content=
+    content=(
       #|Some([("key", String("key")), ("value", Number(100))])
-    ,
+    ),
   )
   inspect(
     Json::object(
@@ -155,9 +155,9 @@ test "get as object" {
     )
     .value("key")
     .bind(_.as_string()),
-    content=
+    content=(
       #|Some("key")
-    ,
+    ),
   )
   inspect(
     Json::object(
@@ -188,10 +188,10 @@ test "get as object" {
 ///|
 test "deep access" {
   let json : Json = {
-    "key": [1.0, true, Json::null(), [], { "key": "value", "value": 100.0 }],
+    "key": [1.0, true, null, [], { "key": "value", "value": 100.0 }],
     "int": 12345,
     "double": 123.45,
-    "null": Json::null(),
+    "null": null,
     "bool": false,
     "obj": {},
   }
@@ -207,9 +207,9 @@ test "deep access" {
   )
   inspect(
     json.value("key").bind(_.as_array()),
-    content=
+    content=(
       #|Some([Number(1), True, Null, Array([]), Object({"key": String("value"), "value": Number(100)})])
-    ,
+    ),
   )
   inspect(
     json.value("key").bind(_.item(3)).bind(_.as_array()),
@@ -217,9 +217,9 @@ test "deep access" {
   )
   inspect(
     json.value("key").bind(_.item(4)).bind(_.as_object()).map(_.to_array()),
-    content=
+    content=(
       #|Some([("key", String("value")), ("value", Number(100))])
-    ,
+    ),
   )
   inspect(
     json.value("obj").bind(_.as_object()).map(_.to_array()),
@@ -230,25 +230,25 @@ test "deep access" {
 ///|
 test "stringify" {
   let json : Json = {
-    "key": [1.0, true, Json::null(), [], { "key": "value", "value": 100.0 }],
+    "key": [1.0, true, null, [], { "key": "value", "value": 100.0 }],
     "int": 12345,
     "double": 123.45,
-    "null": Json::null(),
+    "null": null,
     "bool": false,
     "obj": {},
   }
   inspect(
     json.stringify(),
-    content=
+    content=(
       #|{"key":[1,true,null,[],{"key":"value","value":100}],"int":12345,"double":123.45,"null":null,"bool":false,"obj":{}}
-    ,
+    ),
   )
 
   // not mut once we have `try except else` syntax
   // we do come across issues like ParseError not unified with String
   let newjson = @json.parse(json.stringify())
   match json {
-    { "key": [_, _, _, _, { "value": Number(i), .. }, ..], .. } =>
+    { "key": [_, _, _, _, { "value": Number(i, ..), .. }, ..], .. } =>
       inspect(i, content="100")
     _ => fail("Failed to match the JSON")
   }
@@ -270,9 +270,9 @@ let json : Json = {
 test "stringify escape 1 " {
   inspect(
     json.stringify(),
-    content=
+    content=(
       #|{"\b":"\"hello\"","\n":"\n\r\t\f","\\":"/","\u001f":"\u0001","actual":"a,\"b\",c","escape":"\u0000"}
-    ,
+    ),
   )
 }
 
@@ -280,9 +280,9 @@ test "stringify escape 1 " {
 test "stringify escape 2" {
   inspect(
     json.stringify(escape_slash=true),
-    content=
+    content=(
       #|{"\b":"\"hello\"","\n":"\n\r\t\f","\\":"\/","\u001f":"\u0001","actual":"a,\"b\",c","escape":"\u0000"}
-    ,
+    ),
   )
 }
 
@@ -290,7 +290,7 @@ test "stringify escape 2" {
 test "stringify escape 3" {
   inspect(
     json.stringify(escape_slash=false, indent=2),
-    content=
+    content=(
       #|{
       #|  "\b": "\"hello\"",
       #|  "\n": "\n\r\t\f",
@@ -299,7 +299,7 @@ test "stringify escape 3" {
       #|  "actual": "a,\"b\",c",
       #|  "escape": "\u0000"
       #|}
-    ,
+    ),
   )
 }
 
@@ -307,9 +307,9 @@ test "stringify escape 3" {
 test "stringify escape 4" {
   inspect(
     json.stringify(escape_slash=false),
-    content=
+    content=(
       #|{"\b":"\"hello\"","\n":"\n\r\t\f","\\":"/","\u001f":"\u0001","actual":"a,\"b\",c","escape":"\u0000"}
-    ,
+    ),
   )
 }
 
@@ -340,15 +340,15 @@ test "escape" {
   let s = "http://example.com/"
   inspect(
     Json::string(s).stringify(escape_slash=true),
-    content=
+    content=(
       #|"http:\/\/example.com\/"
-    ,
+    ),
   )
   inspect(
     Json::string(s).stringify(),
-    content=
+    content=(
       #|"http://example.com/"
-    ,
+    ),
   )
 }
 
@@ -379,14 +379,40 @@ test "stringify number" {
   inspect(nums[7].stringify(), content="9.999999999992234e+29")
   inspect(nums[8].stringify(), content="-1.7976931348623157e+308")
   inspect(nums[9].stringify(), content="1.7976931348623157e+308")
-  inspect(nums[10].stringify(), content="null")
-  inspect(nums[11].stringify(), content="null")
-  inspect(nums[12].stringify(), content="null")
+  inspect(
+    nums[10].stringify(),
+    content=(
+      #|"NaN"
+    ),
+  )
+  inspect(
+    nums[11].stringify(),
+    content=(
+      #|"Infinity"
+    ),
+  )
+  inspect(
+    nums[12].stringify(),
+    content=(
+      #|"-Infinity"
+    ),
+  )
   let err : Array[String] = []
   for json in nums {
-    match (try? @json.parse(json.stringify())) {
-      Err(e) => err.push(e.to_string())
-      Ok(newjson) => assert_eq(newjson, json)
+    let json = @json.parse(json.stringify()) catch {
+      e => {
+        err.push(e.to_string())
+        continue
+      }
+    }
+    match json {
+      Number(_, repr~) as newjson =>
+        if repr is Some(_) {
+          assert_eq(newjson.stringify(), json.stringify())
+        } else {
+          assert_eq(newjson, json)
+        }
+      newjson => assert_eq(newjson, json)
     }
   }
   inspect(err, content="[]")
@@ -395,22 +421,22 @@ test "stringify number" {
 ///|
 test "stringify with indent" {
   let json : Json = {
-    "key": [1.0, true, Json::null(), [], { "key": "value", "value": 100.0 }],
+    "key": [1.0, true, null, [], { "key": "value", "value": 100.0 }],
     "int": 12345,
     "double": 123.45,
-    "null": Json::null(),
+    "null": null,
     "bool": false,
     "obj": {},
   }
   inspect(
     json.stringify(indent=0),
-    content=
+    content=(
       #|{"key":[1,true,null,[],{"key":"value","value":100}],"int":12345,"double":123.45,"null":null,"bool":false,"obj":{}}
-    ,
+    ),
   )
   inspect(
     json.stringify(indent=1),
-    content=
+    content=(
       #|{
       #| "key": [
       #|  1,
@@ -428,11 +454,11 @@ test "stringify with indent" {
       #| "bool": false,
       #| "obj": {}
       #|}
-    ,
+    ),
   )
   inspect(
     json.stringify(indent=2),
-    content=
+    content=(
       #|{
       #|  "key": [
       #|    1,
@@ -450,11 +476,11 @@ test "stringify with indent" {
       #|  "bool": false,
       #|  "obj": {}
       #|}
-    ,
+    ),
   )
   inspect(
     json.stringify(indent=4),
-    content=
+    content=(
       #|{
       #|    "key": [
       #|        1,
@@ -472,7 +498,7 @@ test "stringify with indent" {
       #|    "bool": false,
       #|    "obj": {}
       #|}
-    ,
+    ),
   )
 }
 

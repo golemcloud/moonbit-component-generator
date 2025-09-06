@@ -86,7 +86,7 @@ test "chars" {
   .each(c => str = str + c.to_int().to_string() + "\n")
   inspect(
     str,
-    content=
+    content=(
       #|65
       #|128522
       #|134071
@@ -96,7 +96,7 @@ test "chars" {
       #|134071
       #|66
       #|
-    ,
+    ),
   )
   inspect(
     "A😊𠮷BA😊𠮷B".iter().take(2).collect(),
@@ -116,7 +116,7 @@ test "rev_iter" {
   .each(c => str = str + c.to_int().to_string() + "\n")
   inspect(
     str,
-    content=
+    content=(
       #|66
       #|134071
       #|128522
@@ -126,7 +126,7 @@ test "rev_iter" {
       #|128522
       #|65
       #|
-    ,
+    ),
   )
   inspect(
     "A😊𠮷BA😊𠮷B".rev_iter().take(2).collect(),
@@ -146,7 +146,7 @@ test "iter2" {
   .each((i, c) => str = str + "\{i}: \{c.to_int()} \n")
   inspect(
     str,
-    content=
+    content=(
       #|0: 65 
       #|1: 128522 
       #|2: 134071 
@@ -156,7 +156,7 @@ test "iter2" {
       #|6: 134071 
       #|7: 66 
       #|
-    ,
+    ),
   )
 }
 
@@ -297,7 +297,7 @@ test "String::index_of basic matching" {
 test "String::index_of overlapping patterns" {
   // Testing overlapping patterns
   inspect("aaa".find("aa"), content="Some(0)")
-  inspect("aaa".view(start_offset=1).find("aa"), content="Some(0)")
+  inspect("aaa"[1:].find("aa"), content="Some(0)")
 }
 
 ///|
@@ -362,46 +362,46 @@ test "has_suffix" {
 test "split" {
   inspect(
     "a,b,c,d,e".split(","),
-    content=
+    content=(
       #|["a", "b", "c", "d", "e"]
-    ,
+    ),
   )
   inspect(
     "abcde".split(""),
-    content=
+    content=(
       #|["a", "b", "c", "d", "e"]
-    ,
+    ),
   )
   inspect(
     "a b c d e".split(" "),
-    content=
+    content=(
       #|["a", "b", "c", "d", "e"]
-    ,
+    ),
   )
   inspect(
     "abcde".split("x"),
-    content=
+    content=(
       #|["abcde"]
-    ,
+    ),
   )
   inspect("".split(""), content="[]")
   inspect(
     "".split("x"),
-    content=
+    content=(
       #|[""]
-    ,
+    ),
   )
   inspect(
     "你 wow 好 wow 月 wow 兔".split(" wow "),
-    content=
+    content=(
       #|["你", "好", "月", "兔"]
-    ,
+    ),
   )
   inspect(
     "👍😍😭👍😍😭👍😍😭👍".split("😍😭"),
-    content=
+    content=(
       #|["👍", "👍", "👍", "👍"]
-    ,
+    ),
   )
 }
 
@@ -467,65 +467,65 @@ test "to_upper" {
 test "split" {
   inspect(
     "a b c d e".split(" "),
-    content=
+    content=(
       #|["a", "b", "c", "d", "e"]
-    ,
+    ),
   )
   inspect(
     "abcde".split("x"),
-    content=
+    content=(
       #|["abcde"]
-    ,
+    ),
   )
   inspect("".split(""), content="[]")
   inspect(
     "".split("x"),
-    content=
+    content=(
       #|[""]
-    ,
+    ),
   )
   inspect(
     "你 wow 好 wow 月 wow 兔".split(" wow "),
-    content=
+    content=(
       #|["你", "好", "月", "兔"]
-    ,
+    ),
   )
   inspect(
     "👍😍😭👍😍😭👍😍😭👍".split("😍😭"),
-    content=
+    content=(
       #|["👍", "👍", "👍", "👍"]
-    ,
+    ),
   )
   // Additional test cases
   inspect(
     "a,b,c,d,e".split(","),
-    content=
+    content=(
       #|["a", "b", "c", "d", "e"]
-    ,
+    ),
   )
   inspect(
     "a,,b,,c".split(","),
-    content=
+    content=(
       #|["a", "", "b", "", "c"]
-    ,
+    ),
   )
   inspect(
     "a,,b,,c".split(",,"),
-    content=
+    content=(
       #|["a", "b", "c"]
-    ,
+    ),
   )
   inspect(
     "a b c d e".split(""),
-    content=
+    content=(
       #|["a", " ", "b", " ", "c", " ", "d", " ", "e"]
-    ,
+    ),
   )
   inspect(
     "a b c d e".split(" "),
-    content=
+    content=(
       #|["a", "b", "c", "d", "e"]
-    ,
+    ),
   )
 }
 
@@ -682,7 +682,7 @@ test "offset_of_nth_char property" {
   let n = s.char_length()
   for i in 0..<n {
     let index = s.offset_of_nth_char(i).unwrap()
-    assert_eq(s.unsafe_char_at(index), s.iter().nth(i).unwrap())
+    assert_eq(s.get_char(index).unwrap(), s.iter().nth(i).unwrap())
   }
 }
 
@@ -692,24 +692,24 @@ test "offset_of_nth_char property negative" {
   let n = s.char_length()
   for i in 1..=n {
     let index = s.offset_of_nth_char(-i).unwrap()
-    assert_eq(s.unsafe_char_at(index), s.rev_iter().nth(i - 1).unwrap())
+    assert_eq(s.get_char(index).unwrap(), s.rev_iter().nth(i - 1).unwrap())
   }
 }
 
 ///|
 test "split and then join should be identity" {
   let string = ""
-  assert_eq(string, string.split("").map(View::to_string).join(""))
-  assert_eq(string, string.split("a").map(View::to_string).join("a"))
+  assert_eq(string, string.split("").map(@string.View::to_string).join(""))
+  assert_eq(string, string.split("a").map(@string.View::to_string).join("a"))
   let string = "a,b,c,"
-  assert_eq(string, string.split("").map(View::to_string).join(""))
-  assert_eq(string, string.split(",").map(View::to_string).join(","))
+  assert_eq(string, string.split("").map(@string.View::to_string).join(""))
+  assert_eq(string, string.split(",").map(@string.View::to_string).join(","))
   let string = "a b c"
-  assert_eq(string, string.split("").map(View::to_string).join(""))
-  assert_eq(string, string.split(" ").map(View::to_string).join(" "))
+  assert_eq(string, string.split("").map(@string.View::to_string).join(""))
+  assert_eq(string, string.split(" ").map(@string.View::to_string).join(" "))
   let string = "aaaaa"
-  assert_eq(string, string.split("").map(View::to_string).join(""))
-  assert_eq(string, string.split("a").map(View::to_string).join("a"))
+  assert_eq(string, string.split("").map(@string.View::to_string).join(""))
+  assert_eq(string, string.split("a").map(@string.View::to_string).join("a"))
 }
 
 ///|

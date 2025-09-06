@@ -86,7 +86,7 @@ fn mulShiftAll64(
   m : UInt64,
   mul : (UInt64, UInt64),
   j : Int,
-  mmShift : Bool
+  mmShift : Bool,
 ) -> (UInt64, UInt64, UInt64) {
   let m = m << 1
   let (lo, tmp) = umul128(m, mul.0)
@@ -120,7 +120,7 @@ fn mulShiftAll64(
 let gPOW5_TABLE_SIZE = 26
 
 ///|
-let gDOUBLE_POW5_INV_SPLIT2 : Array[UInt64] = [
+let gDOUBLE_POW5_INV_SPLIT2 : FixedArray[UInt64] = [
   1, 2305843009213693952, 5955668970331000884, 1784059615882449851, 8982663654677661702,
   1380349269358112757, 7286864317269821294, 2135987035920910082, 7005857020398200553,
   1652639921975621497, 17965325103354776697, 1278668206209430417, 8928596168509315048,
@@ -132,14 +132,14 @@ let gDOUBLE_POW5_INV_SPLIT2 : Array[UInt64] = [
 ]
 
 ///|
-let gPOW5_INV_OFFSETS : Array[UInt] = [
+let gPOW5_INV_OFFSETS : FixedArray[UInt] = [
   0x54544554, 0x04055545, 0x10041000, 0x00400414, 0x40010000, 0x41155555, 0x00000454,
   0x00010044, 0x40000000, 0x44000041, 0x50454450, 0x55550054, 0x51655554, 0x40004000,
   0x01000001, 0x00010500, 0x51515411, 0x05555554, 0x00000000,
 ]
 
 ///|
-let gDOUBLE_POW5_SPLIT2 : Array[UInt64] = [
+let gDOUBLE_POW5_SPLIT2 : FixedArray[UInt64] = [
   0, 1152921504606846976, 0, 1490116119384765625, 1032610780636961552, 1925929944387235853,
   7910200175544436838, 1244603055572228341, 16941905809032713930, 1608611746708759036,
   13024893955298202172, 2079081953128979843, 6607496772837067824, 1343575221513417750,
@@ -149,14 +149,14 @@ let gDOUBLE_POW5_SPLIT2 : Array[UInt64] = [
 ]
 
 ///|
-let gPOW5_OFFSETS : Array[UInt] = [
+let gPOW5_OFFSETS : FixedArray[UInt] = [
   0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x40000000, 0x59695995, 0x55545555,
   0x56555515, 0x41150504, 0x40555410, 0x44555145, 0x44504540, 0x45555550, 0x40004000,
   0x96440440, 0x55565565, 0x54454045, 0x40154151, 0x55559155, 0x51405555, 0x00000105,
 ]
 
 ///|
-let gDOUBLE_POW5_TABLE : Array[UInt64] = [
+let gDOUBLE_POW5_TABLE : FixedArray[UInt64] = [
   1, 5, 25, 125, 625, 3125, 15625, 78125, 390625, 1953125, 9765625, 48828125, 244140625,
   1220703125, 6103515625, 30517578125, 152587890625, 762939453125, 3814697265625,
   19073486328125, 95367431640625, 476837158203125, 2384185791015625, 11920928955078125,
@@ -288,8 +288,9 @@ fn decimal_length17(v : UInt64) -> Int {
   return 1
 }
 
-///|
 // A floating decimal representing m * 10^e.
+
+///|
 priv struct FloatingDecimal64 {
   mantissa : UInt64
   // Decimal exponent's range is -324 to 308
@@ -355,12 +356,11 @@ fn d2d(ieeeMantissa : UInt64, ieeeExponent : UInt) -> FloatingDecimal64 {
         // <=> e2 + (~mm & 1) >= q && pow5Factor(mm) >= q
         // <=> true && pow5Factor(mm) >= q, since e2 >= q.
         vmIsTrailingZeros = multipleOfPowerOf5(
-          mv - 1UL - mmShift.to_int64().reinterpret_as_uint64(),
+          mv - 1UL - mmShift.to_uint64(),
           q,
         )
       } else {
-        vp = vp -
-          multipleOfPowerOf5(mv + 2UL, q).to_int64().reinterpret_as_uint64()
+        vp = vp - multipleOfPowerOf5(mv + 2UL, q).to_uint64()
       }
     }
   } else {
@@ -435,8 +435,7 @@ fn d2d(ieeeMantissa : UInt64, ieeeExponent : UInt) -> FloatingDecimal64 {
       lastRemovedDigit = 4
     }
     output = vr +
-      ((vr == vm && (not(even) || not(vmIsTrailingZeros))) ||
-      lastRemovedDigit >= 5)
+      ((vr == vm && (!even || !vmIsTrailingZeros)) || lastRemovedDigit >= 5)
       .to_int64()
       .reinterpret_as_uint64()
   } else {
@@ -471,7 +470,7 @@ fn d2d(ieeeMantissa : UInt64, ieeeExponent : UInt) -> FloatingDecimal64 {
       vm = vmDiv10
       removed = removed + 1
     }
-    output = vr + (vr == vm || roundUp).to_int64().reinterpret_as_uint64()
+    output = vr + (vr == vm || roundUp).to_uint64()
   }
   let exp : Int = e10 + removed
   let fd : FloatingDecimal64 = { mantissa: output, exponent: exp }
@@ -490,7 +489,7 @@ fn to_chars(v : FloatingDecimal64, sign : Bool) -> String {
   let mut output = v.mantissa
   let olength = decimal_length17(output)
   let mut exp : Int = v.exponent + olength - 1
-  let scientificNotation = not(exp >= -6 && exp < 21)
+  let scientificNotation = !(exp >= -6 && exp < 21)
   if scientificNotation {
     // Print the decimal digits.
     for i in 0..<(olength - 1) {
@@ -587,7 +586,7 @@ fn to_chars(v : FloatingDecimal64, sign : Bool) -> String {
 ///|
 fn d2d_small_int(
   ieeeMantissa : UInt64,
-  ieeeExponent : Int
+  ieeeExponent : Int,
 ) -> FloatingDecimal64? {
   let m2 : UInt64 = (1UL << gDOUBLE_MANTISSA_BITS) | ieeeMantissa
   let e2 : Int = ieeeExponent - gDOUBLE_BIAS - gDOUBLE_MANTISSA_BITS
@@ -658,7 +657,7 @@ test "double/ryu.mbt:205" {
   if sum < high0 {
     high1 = high1 + 1
   }
-  assert_eq(high1, 222222222)
+  inspect(high1, content="222222222")
 }
 
 ///|
@@ -678,7 +677,7 @@ test "double/ryu.mbt:230" {
 
 ///|
 test "double/ryu.mbt:252" {
-  assert_eq(gDOUBLE_POW5_BITCOUNT, 125)
+  inspect(gDOUBLE_POW5_BITCOUNT, content="125")
 }
 
 ///|
@@ -713,5 +712,5 @@ test "double/ryu.mbt:230" {
 
 ///|
 test "double/ryu.mbt:252" {
-  assert_eq(gDOUBLE_POW5_BITCOUNT, 125)
+  inspect(gDOUBLE_POW5_BITCOUNT, content="125")
 }

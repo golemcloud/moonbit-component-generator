@@ -20,7 +20,8 @@
 ///   let queue : @priority_queue.T[Int] = @priority_queue.new()
 ///   assert_eq(queue.length(), 0)
 /// ```
-pub fn[A] new() -> T[A] {
+#as_free_fn
+pub fn[A] T::new() -> T[A] {
   { len: 0, top: Nil }
 }
 
@@ -32,7 +33,8 @@ pub fn[A] new() -> T[A] {
 ///   let queue = @priority_queue.of([1, 2, 3, 4, 5])
 ///   assert_eq(queue.length(), 5)
 /// ```
-pub fn[A : Compare] from_array(arr : Array[A]) -> T[A] {
+#as_free_fn
+pub fn[A : Compare] T::from_array(arr : Array[A]) -> T[A] {
   // CR: bad formatting
   let len = arr.length()
   for i = 0, acc = Node::Nil {
@@ -74,19 +76,19 @@ pub fn[A] copy(self : T[A]) -> T[A] {
 ///|
 pub fn[A : Compare] to_array(self : T[A]) -> Array[A] {
   let arr = Array::new(capacity=self.len)
-  fn go(x : Node[A]) {
-    match x {
-      Cons(_) as x => {
-        arr.push(x.content)
-        go(x.sibling)
-        go(x.child)
-      }
+  let stack : Array[Node[A]] = [self.top]
+  while stack.pop() is Some(node) {
+    match node {
       Nil => ()
+      Cons(content~, sibling~, child~) => {
+        arr.push(content)
+        stack.push(sibling)
+        stack.push(child)
+      }
     }
   }
-
-  go(self.top)
-  arr.sort_by((x, y) => y.compare(x))
+  arr.sort()
+  arr.rev_inplace()
   arr
 }
 
@@ -95,7 +97,7 @@ pub fn[A : Compare] iter(self : T[A]) -> Iter[A] {
   Iter::new(yield_ => {
     let arr = self.to_array()
     for i in 0..<arr.length() {
-      if yield_(arr[i]) == IterEnd {
+      if yield_(arr[i]) is IterEnd {
         break IterEnd
       }
     } else {
@@ -114,7 +116,8 @@ pub impl[A : ToJson + Compare] ToJson for T[A] with to_json(self) {
 }
 
 ///|
-pub fn[K : Compare] from_iter(iter : Iter[K]) -> T[K] {
+#as_free_fn
+pub fn[K : Compare] T::from_iter(iter : Iter[K]) -> T[K] {
   let s = new()
   iter.each(e => s.push(e))
   s
@@ -253,7 +256,8 @@ pub fn[A] is_empty(self : T[A]) -> Bool {
 }
 
 ///|
-pub fn[A : Compare] of(arr : FixedArray[A]) -> T[A] {
+#as_free_fn
+pub fn[A : Compare] T::of(arr : FixedArray[A]) -> T[A] {
   // CR: bad formatting
   let len = arr.length()
   for i = 0, acc = Node::Nil {
@@ -284,7 +288,7 @@ pub impl[A : Show + Compare] Show for T[A] with output(self, logger) {
 ///|
 pub impl[X : @quickcheck.Arbitrary + Compare] @quickcheck.Arbitrary for T[X] with arbitrary(
   size,
-  rs
+  rs,
 ) {
   let len : Int = if size == 0 { 0 } else { rs.next_positive_int() % size }
   for i = 0, acc = Node::Nil {

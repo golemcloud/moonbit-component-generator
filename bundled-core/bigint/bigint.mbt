@@ -31,9 +31,12 @@
 /// ```moonbit
 ///   let big = 12345678901234567890N
 ///   let json = big.to_json()
-///   inspect(json, content=
-///   #|String("12345678901234567890")
-/// )
+///   inspect(
+///     json, 
+///     content=(
+///       #|String("12345678901234567890")
+///     ),
+///   )
 /// ```
 ///
 pub impl ToJson for BigInt with to_json(self : BigInt) -> Json {
@@ -60,7 +63,7 @@ pub impl @quickcheck.Arbitrary for BigInt with arbitrary(size, rs) {
   }
 }
 
-///| 
+///|
 /// Returns the default value `0` for `BigInt`
 pub impl Default for BigInt with default() {
   zero
@@ -114,11 +117,11 @@ pub fn BigInt::equal_int(self : BigInt, other : Int) -> Bool {
 /// Example:
 ///
 /// ```moonbit
-///   let big = BigInt::from_int64(9223372036854775807L) // Int64 max value
+///   let big = @bigint.BigInt::from_int64(9223372036854775807L) // Int64 max value
 ///   inspect(big.equal_int64(9223372036854775807L), content="true")
 ///   inspect(big.equal_int64(42L), content="false")
 ///   
-///   let overflow = BigInt::from_string("9223372036854775808") // Beyond Int64 range
+///   let overflow = @bigint.BigInt::from_string("9223372036854775808") // Beyond Int64 range
 ///   inspect(overflow.equal_int64(9223372036854775807L), content="false")
 /// ```
 ///

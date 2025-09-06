@@ -26,7 +26,7 @@
 /// ```
 pub fn[T, K : Compare] FixedArray::sort_by_key(
   self : FixedArray[T],
-  map : (T) -> K
+  map : (T) -> K,
 ) -> Unit {
   fixed_quick_sort_by(
     { array: self, start: 0, end: self.length() },
@@ -60,7 +60,7 @@ test "@array.sort_by_key/basic" {
 /// ```
 pub fn[T] FixedArray::sort_by(
   self : FixedArray[T],
-  cmp : (T, T) -> Int
+  cmp : (T, T) -> Int,
 ) -> Unit {
   fixed_quick_sort_by(
     { array: self, start: 0, end: self.length() },
@@ -127,7 +127,7 @@ fn[T] fixed_quick_sort_by(
   arr : FixedArraySlice[T],
   cmp : (T, T) -> Int,
   pred : T?,
-  limit : Int
+  limit : Int,
 ) -> Unit {
   let mut limit = limit
   let mut arr = arr
@@ -159,7 +159,7 @@ fn[T] fixed_quick_sort_by(
     let (pivot, partitioned) = fixed_partition_by(arr, cmp, pivot_index)
     was_partitioned = partitioned
     balanced = minimum(pivot, len - pivot) >= len / 8
-    if not(balanced) {
+    if !balanced {
       limit -= 1
     }
     if pred is Some(pred) {
@@ -196,7 +196,7 @@ fn[T] fixed_quick_sort_by(
 /// Returns whether the array is sorted.
 fn[T] fixed_try_bubble_sort_by(
   arr : FixedArraySlice[T],
-  cmp : (T, T) -> Int
+  cmp : (T, T) -> Int,
 ) -> Bool {
   let max_tries = 8
   let mut tries = 0
@@ -206,7 +206,7 @@ fn[T] fixed_try_bubble_sort_by(
       sorted = false
       arr.swap(j, j - 1)
     }
-    if not(sorted) {
+    if !sorted {
       tries += 1
       if tries > max_tries {
         return false
@@ -224,7 +224,7 @@ fn[T] fixed_try_bubble_sort_by(
 /// Returns whether the array is sorted.
 fn[T] fixed_bubble_sort_by(
   arr : FixedArraySlice[T],
-  cmp : (T, T) -> Int
+  cmp : (T, T) -> Int,
 ) -> Unit {
   for i in 1..<arr.length() {
     for j = i; j > 0 && cmp(arr[j - 1], arr[j]) > 0; j = j - 1 {
@@ -238,7 +238,7 @@ test "try_bubble_sort" {
   let arr : FixedArray[_] = [8, 7, 6, 5, 4, 3, 2, 1]
   let sorted = fixed_try_bubble_sort_by({ array: arr, start: 0, end: 8 }, (a, b) => a -
     b)
-  assert_eq(sorted, true)
+  inspect(sorted, content="true")
   assert_eq(arr, [1, 2, 3, 4, 5, 6, 7, 8])
 }
 
@@ -246,7 +246,7 @@ test "try_bubble_sort" {
 fn[T] fixed_partition_by(
   arr : FixedArraySlice[T],
   cmp : (T, T) -> Int,
-  pivot_index : Int
+  pivot_index : Int,
 ) -> (Int, Bool) {
   arr.swap(pivot_index, arr.length() - 1)
   let pivot = arr[arr.length() - 1]
@@ -273,7 +273,7 @@ fn[T] fixed_partition_by(
 /// Returns the pivot index and whether the array is likely sorted.
 fn[T] fixed_choose_pivot_by(
   arr : FixedArraySlice[T],
-  cmp : (T, T) -> Int
+  cmp : (T, T) -> Int,
 ) -> (Int, Bool) {
   let len = arr.length()
   let use_median_of_medians = 50
@@ -323,7 +323,7 @@ fn[T] fixed_heap_sort_by(arr : FixedArraySlice[T], cmp : (T, T) -> Int) -> Unit 
 fn[T] fixed_sift_down_by(
   arr : FixedArraySlice[T],
   index : Int,
-  cmp : (T, T) -> Int
+  cmp : (T, T) -> Int,
 ) -> Unit {
   let mut index = index
   let len = arr.length()

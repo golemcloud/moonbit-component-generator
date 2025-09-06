@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-impl[V : Eq] Eq for Node[V] with op_equal(self, other) {
+impl[V : Eq] Eq for Node[V] with equal(self, other) {
   self.value == other.value
 }
 
@@ -50,7 +50,7 @@ fn[V : Show] debug_node(self : Node[V]) -> String {
 }
 
 ///|
-fn[V : Show] debug_tree(self : T[V]) -> String {
+fn[V : Show] debug_tree(self : SortedSet[V]) -> String {
   match self.root {
     Some(root) => root.debug_node()
     None => "_"

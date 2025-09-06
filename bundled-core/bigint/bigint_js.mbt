@@ -46,7 +46,7 @@ pub extern "js" fn BigInt::from_hex(str : String) -> BigInt =
 ///|
 pub extern "js" fn BigInt::to_hex(
   self : BigInt,
-  uppercase~ : Bool = true
+  uppercase? : Bool = true,
 ) -> String =
   #|(x, uppercase) => {
   #|  const r = x.toString(16);
@@ -58,7 +58,7 @@ extern "js" fn hex2(b : Byte) -> String =
   #|(x) => x.toString(16).padStart(2, '0')
 
 ///|
-pub fn BigInt::from_octets(octets : Bytes, signum~ : Int = 1) -> BigInt {
+pub fn BigInt::from_octets(octets : Bytes, signum? : Int = 1) -> BigInt {
   if signum < 0 {
     return -1N * BigInt::from_octets(octets, signum=1)
   }
@@ -129,7 +129,7 @@ extern "js" fn BigInt::equal(self : BigInt, other : BigInt) -> Bool =
   #|(x, y) => x === y
 
 ///|
-pub impl Eq for BigInt with op_equal(self, other) {
+pub impl Eq for BigInt with equal(self, other) {
   self.equal(other)
 }
 
@@ -158,7 +158,7 @@ extern "js" fn BigInt::op_neg_ffi(self : BigInt) -> BigInt =
   #|(x) => -x
 
 ///|
-pub impl Neg for BigInt with op_neg(self) {
+pub impl Neg for BigInt with neg(self) {
   self.op_neg_ffi()
 }
 
@@ -167,7 +167,7 @@ extern "js" fn BigInt::op_add_ffi(self : BigInt, other : BigInt) -> BigInt =
   #|(x, y) => x + y
 
 ///|
-pub impl Add for BigInt with op_add(self, other) {
+pub impl Add for BigInt with add(self, other) {
   self.op_add_ffi(other)
 }
 
@@ -176,7 +176,7 @@ extern "js" fn BigInt::op_sub_ffi(self : BigInt, other : BigInt) -> BigInt =
   #|(x, y) => x - y
 
 ///|
-pub impl Sub for BigInt with op_sub(self, other) {
+pub impl Sub for BigInt with sub(self, other) {
   self.op_sub_ffi(other)
 }
 
@@ -185,7 +185,7 @@ extern "js" fn BigInt::op_mul_ffi(self : BigInt, other : BigInt) -> BigInt =
   #|(x, y) => x * y
 
 ///|
-pub impl Mul for BigInt with op_mul(self, other) {
+pub impl Mul for BigInt with mul(self, other) {
   self.op_mul_ffi(other)
 }
 
@@ -194,7 +194,7 @@ extern "js" fn BigInt::op_div_ffi(self : BigInt, other : BigInt) -> BigInt =
   #|(x, y) => x / y
 
 ///|
-pub impl Div for BigInt with op_div(self, other) {
+pub impl Div for BigInt with div(self, other) {
   self.op_div_ffi(other)
 }
 
@@ -203,7 +203,7 @@ extern "js" fn BigInt::op_mod_ffi(self : BigInt, other : BigInt) -> BigInt =
   #|(x, y) => x % y
 
 ///|
-pub impl Mod for BigInt with op_mod(self, other) {
+pub impl Mod for BigInt with mod(self, other) {
   self.op_mod_ffi(other)
 }
 
@@ -211,7 +211,7 @@ pub impl Mod for BigInt with op_mod(self, other) {
 extern "js" fn BigInt::modpow_ffi(
   self : BigInt,
   exponent : BigInt,
-  modulus : BigInt
+  modulus : BigInt,
 ) -> BigInt =
   #|(x, y, z) => {
   #|  if (z === 1n) return 0n;
@@ -235,7 +235,7 @@ extern "js" fn BigInt::pow_ffi(self : BigInt, exponent : BigInt) -> BigInt =
 pub fn BigInt::pow(
   self : BigInt,
   exponent : BigInt,
-  modulus? : BigInt
+  modulus? : BigInt,
 ) -> BigInt {
   if exponent < 0 {
     abort("negative exponent")
@@ -256,7 +256,7 @@ extern "js" fn BigInt::to_byte(self : BigInt) -> Byte =
   #|(x) => Number(BigInt.asUintN(8, x)) | 0
 
 ///|
-pub impl Shl for BigInt with op_shl(self : BigInt, n : Int) -> BigInt {
+pub impl Shl for BigInt with shl(self : BigInt, n : Int) -> BigInt {
   if n < 0 {
     abort("negative shift count")
   }
@@ -264,7 +264,7 @@ pub impl Shl for BigInt with op_shl(self : BigInt, n : Int) -> BigInt {
 }
 
 ///|
-pub impl Shr for BigInt with op_shr(self : BigInt, n : Int) -> BigInt {
+pub impl Shr for BigInt with shr(self : BigInt, n : Int) -> BigInt {
   if n < 0 {
     abort("negative shift count")
   }
@@ -306,11 +306,11 @@ extern "js" fn BigInt::js_lor(self : BigInt, other : BigInt) -> BigInt =
 /// Example:
 ///
 /// ```moonbit
-///   let a = BigInt::from_string("42")
-///   let b = BigInt::from_string("-12")
+///   let a = @bigint.BigInt::from_string("42")
+///   let b = @bigint.BigInt::from_string("-12")
 ///   inspect(a | b, content="-2")
-///   let c = BigInt::from_string("-8")
-///   let d = BigInt::from_string("-4")
+///   let c = @bigint.BigInt::from_string("-8")
+///   let d = @bigint.BigInt::from_string("-4")
 ///   inspect(c | d, content="-4")
 /// ```
 ///
@@ -342,15 +342,15 @@ extern "js" fn BigInt::js_lxor(self : BigInt, other : BigInt) -> BigInt =
 /// Example:
 ///
 /// ```moonbit
-///   let a = BigInt::from_string("42")  // 0b101010
-///   let b = BigInt::from_string("25")  // 0b011001
+///   let a = @bigint.BigInt::from_string("42")  // 0b101010
+///   let b = @bigint.BigInt::from_string("25")  // 0b011001
 ///   inspect(a.lxor(b), content="51")   // 0b110011
 ///
-///   let a = BigInt::from_string("42")
-///   let b = BigInt::from_string("-7")
+///   let a = @bigint.BigInt::from_string("42")
+///   let b = @bigint.BigInt::from_string("-7")
 ///   inspect(a.lxor(b), content="-45")
 ///
-///   let a = BigInt::from_string("42")
+///   let a = @bigint.BigInt::from_string("42")
 ///   inspect(a.lxor(a), content="0")    // XOR with self gives 0
 /// ```
 ///
@@ -474,7 +474,8 @@ pub extern "js" fn BigInt::bit_length(self : BigInt) -> Int =
   #|  }
   #|}
 
-///| Returns the number of trailing zero bits in the binary representation of 
+///|
+/// Returns the number of trailing zero bits in the binary representation of 
 /// the absolute value of this BigInt.
 ///
 /// For zero, it returns -1.
@@ -511,7 +512,7 @@ extern "js" fn is_neg(x : BigInt) -> Bool =
 
 ///|
 fn BigInt::limbs(self : Self) -> Iter[UInt] {
-  guard not(self.is_zero()) else { Iter::singleton(0) }
+  guard !self.is_zero() else { Iter::singleton(0) }
   Iter::new(yield_ => for n = self * BigInt::from_int(self.signum())
                           n > 0
                           n = n >> 32 {

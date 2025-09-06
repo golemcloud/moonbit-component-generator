@@ -24,43 +24,33 @@ priv struct Number {
 }
 
 ///|
-fn is_digit(c : Char) -> Bool {
-  c >= '0' && c <= '9'
-}
-
-///|
-fn to_digit(c : Char) -> Int {
-  c.to_int() - 48
-}
-
-///|
 /// Returns the remaining slice, the parsed number, and the number of digits parsed.
-fn parse_digits(s : StringSlice, x : UInt64) -> (StringSlice, UInt64, Int) {
+fn parse_digits(s : @string.View, x : UInt64) -> (@string.View, UInt64, Int) {
   s.fold_digits(x, (digit, acc : UInt64) => acc * 10UL +
     UInt64::extend_uint(digit.reinterpret_as_uint()))
 }
 
 ///|
 fn try_parse_19digits(
-  s : StringSlice,
-  x : UInt64
-) -> (StringSlice, UInt64, Int) {
+  s : @string.View,
+  x : UInt64,
+) -> (@string.View, UInt64, Int) {
   let mut x = x
-  let mut s = s
   let mut len = 0
-  while (x < min_19digit_int && s.first_is_digit()) || s.first_is('_') {
-    if s.first_is('_') {
-      s = s.step_1_unchecked()
+  loop s {
+    ['0'..='9' as ch, .. rest] if x < min_19digit_int => {
+      len += 1
+      x = x * 10UL +
+        UInt64::extend_uint((ch.to_int() - '0').reinterpret_as_uint()) // no overflows here
+      continue rest
     }
-    len += 1
-    x = x * 10UL + UInt64::extend_uint(to_digit(s[0]).reinterpret_as_uint()) // no overflows here
-    s = s.step_1_unchecked()
+    ['_', .. rest] => continue rest
+    s => return (s, x, len)
   }
-  (s, x, len)
 }
 
 ///|
-fn parse_scientific(s : StringSlice) -> (StringSlice, Int64)? {
+fn parse_scientific(s : @string.View) -> (@string.View, Int64)? {
   // the first character is 'e'/'E' and scientific mode is enabled
   let mut s = match s.step(1) {
     Some(s) => s
@@ -68,11 +58,11 @@ fn parse_scientific(s : StringSlice) -> (StringSlice, Int64)? {
   }
   let exp_num = 0L
   let mut neg_exp = false
-  if s.first_is_either('-', '+') {
-    neg_exp = s[0] == '-'
-    s = s.step_1_unchecked()
+  if s is ['+' | '-' as ch, .. rest] {
+    neg_exp = ch == '-'
+    s = rest
   }
-  if s.first_is_digit() {
+  if s is ['0'..='9', ..] {
     let (s, exp_num, _) = s.fold_digits(exp_num, (digit, exp_num : Int64) => if exp_num <
       0x10000L {
       10L * exp_num + digit.to_int64() // no overflows here
@@ -91,17 +81,17 @@ fn parse_scientific(s : StringSlice) -> (StringSlice, Int64)? {
 
 ///|
 /// Parse the number from the string, returning the number and the length of the parsed string.
-fn parse_number(s : String) -> (Number, Int)? {
-  let mut s = full_slice(s)
+fn parse_number(s : @string.View) -> (Number, Int)? {
+  let mut s = s
   let start = s
 
   // handle optional +/- sign
   let mut negative = false
-  if s.first_is('-') {
+  if s is ['-', .. rest] {
     negative = true
-    s = s.step_1_unchecked()
-  } else if s.first_is('+') {
-    s = s.step_1_unchecked()
+    s = rest
+  } else if s is ['+', .. rest] {
+    s = rest
   }
   if s.is_empty() {
     return None
@@ -116,8 +106,8 @@ fn parse_number(s : String) -> (Number, Int)? {
   // handle dot with the following digits
   let mut n_after_dot = 0
   let mut exponent = 0L
-  if s.first_is('.') {
-    s = s.step_1_unchecked()
+  if s is ['.', .. rest] {
+    s = rest
     // TODO: optimization chance. In the original Rust implementation,
     // the the digits are stored as consecutive bytes in the string.
     // It directly reads 8 bytes to `u64`.
@@ -134,7 +124,7 @@ fn parse_number(s : String) -> (Number, Int)? {
 
   // handle scientific format
   let exp_number = 0L
-  if s.first_is_either('e', 'E') {
+  if s is ['e' | 'E', ..] {
     let (new_s, exp_number) = match parse_scientific(s) {
       Some(res) => res
       None => return None
@@ -151,9 +141,9 @@ fn parse_number(s : String) -> (Number, Int)? {
   n_digits -= 19
   let mut many_digits = false
   let mut p = start
-  while p.first_is_either('0', '.') {
-    n_digits -= (p[0].to_int() - 46) / 2 // '0' = b'.' + 2
-    p = p.step_1_unchecked()
+  while p is ['0' | '.' as ch, .. rest] {
+    n_digits -= (ch.to_int() - 46) / 2 // '0' = b'.' + 2
+    p = rest
   }
   let mut mantissa = mantissa
   if n_digits > 0 {
@@ -181,45 +171,37 @@ fn parse_number(s : String) -> (Number, Int)? {
 
 ///|
 /// Parse the number from the string, returning the number and the length of the parsed string.
-fn parse_inf_nan(s : String) -> (Double, Int)? {
-  fn parse_inf_rest(s : StringSlice) -> Int {
-    if s.length() >= 8 && s.subfix_unchecked(3).prefix_eq_ignore_case("inity") {
-      8
+fn parse_inf_nan(s : @string.View) -> (Double, Int)? {
+  let mut s = s
+  let mut pos = true
+  let mut len = 0
+  if s is ['-' | '+' as ch, .. rest] {
+    pos = ch == '+'
+    s = rest
+    len += 1
+  }
+  if s is ['n' | 'N', 'a' | 'A', 'n' | 'N', ..] {
+    Some((@double.not_a_number, len + 3))
+  } else if s is ['i' | 'I', 'n' | 'N', 'f' | 'F', .. rest] {
+    len += 3
+    if rest is ['i' | 'I', 'n' | 'N', 'i' | 'I', 't' | 'T', 'y' | 'Y', ..] {
+      len += 5
+    }
+    if pos {
+      Some((@double.infinity, len))
     } else {
-      3
+      Some((@double.neg_infinity, len))
     }
+  } else {
+    None
   }
-
-  let s = full_slice(s)
-  if s.length() >= 3 {
-    if s.prefix_eq_ignore_case("nan") {
-      return Some((@double.not_a_number, 3))
-    } else if s.prefix_eq_ignore_case("inf") {
-      return Some((@double.infinity, parse_inf_rest(s)))
-    } else if s.length() >= 4 {
-      if s.first_is('+') {
-        let s = s.step_1_unchecked()
-        if s.prefix_eq_ignore_case("nan") {
-          return Some((@double.not_a_number, 4))
-        } else if s.prefix_eq_ignore_case("inf") {
-          return Some((@double.infinity, 1 + parse_inf_rest(s)))
-        }
-      } else if s.first_is('-') {
-        let s = s.step_1_unchecked()
-        if s.prefix_eq_ignore_case("nan") {
-          return Some((@double.not_a_number, 4))
-        } else if s.prefix_eq_ignore_case("inf") {
-          return Some((@double.neg_infinity, 1 + parse_inf_rest(s)))
-        }
-      }
-    }
-  }
-  None
 }
 
 ///|
 /// Returns None if the multiplication might overflow (there are some false-negative corner cases).
 /// Otherwise, returns Some(m), where m = self * b.
+/// WARNING: Note this function is only used internally in the strconv module, 
+/// the current implementation is not completely safe against overflows.
 fn checked_mul(a : UInt64, b : UInt64) -> UInt64? {
   if a == 0UL || b == 0UL {
     return Some(0UL)
@@ -230,12 +212,12 @@ fn checked_mul(a : UInt64, b : UInt64) -> UInt64? {
   if b == 1UL {
     return Some(a)
   }
-  if b < 0UL || a < 0UL {
+  // Can only multiply by 1 or 0, which is handled above.
+  if b.clz() == 0 || a.clz() == 0 {
     return None
   }
-  let r : UInt64 = @uint64.max_value / b
-  let q : UInt64 = 1UL / b
-  if r + r + q < a {
+  let quotient : UInt64 = @uint64.max_value / b
+  if a > quotient {
     return None
   }
   Some(a * b)

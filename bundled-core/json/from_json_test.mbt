@@ -13,25 +13,18 @@
 // limitations under the License.
 
 ///|
-/// FIXME: remove later, workaround formatter bug
-fn temp() -> Unit {
-  ()
-}
-
-///|
 typealias Map[String, Int] as TestX
 
 ///|
 test {
-  let _ = temp()
   let u = { "x": 3, "y": 4 }
   let j = u.to_json()
   let h : TestX = @json.from_json(j)
   inspect(
     (j, h),
-    content=
+    content=(
       #|(Object({"x": Number(3), "y": Number(4)}), {"x": 3, "y": 4})
-    ,
+    ),
   )
 }
 
@@ -41,9 +34,9 @@ test {
   let v : Result[Array[Int], _] = try? @json.from_json(u)
   inspect(
     v,
-    content=
+    content=(
       #|Err(JsonDecodeError(($[1], "Int::from_json: expected number")))
-    ,
+    ),
   )
 }
 
@@ -56,9 +49,9 @@ test {
   let v : Result[Map[String, Map[String, Double]], _] = try? @json.from_json(u)
   inspect(
     v,
-    content=
+    content=(
       #|Err(JsonDecodeError(($.y.yy, "Double::from_json: expected number")))
-    ,
+    ),
   )
 }
 
@@ -282,9 +275,9 @@ test "tuple failure" {
   let v : Result[(Int, Int, Int), _] = try? @json.from_json(u.to_json())
   inspect(
     v.unwrap_err(),
-    content=
+    content=(
       #|JsonDecodeError(($, "expected tuple of size 3"))
-    ,
+    ),
   )
   let u = ((1, 2), (3, 4))
   let v : Result[((Int, Int), Int), _] = try? @json.from_json(
@@ -292,9 +285,9 @@ test "tuple failure" {
     )
   inspect(
     v.unwrap_err(),
-    content=
+    content=(
       #|JsonDecodeError(($[1], "Int::from_json: expected number"))
-    ,
+    ),
   )
 }
 
@@ -307,9 +300,9 @@ test "fixedarray" {
   let v : FixedArray[String] = @json.from_json(u.to_json())
   inspect(
     v,
-    content=
+    content=(
       #|["123", "456"]
-    ,
+    ),
   )
   let u = ([(), ()] : FixedArray[Unit])
   let v : FixedArray[Unit] = @json.from_json(u.to_json())
@@ -373,24 +366,24 @@ test "jsonvalue" {
   let u = Json::boolean(false)
   let v : Json = @json.from_json(u)
   inspect(v, content="False")
-  let u = Json::null()
+  let u = null
   let v : Json = @json.from_json(u)
   inspect(v, content="Null")
   let u = Json::array([Json::number(1), Json::string("str")])
   let v : Json = @json.from_json(u)
   inspect(
     v,
-    content=
+    content=(
       #|Array([Number(1), String("str")])
-    ,
+    ),
   )
   let u = Json::object({ "x": Json::number(1) })
   let v : Json = @json.from_json(u)
   inspect(
     v,
-    content=
+    content=(
       #|Object({"x": Number(1)})
-    ,
+    ),
   )
 }
 
@@ -426,12 +419,51 @@ test "uint roundtrip" {
 
 ///|
 test "uint" {
+  // valid max
   let v : UInt = @json.from_json(Json::number(4294967295))
   inspect(v, content="4294967295")
-  let v : UInt = @json.from_json(Json::number(-1))
-  inspect(v, content="0")
-  let v : UInt = @json.from_json(Json::number(4294967296))
-  inspect(v, content="4294967295")
+  // negative should error
+  let neg_res : Result[UInt, _] = try? @json.from_json(Json::number(-1))
+  inspect(
+    neg_res,
+    content="Err(JsonDecodeError(($, \"UInt::from_json: overflow\")))",
+  )
+  // overflow should error
+  let ovf_res : Result[UInt, _] = try? @json.from_json(Json::number(4294967296))
+  inspect(
+    ovf_res,
+    content="Err(JsonDecodeError(($, \"UInt::from_json: overflow\")))",
+  )
+}
+
+///|
+test "Int from_json overflow should error" {
+  let json = @json.parse("2147483648") // INT_MAX + 1 for 32-bit
+  let res : Result[Int, _] = try? @json.from_json(json)
+  match res {
+    Ok(v) => fail("BUG: Int overflow not detected, decoded as \{v}")
+    Err(_) => ()
+  }
+}
+
+///|
+test "Int from_json negative overflow should error" {
+  let json = @json.parse("-2147483649") // INT_MIN - 1 for 32-bit
+  let res : Result[Int, _] = try? @json.from_json(json)
+  match res {
+    Ok(v) => fail("BUG: Int negative overflow not detected, decoded as \{v}")
+    Err(_) => ()
+  }
+}
+
+///|
+test "UInt from_json overflow should error" {
+  let json = @json.parse("4294967296") // UINT_MAX + 1 for 32-bit
+  let res : Result[UInt, _] = try? @json.from_json(json)
+  match res {
+    Ok(v) => fail("BUG: UInt overflow not detected, decoded as \{v}")
+    Err(_) => ()
+  }
 }
 
 ///|
@@ -462,9 +494,9 @@ test "unicode" {
   let u = "\u{1F600}".to_json()
   inspect(
     u,
-    content=
+    content=(
       #|String("😀")
-    ,
+    ),
   )
   let v : Char = @json.from_json(u)
   inspect(v, content="\u{1F600}")
@@ -477,9 +509,9 @@ test "unicode" {
   let v : Result[Char, _] = try? @json.from_json(u)
   inspect(
     v,
-    content=
+    content=(
       #|Err(JsonDecodeError(($, "Char::from_json: invalid surrogate pair")))
-    ,
+    ),
   )
 }
 
@@ -488,9 +520,9 @@ test "char to/from json roundtrip" {
   let u = 'a'.to_json()
   inspect(
     u,
-    content=
+    content=(
       #|String("a")
-    ,
+    ),
   )
   let v : Char = @json.from_json(u)
   inspect(v, content="a")
@@ -499,9 +531,9 @@ test "char to/from json roundtrip" {
   let u = '😀'.to_json()
   inspect(
     u,
-    content=
+    content=(
       #|String("😀")
-    ,
+    ),
   )
   let v : Char = @json.from_json(u)
   inspect(v, content="😀")
@@ -510,9 +542,9 @@ test "char to/from json roundtrip" {
   let u = '中'.to_json()
   inspect(
     u,
-    content=
+    content=(
       #|String("中")
-    ,
+    ),
   )
   let v : Char = @json.from_json(u)
   inspect(v, content="中")
@@ -527,7 +559,7 @@ test "string view from json" {
 
 ///|
 test "Bool from_json error handling" {
-  let json_null = Json::null()
+  let json_null = null
   let result : Result[Bool, _] = try? @json.from_json(json_null)
   inspect(
     result,
@@ -637,9 +669,9 @@ test "BigInt from_json error handling" {
   let result : Result[BigInt, _] = try? @json.from_json(json_number)
   inspect(
     result,
-    content=
+    content=(
       #|Err(JsonDecodeError(($, "BigInt::from_json: expected number in string representation")))
-    ,
+    ),
   )
 }
 
@@ -718,5 +750,18 @@ test "Unit from_json error handling" {
   inspect(
     result,
     content="Err(JsonDecodeError(($, \"Unit::from_json: expected null\")))",
+  )
+}
+
+///|
+test "Bytes from_json" {
+  let bytes = b"\x00\x01abcd\"\\"
+  let json = bytes.to_json()
+  let result : Result[Bytes, _] = try? @json.from_json(json)
+  inspect(
+    result,
+    content=(
+      #|Ok(b"\x00\x01\x61\x62\x63\x64\x22\x5c")
+    ),
   )
 }

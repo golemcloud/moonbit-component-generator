@@ -13,7 +13,11 @@
 // limitations under the License.
 
 ///|
-pub(all) suberror JsonDecodeError (JsonPath, String) derive(Eq, Show, ToJson)
+pub(all) suberror JsonDecodeError (JsonPath, String) derive (
+  Eq,
+  Show,
+  ToJson(style="flat"),
+)
 
 ///|
 /// Trait for types that can be converted from `Json`
@@ -24,7 +28,7 @@ pub(open) trait FromJson {
 ///|
 pub fn[T : FromJson] from_json(
   json : Json,
-  path~ : JsonPath = Root
+  path? : JsonPath = Root,
 ) -> T raise JsonDecodeError {
   FromJson::from_json(json, path)
 }
@@ -45,8 +49,16 @@ pub impl FromJson for Bool with from_json(json, path) {
 
 ///|
 pub impl FromJson for Int with from_json(json, path) {
-  guard json is Number(n) else {
+  guard json is Number(n, ..) &&
+    n != @double.infinity &&
+    n != @double.neg_infinity else {
     decode_error(path, "Int::from_json: expected number")
+  }
+  // Range check before conversion to avoid silent wrap/truncation
+  let max_ok = 2147483647.0
+  let min_ok = -2147483648.0
+  if n > max_ok || n < min_ok {
+    decode_error(path, "Int::from_json: overflow")
   }
   n.to_int()
 }
@@ -65,8 +77,15 @@ pub impl FromJson for Int64 with from_json(json, path) {
 
 ///|
 pub impl FromJson for UInt with from_json(json, path) {
-  guard json is Number(n) else {
+  guard json is Number(n, ..) &&
+    n != @double.infinity &&
+    n != @double.neg_infinity else {
     decode_error(path, "UInt::from_json: expected number")
+  }
+  // Range check before conversion to avoid silent wrap/truncation
+  let max_ok = 4294967295.0
+  if n < 0.0 || n > max_ok {
+    decode_error(path, "UInt::from_json: overflow")
   }
   n.to_uint()
 }
@@ -85,10 +104,13 @@ pub impl FromJson for UInt64 with from_json(json, path) {
 
 ///|
 pub impl FromJson for Double with from_json(json, path) {
-  guard json is Number(n) else {
-    decode_error(path, "Double::from_json: expected number")
+  match json {
+    String("NaN") => @double.not_a_number
+    String("Infinity") => @double.infinity
+    String("-Infinity") => @double.neg_infinity
+    Number(n, ..) if n != @double.infinity && n != @double.neg_infinity => n
+    _ => decode_error(path, "Double::from_json: expected number")
   }
-  n
 }
 
 ///|
@@ -194,7 +216,7 @@ pub impl[T : FromJson] FromJson for T? with from_json(json, path) {
 ///|
 pub impl[Ok : FromJson, Err : FromJson] FromJson for Result[Ok, Err] with from_json(
   json,
-  path
+  path,
 ) {
   guard json is Object(obj) else {
     decode_error(path, "Result::from_json: expected object")
@@ -220,6 +242,40 @@ pub impl FromJson for Unit with from_json(json, path) {
 }
 
 ///|
-pub impl FromJson for JsonValue with from_json(json, _path) {
+pub impl FromJson for Json with from_json(json, _path) {
   json
+}
+
+///|
+/// Converts a JSON string to `Bytes`.
+/// 
+/// The expected string format consists of:
+/// - Hexadecimal byte sequences represented as `\xNN`, where `NN` are two hex digits.
+/// - Printable ASCII characters (except `\` and `"`), which are directly converted to their byte values.
+/// - Any invalid escape sequence or character will result in a `JsonDecodeError`.
+/// 
+/// Example valid input: `"hello\\x20world"` (where `\\x20` is a space character).
+pub impl FromJson for Bytes with from_json(json, path) {
+  guard json is String(a) else {
+    decode_error(path, "Bytes::from_json: expected string")
+  }
+  let buffer = @buffer.new(size_hint=a.length())
+  loop a[:] {
+    [] => ()
+    [.. "\\x", '0'..='9' | 'a'..='f' as x, '0'..='9' | 'a'..='f' as y, .. rest] => {
+      let upper = (x.to_int() & 0xF) + (x.to_int() >> 6) * 9
+      let lower = (y.to_int() & 0xF) + (y.to_int() >> 6) * 9
+      buffer.write_byte(((upper << 4) | lower).to_byte())
+      continue rest
+    }
+    [' '..='~' as ch, .. rest] => {
+      guard ch != '\\' && ch != '"' else {
+        decode_error(path, "Bytes::from_json: invalid escape sequence")
+      }
+      buffer.write_byte(ch.to_uint().to_byte())
+      continue rest
+    }
+    _ => decode_error(path, "Bytes::from_json: invalid byte sequence")
+  }
+  buffer.to_bytes()
 }

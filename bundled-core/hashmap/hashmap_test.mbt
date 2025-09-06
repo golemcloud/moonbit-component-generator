@@ -14,9 +14,9 @@
 
 ///|
 test "new" {
-  let m : @hashmap.T[Int, Int] = @hashmap.new()
+  let m : @hashmap.HashMap[Int, Int] = @hashmap.new()
   inspect(m.capacity(), content="8")
-  assert_eq(m.size(), 0)
+  inspect(m.size(), content="0")
 }
 
 ///|
@@ -29,6 +29,9 @@ test "get" {
   inspect(m.get("b"), content="Some(2)")
   inspect(m.get("c"), content="Some(3)")
   inspect(m.get("d"), content="None")
+
+  // pattern
+  guard m is { "a": 1, "b": 2, "c": 3, "d"? : None, .. }
 }
 
 ///|
@@ -37,10 +40,30 @@ test "get_or_default" {
   m.set("a", 1)
   m.set("b", 2)
   m.set("c", 3)
-  assert_eq(m.get_or_default("a", 42), 1)
-  assert_eq(m.get_or_default("b", 42), 2)
-  assert_eq(m.get_or_default("c", 42), 3)
-  assert_eq(m.get_or_default("d", 42), 42)
+  inspect(m.get_or_default("a", 42), content="1")
+  inspect(m.get_or_default("b", 42), content="2")
+  inspect(m.get_or_default("c", 42), content="3")
+  inspect(m.get_or_default("d", 42), content="42")
+}
+
+///|
+test "get_or_init" {
+  let m : @hashmap.HashMap[String, Array[Int]] = @hashmap.new()
+  m.get_or_init("a", () => Array::new()).push(1)
+  m.get_or_init("b", () => Array::new()).push(2)
+  m.get_or_init("a", () => Array::new()).push(3)
+  assert_eq(m.get("a"), Some([1, 3]))
+  assert_eq(m.get("b"), Some([2]))
+  assert_eq(m.size(), 2)
+}
+
+///|
+test "get_or_init full" {
+  let m = @hashmap.new(capacity=2)
+  m.get_or_init("a", () => 0) |> ignore
+  m.get_or_init("b", () => 0) |> ignore
+  m.get_or_init("c", () => 0) |> ignore
+  assert_eq(m.size(), 3)
 }
 
 ///|
@@ -57,9 +80,16 @@ test "op_get" {
   let m = @hashmap.new()
   m.set("a", 1)
   m.set("b", 2)
-  assert_eq(m.get("a"), Some(1))
-  assert_eq(m.get("b"), Some(2))
-  assert_eq(m.get("c"), None)
+  assert_eq(m["a"], 1)
+  assert_eq(m["b"], 2)
+}
+
+///|
+test "panic op_get" {
+  let m = @hashmap.new()
+  m.set("a", 1)
+  m.set("b", 2)
+  m["c"] |> ignore
 }
 
 ///|
@@ -76,8 +106,8 @@ test "set_update" {
 test "contains" {
   let m = @hashmap.new()
   m.set("a", 1)
-  assert_eq(m.contains("a"), true)
-  assert_eq(m.contains("b"), false)
+  inspect(m.contains("a"), content="true")
+  inspect(m.contains("b"), content="false")
 }
 
 ///|
@@ -91,19 +121,19 @@ test "from_array" {
 ///|
 test "size" {
   let m = @hashmap.new()
-  assert_eq(m.size(), 0)
+  inspect(m.size(), content="0")
   m.set("a", 1)
-  assert_eq(m.size(), 1)
+  inspect(m.size(), content="1")
 }
 
 ///|
 test "is_empty" {
   let m = @hashmap.new()
-  assert_eq(m.is_empty(), true)
+  inspect(m.is_empty(), content="true")
   m.set("a", 1)
-  assert_eq(m.is_empty(), false)
+  inspect(m.is_empty(), content="false")
   m.remove("a")
-  assert_eq(m.is_empty(), true)
+  inspect(m.is_empty(), content="true")
 }
 
 ///|
@@ -111,7 +141,7 @@ test "iter" {
   let m = @hashmap.of([("a", 1), ("b", 2), ("c", 3)])
   let mut sum = 0
   m.each((_k, v) => sum += v)
-  assert_eq(sum, 6)
+  inspect(sum, content="6")
 }
 
 ///|
@@ -123,8 +153,8 @@ test "iteri" {
     s += i.to_string()
     sum += v
   })
-  assert_eq(s, "012")
-  assert_eq(sum, 6)
+  inspect(s, content="012")
+  inspect(sum, content="6")
 }
 
 ///|
@@ -164,9 +194,9 @@ test "to_array" {
   let map = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
   inspect(
     map.to_array(),
-    content=
+    content=(
       #|[(2, "two"), (1, "one"), (3, "three")]
-    ,
+    ),
   )
 }
 
@@ -184,7 +214,7 @@ test "remove_nonexistent_key" {
   m.set("a", 1)
   m.set("b", 2)
   m.remove("c")
-  assert_eq(m.size(), 2)
+  inspect(m.size(), content="2")
 }
 
 ///|
@@ -201,7 +231,7 @@ test "remove_nonexistent_key" {
   m.set("a", 1)
   m.set("b", 2)
   m.remove("c")
-  assert_eq(m.size(), 2)
+  inspect(m.size(), content="2")
 }
 
 ///|
@@ -218,7 +248,7 @@ test "remove_nonexistent_key" {
   m.set("a", 1)
   m.set("b", 2)
   m.remove("c")
-  assert_eq(m.size(), 2)
+  inspect(m.size(), content="2")
 }
 
 ///|
@@ -235,7 +265,7 @@ test "remove_nonexistent_key" {
   m.set("a", 1)
   m.set("b", 2)
   m.remove("c")
-  assert_eq(m.size(), 2)
+  inspect(m.size(), content="2")
 }
 
 ///|
@@ -310,13 +340,13 @@ test "from_iter single element iter" {
 
 ///|
 test "from_iter empty iter" {
-  let map : @hashmap.T[Int, Int] = @hashmap.from_iter(Iter::empty())
+  let map : @hashmap.HashMap[Int, Int] = @hashmap.from_iter(Iter::empty())
   inspect(map, content="HashMap::of([])")
 }
 
 ///|
 test "@hashmap.contains/empty" {
-  let map : @hashmap.T[Int, String] = @hashmap.new()
+  let map : @hashmap.HashMap[Int, String] = @hashmap.new()
   inspect(map.contains(42), content="false")
 }
 
@@ -363,4 +393,52 @@ test "@hashmap.eq" {
   let map1 = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
   let map2 = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
   inspect(map1 == map2, content="true")
+}
+
+///|
+test "@hashmap.map" {
+  let map = @hashmap.of([("a", 1), ("b", 2), ("c", 3)])
+  let v = map.map((k, v) => k + v.to_string())
+  inspect(
+    v,
+    content=(
+      #|HashMap::of([("a", "a1"), ("c", "c3"), ("b", "b2")])
+    ),
+  )
+  map["d"] = 10
+  map["e"] = 20
+  map.remove("c")
+  let v = map.map((k, v) => k + v.to_string())
+  inspect(
+    v,
+    content=(
+      #|HashMap::of([("e", "e20"), ("a", "a1"), ("b", "b2"), ("d", "d10")])
+    ),
+  )
+  let v : @hashmap.HashMap[String, String] = @hashmap.new().map((k, v) => k + v)
+  inspect(v, content="HashMap::of([])")
+}
+
+///|
+test "@hashmap.copy" {
+  let map = @hashmap.of([("a", 1), ("b", 2), ("c", 3)])
+  let copy = map.copy()
+  inspect(
+    copy,
+    content=(
+      #|HashMap::of([("a", 1), ("c", 3), ("b", 2)])
+    ),
+  )
+  map["d"] = 10
+  map["e"] = 20
+  map.remove("c")
+  let copy = map.copy()
+  inspect(
+    copy,
+    content=(
+      #|HashMap::of([("e", 20), ("a", 1), ("b", 2), ("d", 10)])
+    ),
+  )
+  let copy : @hashmap.HashMap[String, String] = @hashmap.new().copy()
+  inspect(copy, content="HashMap::of([])")
 }

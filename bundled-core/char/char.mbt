@@ -22,63 +22,72 @@ pub impl Hash for Char with hash_combine(self, hasher) -> Unit {
   hasher.combine_char(self)
 }
 
-///| Checks if the value is within the ASCII range.
-pub fn is_ascii(self : Char) -> Bool {
+///|
+/// Checks if the value is within the ASCII range.
+pub fn Char::is_ascii(self : Self) -> Bool {
   self is ('\u{00}'..='\u{7F}')
 }
 
-///| Checks if the value is an ASCII alphabetic  character:
+///|
+/// Checks if the value is an ASCII alphabetic  character:
 /// - U+0041 'A' ..= U+005A 'Z'
 /// - U+0061 'a' ..= U+007A 'z'
-pub fn is_ascii_alphabetic(self : Char) -> Bool {
+pub fn Char::is_ascii_alphabetic(self : Self) -> Bool {
   self is ('A'..='Z' | 'a'..='z')
 }
 
-///| Checks if the value is an ASCII control character:
+///|
+/// Checks if the value is an ASCII control character:
 /// U+0000 NUL ..= U+001F UNIT SEPARATOR, or U+007F DELETE.
 /// Note that most ASCII whitespace characters are control characters, but SPACE is not.
-pub fn is_ascii_control(self : Char) -> Bool {
+pub fn Char::is_ascii_control(self : Self) -> Bool {
   self is ('\u{00}'..='\u{1F}' | '\u{7F}')
 }
 
-///| Checks if the value is an ASCII decimal digit:
+///|
+/// Checks if the value is an ASCII decimal digit:
 /// U+0030 '0' ..= U+0039 '9'
-pub fn is_ascii_digit(self : Char) -> Bool {
+pub fn Char::is_ascii_digit(self : Self) -> Bool {
   self is ('0'..='9')
 }
 
-///| Checks if the value is an ASCII graphic character:
+///|
+/// Checks if the value is an ASCII graphic character:
 /// U+0021 '!' ..= U+007E '~'
-pub fn is_ascii_graphic(self : Char) -> Bool {
+pub fn Char::is_ascii_graphic(self : Self) -> Bool {
   self is ('\u{21}'..='\u{7E}')
 }
 
-///| Checks if the value is an ASCII hexadecimal digit:
+///|
+/// Checks if the value is an ASCII hexadecimal digit:
 /// - U+0030 '0' ..= U+0039 '9'
 /// - U+0041 'A' ..= U+0046 'F'
 /// - U+0061 'a' ..= U+0066 'f'
-pub fn is_ascii_hexdigit(self : Char) -> Bool {
+pub fn Char::is_ascii_hexdigit(self : Self) -> Bool {
   self is ('0'..='9' | 'A'..='F' | 'a'..='f')
 }
 
-///| Checks if the value is an ASCII lowercase character:
+///|
+/// Checks if the value is an ASCII lowercase character:
 /// U+0061 'a' ..= U+007A 'z'.
-pub fn is_ascii_lowercase(self : Char) -> Bool {
+pub fn Char::is_ascii_lowercase(self : Self) -> Bool {
   self is ('a'..='z')
 }
 
-///| Checks if the value is an ASCII octal digit:
+///|
+/// Checks if the value is an ASCII octal digit:
 /// U+0030 '0' ..= U+0037 '7'
-pub fn is_ascii_octdigit(self : Char) -> Bool {
+pub fn Char::is_ascii_octdigit(self : Self) -> Bool {
   self is ('0'..='7')
 }
 
-///| Checks if the value is an ASCII punctuation character:
+///|
+/// Checks if the value is an ASCII punctuation character:
 /// - U+0021 ..= U+002F ! " # $ % & ' ( ) * + , - . /
 /// - U+003A ..= U+0040 : ; < = > ? @
 /// - U+005B ..= U+0060 [ \ ] ^ _ `
 /// - U+007B ..= U+007E { | } ~
-pub fn is_ascii_punctuation(self : Char) -> Bool {
+pub fn Char::is_ascii_punctuation(self : Self) -> Bool {
   self
   is ('\u{21}'..='\u{2F}'
   | '\u{3A}'..='\u{40}'
@@ -86,28 +95,31 @@ pub fn is_ascii_punctuation(self : Char) -> Bool {
   | '\u{7B}'..='\u{7E}')
 }
 
-///| Checks if the value is an ASCII uppercase character:
+///|
+/// Checks if the value is an ASCII uppercase character:
 /// U+0041 'A' ..= U+005A 'Z'
-pub fn is_ascii_uppercase(self : Char) -> Bool {
+pub fn Char::is_ascii_uppercase(self : Self) -> Bool {
   self is ('A'..='Z')
 }
 
-///| Checks if the value is an ASCII whitespace character:
-/// U+0020 SPACE, U+0009 HORIZONTAL TAB, U+000A LINE FEED, U+000C FORM FEED, or U+000D CARRIAGE RETURN.
-pub fn is_ascii_whitespace(self : Char) -> Bool {
-  self is ('\u{20}' | '\u{09}' | '\u{0A}' | '\u{0C}' | '\u{0D}')
+///|
+/// Checks if the value is an ASCII whitespace character:
+/// U+0020 SPACE, U+0009 HORIZONTAL TAB, U+000A LINE FEED, U+000B VERTICAL TAB, U+000C FORM FEED, or U+000D CARRIAGE RETURN.
+pub fn Char::is_ascii_whitespace(self : Self) -> Bool {
+  self is ('\u{20}' | '\u{09}' | '\u{0A}' | '\u{0B}' | '\u{0C}' | '\u{0D}')
 }
 
-///| Returns true if this char has the general category for control codes.
-pub fn is_control(self : Char) -> Bool {
+///|
+/// Returns true if this char has the general category for control codes.
+pub fn Char::is_control(self : Self) -> Bool {
   self is ('\u0000'..='\u001F' | '\u007F'..='\u009F')
 }
 
-///| 
+///|
 /// Checks if a char is a digit in the given radix (range from 2 to 36).
 /// 
 /// panic if the radix is invalid.
-pub fn is_digit(self : Char, radix : UInt) -> Bool {
+pub fn Char::is_digit(self : Self, radix : UInt) -> Bool {
   let v = self.to_uint()
   match radix {
     2..=10 => v >= 48 && v <= radix + 47
@@ -119,8 +131,9 @@ pub fn is_digit(self : Char, radix : UInt) -> Bool {
   }
 }
 
-///| Returns true if this char has the White_Space property.
-pub fn is_whitespace(self : Char) -> Bool {
+///|
+/// Returns true if this char has the White_Space property.
+pub fn Char::is_whitespace(self : Self) -> Bool {
   self
   is ('\u0009'..='\u000D'
   | '\u0020'
@@ -135,8 +148,9 @@ pub fn is_whitespace(self : Char) -> Bool {
   | '\u3000')
 }
 
-///| Returns true if this char has one of the general categories for numbers.
-pub fn is_numeric(self : Char) -> Bool {
+///|
+/// Returns true if this char has one of the general categories for numbers.
+pub fn Char::is_numeric(self : Self) -> Bool {
   self
   is ('\u0030'..='\u0039'
   | '\u00B2'
@@ -283,7 +297,8 @@ pub fn is_numeric(self : Char) -> Bool {
   | '\u{1FBF0}'..='\u{1FBF9}')
 }
 
-///| Returns true if this character is printable (visible when displayed).
+///|
+/// Returns true if this character is printable (visible when displayed).
 /// Aligns with Unicode standard categories for printable characters.
 /// Characters are considered printable if they are:
 /// - Letters (L*)
@@ -299,7 +314,7 @@ pub fn is_numeric(self : Char) -> Bool {
 /// - Private use (Co)
 /// - Unassigned (Cn)
 /// - Surrogates (Cs)
-pub fn is_printable(self : Char) -> Bool {
+pub fn Char::is_printable(self : Self) -> Bool {
   // Check for control characters (Cc)
   if self.is_control() {
     return false
@@ -337,7 +352,7 @@ pub fn is_printable(self : Char) -> Bool {
     return false
   }
   // Surrogate (Cs)
-  if self >= 0xD800 && self <= 0xDFFF {
+  if self.is_surrogate() {
     return false
   }
 
@@ -371,32 +386,36 @@ pub fn is_printable(self : Char) -> Bool {
   true
 }
 
-///| Makes a copy of the value in its ASCII lower case equivalent.
+///|
+/// Makes a copy of the value in its ASCII lower case equivalent.
 /// ASCII letters 'A' to 'Z' are mapped to 'a' to 'z',
 /// but non-ASCII letters are unchanged.
-pub fn to_ascii_lowercase(self : Char) -> Char {
+pub fn Char::to_ascii_lowercase(self : Self) -> Char {
   if self.is_ascii_uppercase() {
     return (self.to_int() + 32).unsafe_to_char()
   }
   self
 }
 
-///| Makes a copy of the value in its ASCII upper case equivalent.
+///|
+/// Makes a copy of the value in its ASCII upper case equivalent.
 /// ASCII letters 'a' to 'z' are mapped to 'A' to 'Z',
 /// but non-ASCII letters are unchanged.
-pub fn to_ascii_uppercase(self : Char) -> Char {
+pub fn Char::to_ascii_uppercase(self : Self) -> Char {
   if self.is_ascii_lowercase() {
     return (self.to_int() - 32).unsafe_to_char()
   }
   self
 }
 
-///| Convert Char to String
+///|
+/// Convert Char to String
 pub impl Show for Char with to_string(self : Char) -> String {
   char_to_string(self)
 }
 
-///| TODO: support attributes for impl
+///|
+/// TODO: support attributes for impl
 #intrinsic("%char.to_string")
 fn char_to_string(char : Char) -> String {
   [char]
@@ -421,7 +440,7 @@ pub impl Show for Char with output(self, logger) {
     '\t' => logger.write_string("\\t")
     ' '..='~' => logger.write_char(self)
     _ =>
-      if not(self.is_printable()) {
+      if !self.is_printable() {
         let code = self.to_int()
         let hex_len = if code <= 0xFF {
           2
@@ -462,4 +481,58 @@ pub impl Show for Char with output(self, logger) {
 ///|
 pub impl ToJson for Char with to_json(self : Char) -> Json {
   Json::string(self.to_string())
+}
+
+///|
+/// Returns the number of UTF-16 code units required to encode this character.
+///
+/// Parameters:
+///
+/// * `self` : The character to analyze.
+///
+/// Returns the number of UTF-16 code units (1 or 2) needed to represent this
+/// character.
+/// Note surrogate pairs are counted as 2, it should not happen in general since 
+/// surrogate pair is Int instead of Char.
+/// Example:
+///
+/// ```moonbit
+/// inspect('A'.utf16_len(), content="1")
+/// inspect('🌟'.utf16_len(), content="2")
+/// ```
+///
+pub fn Char::utf16_len(self : Self) -> Int {
+  let code = self.to_int()
+  if code <= 0xFFFF {
+    1
+  } else {
+    2
+  }
+}
+
+///|
+/// Returns true if this character is in the Basic Multilingual Plane (BMP).
+/// 
+/// The BMP (Basic Multilingual Plane) contains 65,536 code points (U+0000 to U+FFFF)
+/// distributed as follows:
+/// 
+/// - **~57,022 actual Unicode character positions** (87% of BMP)
+/// - **2,048 surrogate code points** (U+D800-U+DFFF) - reserved for UTF-16 encoding
+///   - High surrogates: U+D800-U+DBFF (1,024 code points)
+///   - Low surrogates: U+DC00-U+DFFF (1,024 code points)
+/// - **6,400 private use area** (U+E000-U+F8FF) - for custom characters
+/// - **66 permanent noncharacters** (including U+FFFE, U+FFFF, U+FDD0-U+FDEF)
+/// 
+/// Note: Surrogate code points are not actual characters but encoding mechanisms
+/// for representing characters outside the BMP in UTF-16.
+/// 
+/// Example:
+///
+/// ```moonbit
+/// inspect('A'.is_bmp(), content="true")
+/// inspect('🌟'.is_bmp(), content="false")
+/// ```
+/// 
+pub fn Char::is_bmp(self : Self) -> Bool {
+  self.to_int() <= 0xFFFF
 }

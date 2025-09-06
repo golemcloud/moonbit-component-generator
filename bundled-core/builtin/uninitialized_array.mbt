@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-type UninitializedArray[T] FixedArray[UnsafeMaybeUninit[T]]
+struct UninitializedArray[T](FixedArray[UnsafeMaybeUninit[T]])
 
 ///|
 /// Creates an uninitialized array of the specified size.
@@ -36,7 +36,7 @@ pub fn[T] UninitializedArray::make(size : Int) -> UninitializedArray[T] = "%fixe
 /// Returns the element at the specified index.
 pub fn[T] UninitializedArray::op_get(
   self : UninitializedArray[T],
-  index : Int
+  index : Int,
 ) -> T = "%fixedarray.get"
 
 ///|
@@ -50,7 +50,7 @@ pub fn[T] UninitializedArray::op_get(
 pub fn[T] UninitializedArray::op_set(
   self : UninitializedArray[T],
   index : Int,
-  value : T
+  value : T,
 ) = "%fixedarray.set"
 
 ///|
@@ -70,8 +70,8 @@ pub fn[T] UninitializedArray::op_set(
 /// than `end`.
 pub fn[T] UninitializedArray::op_as_view(
   self : UninitializedArray[T],
-  start~ : Int = 0,
-  end? : Int
+  start? : Int = 0,
+  end? : Int,
 ) -> ArrayView[T] {
   let len = self.length()
   let end = match end {
@@ -81,7 +81,7 @@ pub fn[T] UninitializedArray::op_as_view(
   guard start >= 0 && start <= end && end <= len else {
     abort("View start index out of bounds")
   }
-  { buf: self, start, len: end - start }
+  ArrayView::make(self, start, end - start)
 }
 
 ///|
@@ -104,17 +104,17 @@ pub fn[T] UninitializedArray::unsafe_blit(
   dst_offset : Int,
   src : UninitializedArray[T],
   src_offset : Int,
-  len : Int
+  len : Int,
 ) -> Unit {
-  FixedArray::unsafe_blit(dst.inner(), dst_offset, src.inner(), src_offset, len)
+  FixedArray::unsafe_blit(dst.0, dst_offset, src.0, src_offset, len)
 }
 
 ///|
 test "op_as_view with valid_range" {
   let arr : UninitializedArray[Int] = UninitializedArray::make(5)
   let view = arr[1:4]
-  inspect(view.start, content="1")
-  inspect(view.len, content="3")
+  inspect(view.start(), content="1")
+  inspect(view.len(), content="3")
 }
 
 ///|
@@ -127,4 +127,18 @@ test "panic op_as_view with invalid_start" {
 test "panic op_as_view with invalid_end" {
   let arr : UninitializedArray[Int] = UninitializedArray::make(5)
   ignore(arr[2:10])
+}
+
+///|
+#intrinsic("%fixedarray.fill")
+#cfg(not(target="js"))
+fn[T] UninitializedArray::unchecked_fill(
+  self : UninitializedArray[T],
+  start : Int,
+  value : T,
+  len : Int,
+) -> Unit {
+  for i in start..<(start + len) {
+    self[i] = value
+  }
 }

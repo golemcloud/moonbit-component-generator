@@ -36,6 +36,7 @@ pub let min_value = -2147483648
 ///   inspect(@int.abs(-42), content="42")
 ///   inspect(@int.abs(0), content="0")
 /// ```
+#as_free_fn
 pub fn Int::abs(self : Int) -> Int {
   if self < 0 {
     -self
@@ -45,14 +46,13 @@ pub fn Int::abs(self : Int) -> Int {
 }
 
 ///|
-pub fnalias Int::abs
-
-///| Converts the Int to a Bytes in big-endian byte order.
+/// Converts the Int to a Bytes in big-endian byte order.
 pub fn to_be_bytes(self : Int) -> Bytes {
   self.reinterpret_as_uint().to_be_bytes()
 }
 
-///| Converts the Int to a Bytes in little-endian byte order.
+///|
+/// Converts the Int to a Bytes in little-endian byte order.
 pub fn to_le_bytes(self : Int) -> Bytes {
   self.reinterpret_as_uint().to_le_bytes()
 }

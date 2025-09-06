@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-type StringBuilder Ref[String]
+struct StringBuilder(Ref[String])
 
 ///|
 /// Creates a new string builder with an optional initial capacity hint.
@@ -26,7 +26,7 @@ type StringBuilder Ref[String]
 ///
 /// Returns a new `StringBuilder` instance with the specified initial capacity.
 ///
-pub fn StringBuilder::new(size_hint~ : Int = 0) -> StringBuilder {
+pub fn StringBuilder::new(size_hint? : Int = 0) -> StringBuilder {
   ignore(size_hint)
   { val: "" }
 }
@@ -76,7 +76,7 @@ pub impl Logger for StringBuilder with write_substring(
   self : StringBuilder,
   str : String,
   start : Int,
-  len : Int
+  len : Int,
 ) -> Unit {
   self.val += str.substring(start~, end=start + len)
 }
@@ -86,13 +86,13 @@ pub impl Show for StringBuilder with output(self, logger) {
   logger.write_string(self.val)
 }
 
-///| 
+///|
 /// Returns the current content of the StringBuilder as a string.
 pub fn StringBuilder::to_string(self : StringBuilder) -> String {
   self.val
 }
 
-///| 
+///|
 /// Resets the string builder to an empty state.
 pub fn StringBuilder::reset(self : StringBuilder) -> Unit {
   self.val = ""

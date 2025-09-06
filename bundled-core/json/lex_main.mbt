@@ -27,7 +27,7 @@ let non_ascii_whitespace : CharClass = CharClass::of([
 ///|
 fn ParseContext::lex_value(
   ctx : ParseContext,
-  allow_rbracket~ : Bool
+  allow_rbracket~ : Bool,
 ) -> Token raise ParseError {
   for {
     match ctx.read_char() {
@@ -41,46 +41,46 @@ fn ParseContext::lex_value(
           ctx.invalid_char(shift=-1)
         }
       Some('n') => {
-        ctx.expect_ascii_char(b'u')
-        ctx.expect_ascii_char(b'l')
-        ctx.expect_ascii_char(b'l')
+        ctx.expect_ascii_char('u')
+        ctx.expect_ascii_char('l')
+        ctx.expect_ascii_char('l')
         return Null
       }
       Some('t') => {
-        ctx.expect_ascii_char(b'r')
-        ctx.expect_ascii_char(b'u')
-        ctx.expect_ascii_char(b'e')
+        ctx.expect_ascii_char('r')
+        ctx.expect_ascii_char('u')
+        ctx.expect_ascii_char('e')
         return True
       }
       Some('f') => {
-        ctx.expect_ascii_char(b'a')
-        ctx.expect_ascii_char(b'l')
-        ctx.expect_ascii_char(b's')
-        ctx.expect_ascii_char(b'e')
+        ctx.expect_ascii_char('a')
+        ctx.expect_ascii_char('l')
+        ctx.expect_ascii_char('s')
+        ctx.expect_ascii_char('e')
         return False
       }
       Some('-') =>
         match ctx.read_char() {
           Some('0') => {
-            let n = ctx.lex_zero(start=ctx.offset - 2)
-            return Number(n)
+            let (n, repr) = ctx.lex_zero(start=ctx.offset - 2)
+            return Number(n, repr)
           }
           Some(c2) => {
             if c2 is ('1'..='9') {
-              let n = ctx.lex_decimal_integer(start=ctx.offset - 2)
-              return Number(n)
+              let (n, repr) = ctx.lex_decimal_integer(start=ctx.offset - 2)
+              return Number(n, repr)
             }
             ctx.invalid_char(shift=-1)
           }
           None => raise InvalidEof
         }
       Some('0') => {
-        let n = ctx.lex_zero(start=ctx.offset - 1)
-        return Number(n)
+        let (n, repr) = ctx.lex_zero(start=ctx.offset - 1)
+        return Number(n, repr)
       }
       Some('1'..='9') => {
-        let n = ctx.lex_decimal_integer(start=ctx.offset - 1)
-        return Number(n)
+        let (n, repr) = ctx.lex_decimal_integer(start=ctx.offset - 1)
+        return Number(n, repr)
       }
       Some('"') => {
         let s = ctx.lex_string()
@@ -90,7 +90,8 @@ fn ParseContext::lex_value(
         if c > '\u{7f}' && non_ascii_whitespace.contains(c) {
           continue
         }
-        ctx.invalid_char(shift=-1)
+        let shift = -c.utf16_len()
+        ctx.invalid_char(shift~)
       }
       None => raise InvalidEof
     }

@@ -76,7 +76,7 @@ pub fnalias @builtin.(
   dump
 )
 
-///| 
+///|
 /// Applies a function to a value and returns the original value.
 ///
 /// # Parameters
@@ -90,7 +90,7 @@ pub fnalias @builtin.(
 /// ```mbt
 /// let val : Ref[Int] = { val : 1 }
 /// let x : Int = 5
-/// assert_eq(x |> tap((n) => { val.val += n }), 5)
+/// assert_eq(x |> tap(n => val.val += n), 5)
 /// // This is not allowed
 /// // x |> (val.val += _)
 /// assert_eq(val.val, 6)
@@ -100,7 +100,7 @@ pub fn[T] tap(value : T, f : (T) -> Unit) -> T {
   value
 }
 
-///| 
+///|
 /// Applies a function to a value and returns the result of the function.
 ///
 /// # Parameters
@@ -113,7 +113,7 @@ pub fn[T] tap(value : T, f : (T) -> Unit) -> T {
 /// # Examples
 /// ```moonbit
 /// let x = 5
-/// let result = x |> then((n) => { n * 2 })
+/// let result = x |> then(n => n * 2)
 /// // This is not allowed
 /// // x |> (_ * 2)
 /// assert_eq(result, 10)
@@ -121,3 +121,6 @@ pub fn[T] tap(value : T, f : (T) -> Unit) -> T {
 pub fn[T, R] then(value : T, f : (T) -> R) -> R {
   f(value)
 }
+
+///|
+pub let null : Json = @builtin.null

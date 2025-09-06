@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///|
 // Types
-type Iter[T] ((T) -> IterResult) -> IterResult
 
 ///|
+struct Iter[T](((T) -> IterResult) -> IterResult)
+
 //TODO: Add intrinsic for Iter::run
+
+///|
 pub fn[T] Iter::run(self : Iter[T], f : (T) -> IterResult) -> IterResult {
   self(f)
 }
@@ -65,7 +67,7 @@ pub fn[T] Iter::any(self : Iter[T], f : (T) -> Bool) -> Bool {
 
 ///|
 pub fn[T] Iter::all(self : Iter[T], f : (T) -> Bool) -> Bool {
-  self.run(k => if not(f(k)) { IterEnd } else { IterContinue }) == IterContinue
+  self.run(k => if !f(k) { IterEnd } else { IterContinue }) is IterContinue
 }
 
 ///|
@@ -82,7 +84,7 @@ pub fn[T] Iter::all(self : Iter[T], f : (T) -> Bool) -> Bool {
 /// TODO: Add intrinsic
 pub fn[T] Iter::eachi(
   self : Iter[T],
-  f : (Int, T) -> Unit raise?
+  f : (Int, T) -> Unit raise?,
 ) -> Unit raise? {
   let mut i = 0
   for a in self {
@@ -113,7 +115,7 @@ pub fn[T] Iter::eachi(
 pub fn[T, B] Iter::fold(
   self : Iter[T],
   init~ : B,
-  f : (B, T) -> B raise?
+  f : (B, T) -> B raise?,
 ) -> B raise? {
   let mut acc = init
   for a in self {
@@ -219,8 +221,8 @@ pub fn[T] Iter::repeat(a : T) -> Iter[T] {
 pub fn Int::until(
   self : Int,
   end : Int,
-  step~ : Int = 1,
-  inclusive~ : Bool = false
+  step? : Int = 1,
+  inclusive? : Bool = false,
 ) -> Iter[Int] {
   if step == 0 {
     return Iter::empty()
@@ -230,7 +232,7 @@ pub fn Int::until(
     while (step > 0 && i < end) ||
           (step < 0 && i > end) ||
           (inclusive && i == end) {
-      if yield_(i) == IterEnd {
+      if yield_(i) is IterEnd {
         break IterEnd
       }
       let next = i + step
@@ -262,8 +264,8 @@ pub fn Int::until(
 pub fn Int64::until(
   self : Int64,
   end : Int64,
-  step~ : Int64 = 1L,
-  inclusive~ : Bool = false
+  step? : Int64 = 1L,
+  inclusive? : Bool = false,
 ) -> Iter[Int64] {
   if step == 0 {
     return Iter::empty()
@@ -273,7 +275,7 @@ pub fn Int64::until(
     while (step > 0 && i < end) ||
           (step < 0 && i > end) ||
           (inclusive && i == end) {
-      if yield_(i) == IterEnd {
+      if yield_(i) is IterEnd {
         break IterEnd
       }
       let next = i + step
@@ -305,8 +307,8 @@ pub fn Int64::until(
 pub fn Float::until(
   self : Float,
   end : Float,
-  step~ : Float = 1.0,
-  inclusive~ : Bool = false
+  step? : Float = 1.0,
+  inclusive? : Bool = false,
 ) -> Iter[Float] {
   if step == 0.0 {
     return Iter::empty()
@@ -316,7 +318,7 @@ pub fn Float::until(
     while (step > 0.0 && i < end) ||
           (step < 0.0 && i > end) ||
           (inclusive && i == end) {
-      if yield_(i) == IterEnd {
+      if yield_(i) is IterEnd {
         break IterEnd
       }
       let next = i + step
@@ -348,8 +350,8 @@ pub fn Float::until(
 pub fn Double::until(
   self : Double,
   end : Double,
-  step~ : Double = 1.0,
-  inclusive~ : Bool = false
+  step? : Double = 1.0,
+  inclusive? : Bool = false,
 ) -> Iter[Double] {
   if step == 0.0 {
     return Iter::empty()
@@ -359,7 +361,7 @@ pub fn Double::until(
     while (step > 0.0 && i < end) ||
           (step < 0.0 && i > end) ||
           (inclusive && i == end) {
-      if yield_(i) == IterEnd {
+      if yield_(i) is IterEnd {
         break IterEnd
       }
       let next = i + step
@@ -483,7 +485,7 @@ pub fn[T, R] Iter::flat_map(self : Iter[T], f : (T) -> Iter[R]) -> Iter[R] {
   yield_ => self.run(x => f(x).run(yield_))
 }
 
-///| 
+///|
 /// iter.map(f).flatten() == iter..flat_map(f)
 /// ```moonbit 
 /// // ignore this test case for now since it will cause ice in release build
@@ -534,25 +536,24 @@ pub fn[T] Iter::tap(self : Iter[T], f : (T) -> Unit) -> Iter[T] {
 /// # Returns
 ///
 /// A new iterator that contains the first `n` elements.
-#intrinsic("%iter.take")
+// #intrinsic("%iter.take")
 pub fn[T] Iter::take(self : Iter[T], n : Int) -> Iter[T] {
   yield_ => {
     // [..take(10,seq), next] would continue
     // even if seq has less than 10 elements
     // but `for x in [..take(10,seq), next ] { break }` would stop
     //
+    guard n > 0 else { return IterContinue }
     let mut i = 0
     let mut r = IterContinue
-    self.just_run(a => if i < n {
-      if yield_(a) == IterContinue {
-        i = i + 1
-        IterContinue
-      } else {
+    self.just_run(a => {
+      i = i + 1
+      guard yield_(a) is IterContinue else {
         r = IterEnd
-        IterEnd
+        return IterEnd
       }
-    } else {
-      IterEnd
+      guard i < n else { return IterEnd }
+      IterContinue
     })
     r
   }
@@ -583,7 +584,7 @@ pub fn[T] Iter::take_while(self : Iter[T], f : (T) -> Bool) -> Iter[T] {
     // See test "take_while2"
     let mut r : IterResult = IterContinue
     self.just_run(a => if f(a) {
-      if yield_(a) == IterContinue {
+      if yield_(a) is IterContinue {
         IterContinue
       } else {
         r = IterEnd
@@ -603,7 +604,7 @@ pub fn[A, B] Iter::map_while(self : Iter[A], f : (A) -> B?) -> Iter[B] {
     let mut r : IterResult = IterContinue
     self.just_run(a => match f(a) {
       Some(b) =>
-        if yield_(b) == IterContinue {
+        if yield_(b) is IterContinue {
           IterContinue
         } else {
           r = IterEnd
@@ -721,7 +722,7 @@ pub fn[T] Iter::peek(self : Iter[T]) -> T? {
 /// Returns a new iterator with the element `a` prepended to the original iterator.
 #deprecated("Use `Iter::singleton(a) + self` instead")
 pub fn[T] Iter::prepend(self : Iter[T], a : T) -> Iter[T] {
-  yield_ => if yield_(a) == IterContinue { self.run(yield_) } else { IterEnd }
+  yield_ => if yield_(a) is IterContinue { self.run(yield_) } else { IterEnd }
 }
 
 ///|
@@ -741,7 +742,7 @@ pub fn[T] Iter::prepend(self : Iter[T], a : T) -> Iter[T] {
 /// Returns a new iterator with the element `a` appended to the original iterator.
 #deprecated("Use `self + Iter::singleton(a)` instead")
 pub fn[T] Iter::append(self : Iter[T], a : T) -> Iter[T] {
-  yield_ => if self.run(yield_) == IterContinue { yield_(a) } else { IterEnd }
+  yield_ => if self.run(yield_) is IterContinue { yield_(a) } else { IterEnd }
 }
 
 ///|
@@ -761,7 +762,7 @@ pub fn[T] Iter::append(self : Iter[T], a : T) -> Iter[T] {
 /// Returns a new iterator that contains the elements of `self` followed by the elements of `other`.
 #intrinsic("%iter.concat")
 pub fn[T] Iter::concat(self : Iter[T], other : Iter[T]) -> Iter[T] {
-  yield_ => if self.run(yield_) == IterContinue {
+  yield_ => if self.run(yield_) is IterContinue {
     other.run(yield_)
   } else {
     IterEnd
@@ -769,7 +770,7 @@ pub fn[T] Iter::concat(self : Iter[T], other : Iter[T]) -> Iter[T] {
 }
 
 ///|
-pub impl[T] Add for Iter[T] with op_add(self, other) {
+pub impl[T] Add for Iter[T] with add(self, other) {
   Iter::concat(self, other)
 }
 
@@ -877,7 +878,7 @@ pub fn[A] Iter::intersperse(self : Iter[A], sep : A) -> Iter[A] {
     self.run(x => if first {
       first = false
       yield_(x)
-    } else if yield_(sep) == IterEnd {
+    } else if yield_(sep) is IterEnd {
       IterEnd
     } else {
       yield_(x)
@@ -888,8 +889,8 @@ pub fn[A] Iter::intersperse(self : Iter[A], sep : A) -> Iter[A] {
 ///|
 pub fn[A] Iter::op_as_view(
   self : Iter[A],
-  start~ : Int = 0,
-  end? : Int
+  start? : Int = 0,
+  end? : Int,
 ) -> Iter[A] {
   // Note here we mark `end` as an optional parameter
   // since the meaningful default value of `end` is the length of the iterator
@@ -991,7 +992,7 @@ pub fn[T : Compare] Iter::minimum(self : Iter[T]) -> T? {
 #deprecated
 pub fn[T, K : Eq + Hash] Iter::group_by(
   self : Iter[T],
-  f : (T) -> K
+  f : (T) -> K,
 ) -> Map[K, Array[T]] {
   let result = Map::new()
   for element in self {

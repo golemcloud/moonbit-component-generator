@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/core/float"
+
+// Values
+fn default() -> Float
+
+let infinity : Float
+
+let max_value : Float
+
+let min_positive : Float
+
+let min_value : Float
+
+let neg_infinity : Float
+
+let not_a_number : Float
+
+// Errors
+
+// Types and methods
+#as_free_fn
+fn Float::abs(Float) -> Float
+#as_free_fn
+fn Float::ceil(Float) -> Float
+#as_free_fn
+fn Float::floor(Float) -> Float
+fn Float::is_close(Float, Float, relative_tolerance? : Float, absolute_tolerance? : Float) -> Bool
+fn Float::is_inf(Float) -> Bool
+fn Float::is_nan(Float) -> Bool
+fn Float::is_neg_inf(Float) -> Bool
+fn Float::is_pos_inf(Float) -> Bool
+#as_free_fn
+fn Float::pow(Float, Float) -> Float
+#as_free_fn
+fn Float::round(Float) -> Float
+fn Float::to_be_bytes(Float) -> Bytes
+fn Float::to_int(Float) -> Int
+fn Float::to_le_bytes(Float) -> Bytes
+#as_free_fn
+fn Float::trunc(Float) -> Float
+impl Default for Float
+impl Hash for Float
+impl Mod for Float
+impl Show for Float
+
+// Type aliases
+
+// Traits
+

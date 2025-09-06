@@ -31,7 +31,7 @@ test "remove3" {
 
 ///|
 test "remove on empty map" {
-  let map : @sorted_map.T[Int, String] = @sorted_map.new()
+  let map : @sorted_map.SortedMap[Int, String] = @sorted_map.new()
   map.remove(1)
   inspect(map.size(), content="0")
 }
@@ -41,23 +41,26 @@ test "get" {
   let map = @sorted_map.from_array([(3, "c"), (2, "b"), (1, "a")])
   inspect(
     map.get(1),
-    content=
+    content=(
       #|Some("a")
-    ,
+    ),
   )
   inspect(
     map.get(2),
-    content=
+    content=(
       #|Some("b")
-    ,
+    ),
   )
   inspect(
     map.get(3),
-    content=
+    content=(
       #|Some("c")
-    ,
+    ),
   )
   inspect(map.get(4), content="None")
+
+  // pattern
+  guard map is { 1: "a", 2: "b", 3: "c", 4? : None, .. }
 }
 
 ///|
@@ -72,25 +75,15 @@ test "contains" {
 ///|
 test "op_get" {
   let map = @sorted_map.from_array([(3, "c"), (2, "b"), (1, "a")])
-  inspect(
-    map.get(1),
-    content=
-      #|Some("a")
-    ,
-  )
-  inspect(
-    map.get(2),
-    content=
-      #|Some("b")
-    ,
-  )
-  inspect(
-    map.get(3),
-    content=
-      #|Some("c")
-    ,
-  )
-  inspect(map.get(4), content="None")
+  inspect(map[1], content="a")
+  inspect(map[2], content="b")
+  inspect(map[3], content="c")
+}
+
+///|
+test "panic op_get" {
+  let map = @sorted_map.from_array([(3, "c"), (2, "b"), (1, "a")])
+  map[4] |> ignore
 }
 
 ///|
@@ -105,7 +98,7 @@ test "op_equal" {
 
 ///|
 test "is_empty" {
-  let map : @sorted_map.T[Int, String] = @sorted_map.new()
+  let map : @sorted_map.SortedMap[Int, String] = @sorted_map.new()
   inspect(map.is_empty(), content="true")
   map[1] = "a"
   inspect(map.is_empty(), content="false")
@@ -136,17 +129,17 @@ test "eachi" {
 ///|
 test "keys" {
   let map = @sorted_map.from_array([(3, "c"), (2, "b"), (1, "a")])
-  inspect(map.keys(), content="[1, 2, 3]")
+  inspect(map.keys_as_iter(), content="[1, 2, 3]")
 }
 
 ///|
 test "values" {
   let map = @sorted_map.from_array([(3, "c"), (2, "b"), (1, "a")])
   inspect(
-    map.values(),
-    content=
+    map.values_as_iter(),
+    content=(
       #|["a", "b", "c"]
-    ,
+    ),
   )
 }
 
@@ -155,9 +148,9 @@ test "to_array" {
   let map = @sorted_map.from_array([(3, "c"), (2, "b"), (1, "a")])
   inspect(
     map.to_array(),
-    content=
+    content=(
       #|[(1, "a"), (2, "b"), (3, "c")]
-    ,
+    ),
   )
 }
 
@@ -166,15 +159,15 @@ test "iter" {
   let map = @sorted_map.from_array([(3, "c"), (2, "b"), (1, "a")])
   inspect(
     map.iter().collect(),
-    content=
+    content=(
       #|[(1, "a"), (2, "b"), (3, "c")]
-    ,
+    ),
   )
   inspect(
     map.iter().take(2).collect(),
-    content=
+    content=(
       #|[(1, "a"), (2, "b")]
-    ,
+    ),
   )
 }
 
@@ -196,13 +189,15 @@ test "from_iter single element iter" {
 
 ///|
 test "from_iter empty iter" {
-  let pq : @sorted_map.T[Int, Int] = @sorted_map.from_iter(Iter::empty())
+  let pq : @sorted_map.SortedMap[Int, Int] = @sorted_map.from_iter(
+    Iter::empty(),
+  )
   inspect(pq, content="@sorted_map.of([])")
 }
 
 ///|
 test "arbitrary" {
-  let map : Array[@sorted_map.T[Int, UInt]] = @quickcheck.samples(20)
+  let map : Array[@sorted_map.SortedMap[Int, UInt]] = @quickcheck.samples(20)
   inspect(
     map[5:10],
     content="[@sorted_map.of([]), @sorted_map.of([]), @sorted_map.of([(0, 0)]), @sorted_map.of([(0, 0)]), @sorted_map.of([(0, 0)])]",

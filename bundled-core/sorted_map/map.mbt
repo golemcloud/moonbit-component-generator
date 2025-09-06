@@ -13,35 +13,52 @@
 // limitations under the License.
 
 ///|
-pub fn[K : Compare, V] op_set(self : T[K, V], key : K, value : V) -> Unit {
+pub fn[K : Compare, V] op_set(
+  self : SortedMap[K, V],
+  key : K,
+  value : V,
+) -> Unit {
   self.add(key, value)
 }
 
 ///|
-
-///|
-pub impl[K : Eq, V : Eq] Eq for T[K, V] with op_equal(self, other) {
+pub impl[K : Eq, V : Eq] Eq for SortedMap[K, V] with equal(self, other) {
   self.to_array() == other.to_array()
 }
 
 ///|
 /// Returns a new sorted map.
-pub fn[K, V] new() -> T[K, V] {
+#as_free_fn
+pub fn[K, V] SortedMap::new() -> SortedMap[K, V] {
   { root: None, size: 0 }
 }
 
 ///|
-
-///| Creates a sorted map from a array of key-value pairs.
-pub fn[K : Compare, V] from_array(entries : Array[(K, V)]) -> T[K, V] {
+/// Creates a sorted map from a array of key-value pairs.
+#as_free_fn
+pub fn[K : Compare, V] SortedMap::from_array(
+  entries : Array[(K, V)],
+) -> SortedMap[K, V] {
   let map = { root: None, size: 0 }
   entries.each(e => map.add(e.0, e.1))
   map
 }
 
 ///|
+#as_free_fn
+pub fn[K : Compare, V] SortedMap::of(
+  entries : FixedArray[(K, V)],
+) -> SortedMap[K, V] {
+  let map = { root: None, size: 0 }
+  for i in 0..<entries.length() {
+    map.add(entries[i].0, entries[i].1)
+  }
+  map
+}
+
+///|
 /// Inserts a key-value pair.
-pub fn[K : Compare, V] add(self : T[K, V], key : K, value : V) -> Unit {
+pub fn[K : Compare, V] add(self : SortedMap[K, V], key : K, value : V) -> Unit {
   let (new_root, inserted) = add_node(self.root, key, value)
   if self.root != new_root {
     self.root = new_root
@@ -53,7 +70,7 @@ pub fn[K : Compare, V] add(self : T[K, V], key : K, value : V) -> Unit {
 
 ///|
 /// Removes a key-value pair.
-pub fn[K : Compare, V] remove(self : T[K, V], key : K) -> Unit {
+pub fn[K : Compare, V] remove(self : SortedMap[K, V], key : K) -> Unit {
   if self.root is Some(old_root) {
     let (new_root, deleted) = delete_node(old_root, key)
     if self.root != new_root {
@@ -67,7 +84,7 @@ pub fn[K : Compare, V] remove(self : T[K, V], key : K) -> Unit {
 
 ///|
 /// Gets a value by a key.
-pub fn[K : Compare, V] get(self : T[K, V], key : K) -> V? {
+pub fn[K : Compare, V] get(self : SortedMap[K, V], key : K) -> V? {
   loop self.root {
     Some(node) => {
       let cmp = key.compare(node.key)
@@ -84,8 +101,26 @@ pub fn[K : Compare, V] get(self : T[K, V], key : K) -> V? {
 }
 
 ///|
+/// Gets a value by a key.
+pub fn[K : Compare, V] op_get(self : SortedMap[K, V], key : K) -> V {
+  loop self.root {
+    Some(node) => {
+      let cmp = key.compare(node.key)
+      if cmp == 0 {
+        break node.value
+      } else if cmp > 0 {
+        continue node.right
+      } else {
+        continue node.left
+      }
+    }
+    None => panic()
+  }
+}
+
+///|
 /// Checks if map contains a key-value pair.
-pub fn[K : Compare, V] contains(self : T[K, V], key : K) -> Bool {
+pub fn[K : Compare, V] contains(self : SortedMap[K, V], key : K) -> Bool {
   match self.get(key) {
     Some(_) => true
     None => false
@@ -94,26 +129,29 @@ pub fn[K : Compare, V] contains(self : T[K, V], key : K) -> Bool {
 
 ///|
 /// Returns true if map is empty.
-pub fn[K, V] is_empty(self : T[K, V]) -> Bool {
+pub fn[K, V] is_empty(self : SortedMap[K, V]) -> Bool {
   self.size == 0
 }
 
 ///|
 /// Returns the count of key-value pairs in the map.
-pub fn[K, V] size(self : T[K, V]) -> Int {
+pub fn[K, V] size(self : SortedMap[K, V]) -> Int {
   self.size
 }
 
 ///|
 /// Clears the map.
-pub fn[K, V] clear(self : T[K, V]) -> Unit {
+pub fn[K, V] clear(self : SortedMap[K, V]) -> Unit {
   self.root = None
   self.size = 0
 }
 
 ///|
 /// Iterates the map.
-pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit raise?) -> Unit raise? {
+pub fn[K, V] each(
+  self : SortedMap[K, V],
+  f : (K, V) -> Unit raise?,
+) -> Unit raise? {
   fn dfs(root : Node[K, V]?) -> Unit raise? {
     if root is Some(root) {
       dfs(root.left)
@@ -128,8 +166,8 @@ pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit raise?) -> Unit raise? {
 ///|
 /// Iterates the map with index.
 pub fn[K, V] eachi(
-  self : T[K, V],
-  f : (Int, K, V) -> Unit raise?
+  self : SortedMap[K, V],
+  f : (Int, K, V) -> Unit raise?,
 ) -> Unit raise? {
   let mut i = 0
   self.each((k, v) => {
@@ -140,30 +178,58 @@ pub fn[K, V] eachi(
 
 ///|
 /// Returns all keys in the map.
-pub fn[K, V] keys(self : T[K, V]) -> Array[K] {
-  let keys = Array::new(capacity=self.size)
-  self.each((k, _v) => keys.push(k))
-  keys
+pub fn[K, V] keys_as_iter(self : SortedMap[K, V]) -> Iter[K] {
+  Iter::new(fn(yield_) {
+    fn go(x : Node[K, V]?) {
+      match x {
+        None => IterContinue
+        Some({ left, right, key, .. }) =>
+          if go(left) is IterEnd {
+            IterEnd
+          } else if yield_(key) is IterEnd {
+            IterEnd
+          } else {
+            go(right)
+          }
+      }
+    }
+
+    go(self.root)
+  })
 }
 
 ///|
 /// Returns all values in the map.
-pub fn[K, V] values(self : T[K, V]) -> Array[V] {
-  let values = Array::new(capacity=self.size)
-  self.each((_k, v) => values.push(v))
-  values
+pub fn[K, V] values_as_iter(self : SortedMap[K, V]) -> Iter[V] {
+  Iter::new(fn(yield_) {
+    fn go(x : Node[K, V]?) {
+      match x {
+        None => IterContinue
+        Some({ left, right, value, .. }) =>
+          if go(left) is IterEnd {
+            IterEnd
+          } else if yield_(value) is IterEnd {
+            IterEnd
+          } else {
+            go(right)
+          }
+      }
+    }
+
+    go(self.root)
+  })
 }
 
 ///|
 /// Converts the map to an array.
-pub fn[K, V] to_array(self : T[K, V]) -> Array[(K, V)] {
+pub fn[K, V] to_array(self : SortedMap[K, V]) -> Array[(K, V)] {
   let arr = Array::new(capacity=self.size)
   self.each((k, v) => arr.push((k, v)))
   arr
 }
 
 ///|
-pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
+pub fn[K, V] iter(self : SortedMap[K, V]) -> Iter[(K, V)] {
   Iter::new(yield_ => {
     fn go(x : Node[K, V]?) {
       match x {
@@ -184,7 +250,7 @@ pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
 }
 
 ///|
-pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
+pub fn[K, V] iter2(self : SortedMap[K, V]) -> Iter2[K, V] {
   Iter2::new(yield_ => {
     fn go(x : Node[K, V]?) {
       match x {
@@ -205,22 +271,30 @@ pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
 }
 
 ///|
-pub fn[K : Compare, V] from_iter(iter : Iter[(K, V)]) -> T[K, V] {
+#as_free_fn
+pub fn[K : Compare, V] SortedMap::from_iter(
+  iter : Iter[(K, V)],
+) -> SortedMap[K, V] {
   let m = new()
   iter.each(e => m[e.0] = e.1)
   m
 }
 
 ///|
-pub impl[K : @quickcheck.Arbitrary + Compare, V : @quickcheck.Arbitrary] @quickcheck.Arbitrary for T[
+pub impl[K : @quickcheck.Arbitrary + Compare, V : @quickcheck.Arbitrary] @quickcheck.Arbitrary for SortedMap[
   K,
   V,
 ] with arbitrary(size, rs) {
   @quickcheck.Arbitrary::arbitrary(size, rs) |> from_iter
 }
 
-///|Returns a new array of key-value pairs that are within the specified range [low, high].
-pub fn[K : Compare, V] range(self : T[K, V], low : K, high : K) -> Iter2[K, V] {
+///|
+///Returns a new array of key-value pairs that are within the specified range [low, high].
+pub fn[K : Compare, V] range(
+  self : SortedMap[K, V],
+  low : K,
+  high : K,
+) -> Iter2[K, V] {
   Iter2::new(yield_ => {
     fn go(x : Node[K, V]?) {
       match x {
@@ -252,7 +326,7 @@ pub fn[K : Compare, V] range(self : T[K, V], low : K, high : K) -> Iter2[K, V] {
 ///|
 fn[K : Compare, V] replace_root_with_min(
   root : Node[K, V],
-  node : Node[K, V]
+  node : Node[K, V],
 ) -> Node[K, V]? {
   let (l, r) = (node.left, node.right)
   match l {
@@ -350,7 +424,7 @@ fn[K, V] rotate_rl(n : Node[K, V]) -> Node[K, V] {
 fn[K : Compare, V] add_node(
   root : Node[K, V]?,
   key : K,
-  value : V
+  value : V,
 ) -> (Node[K, V]?, Bool) {
   match root {
     None => (Some(new_node(key, value)), true)
@@ -376,7 +450,7 @@ fn[K : Compare, V] add_node(
 ///|
 fn[K : Compare, V] delete_node(
   root : Node[K, V],
-  key : K
+  key : K,
 ) -> (Node[K, V]?, Bool) {
   if key == root.key {
     let (l, r) = (root.left, root.right)
@@ -412,7 +486,7 @@ fn[K : Compare, V] delete_node(
 
 ///|
 test "new" {
-  let map : T[Int, String] = new()
+  let map : SortedMap[Int, String] = new()
   inspect(map.debug_tree(), content="_")
   inspect(map.size(), content="0")
 }
@@ -563,6 +637,6 @@ test "clear" {
 }
 
 ///|
-pub impl[K, V] Default for T[K, V] with default() {
+pub impl[K, V] Default for SortedMap[K, V] with default() {
   new()
 }

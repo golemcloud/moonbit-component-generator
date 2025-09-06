@@ -33,13 +33,13 @@ jobs:
       - name: Install moonbit (Unix)
         if: runner.os != 'Windows'
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.24
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Install moonbit (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          $env:MOONBIT_INSTALL_VERSION = "0.6.19"
+          $env:MOONBIT_INSTALL_VERSION = "0.6.24"
           irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
           echo "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bundle core MoonBit library
@@ -76,13 +76,13 @@ jobs:
       - name: Install moonbit (Unix)
         if: runner.os != 'Windows'
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.24
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Install moonbit (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          $env:MOONBIT_INSTALL_VERSION = "0.6.19"
+          $env:MOONBIT_INSTALL_VERSION = "0.6.24"
           irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
           echo "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bundle core MoonBit library
@@ -113,7 +113,7 @@ jobs:
           override: true
       - name: Install moonbit
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.24
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm

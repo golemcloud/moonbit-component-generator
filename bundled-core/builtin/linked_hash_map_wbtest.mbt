@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-type MyString String derive(Eq)
+struct MyString(String) derive(Eq)
 
 ///|
 impl Hash for MyString with hash(self) {
@@ -67,6 +67,9 @@ test "get" {
   assert_eq(m.get("b"), Some(2))
   assert_eq(m.get("c"), Some(3))
   assert_eq(m.get("d"), None)
+
+  // pattern
+  guard m is { "a": 1, "b": 2, "c": 3, "d"? : None, .. }
 }
 
 ///|
@@ -89,16 +92,16 @@ test "get_or_init" {
   m.get_or_init("a", () => Array::new()).push(3)
   assert_eq(m.get("a"), Some([1, 3]))
   assert_eq(m.get("b"), Some([2]))
+  assert_eq(m.size(), 2)
 }
 
 ///|
-test "get_or_init" {
-  let m : Map[String, Array[Int]] = Map::new()
-  m.get_or_init("a", () => Array::new()).push(1)
-  m.get_or_init("b", () => Array::new()).push(2)
-  m.get_or_init("a", () => Array::new()).push(3)
-  assert_eq(m.get("a"), Some([1, 3]))
-  assert_eq(m.get("b"), Some([2]))
+test "get_or_init full" {
+  let m = Map::new(capacity=2)
+  m.get_or_init("a", () => 0) |> ignore
+  m.get_or_init("b", () => 0) |> ignore
+  m.get_or_init("c", () => 0) |> ignore
+  assert_eq(m.size(), 3)
 }
 
 ///|
@@ -115,9 +118,16 @@ test "op_get" {
   let m : Map[String, Int] = Map::new()
   m.set("a", 1)
   m.set("b", 2)
-  assert_eq(m["a"], Some(1))
-  assert_eq(m["b"], Some(2))
-  assert_eq(m["c"], None)
+  assert_eq(m["a"], 1)
+  assert_eq(m["b"], 2)
+}
+
+///|
+test "panic op_get" {
+  let m : Map[String, Int] = Map::new()
+  m.set("a", 1)
+  m.set("b", 2)
+  m["c"] |> ignore
 }
 
 ///|
@@ -192,7 +202,7 @@ test "clear" {
   let m = { "a": 1, "b": 2, "c": 3 }
   m.clear()
   assert_eq(m.size, 0)
-  assert_eq(m.capacity, 8)
+  inspect(m.capacity, content="4")
   assert_eq(m.head, None)
   assert_eq(m.tail, -1)
   for i in 0..<m.capacity {
@@ -268,44 +278,44 @@ test "linked list" {
   m["five"] = 5
   inspect(
     m,
-    content=
+    content=(
       #|{"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
-    ,
+    ),
   )
   m.remove("three")
   inspect(
     m,
-    content=
+    content=(
       #|{"one": 1, "two": 2, "four": 4, "five": 5}
-    ,
+    ),
   )
   m.set("two", 20)
   inspect(
     m,
-    content=
+    content=(
       #|{"one": 1, "two": 20, "four": 4, "five": 5}
-    ,
+    ),
   )
   m.remove("one")
   inspect(
     m,
-    content=
+    content=(
       #|{"two": 20, "four": 4, "five": 5}
-    ,
+    ),
   )
   m.remove("five")
   inspect(
     m,
-    content=
+    content=(
       #|{"two": 20, "four": 4}
-    ,
+    ),
   )
   m.remove("two")
   inspect(
     m,
-    content=
+    content=(
       #|{"four": 4}
-    ,
+    ),
   )
   m.remove("four")
   inspect(m, content="{}")
@@ -316,9 +326,9 @@ test "to_array" {
   let map = { 1: "one", 2: "two", 3: "three" }
   inspect(
     map.to_array(),
-    content=
+    content=(
       #|[(1, "one"), (2, "two"), (3, "three")]
-    ,
+    ),
   )
 }
 
@@ -715,16 +725,16 @@ test "to_string" {
   m.set("c", 3)
   inspect(
     m.to_string(),
-    content=
+    content=(
       #|{"a": 1, "b": 2, "c": 3}
-    ,
+    ),
   )
   let nested_m = { "a": { "b": 2 }, "B": { "C": 3 } }
   inspect(
     nested_m.to_string(),
-    content=
+    content=(
       #|{"a": {"b": 2}, "B": {"C": 3}}
-    ,
+    ),
   )
 }
 
@@ -734,7 +744,7 @@ test "hash collision" {
   m.set("a", 1)
   m.set("ab", 2)
   m.set("abc", 3)
-  inspect(m["d"], content="None")
+  inspect(m.get("d"), content="None")
 }
 
 ///|
@@ -905,6 +915,6 @@ fn[K : Show, V : Show] Map::debug_entries(self : Map[K, V]) -> String {
 }
 
 ///|
-impl[K : Eq, V] Eq for Entry[K, V] with op_equal(self, other) {
+impl[K : Eq, V] Eq for Entry[K, V] with equal(self, other) {
   self.hash == other.hash && self.key == other.key
 }

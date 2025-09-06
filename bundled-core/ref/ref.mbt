@@ -23,7 +23,8 @@ test "to_string" {
   inspect(new(3), content="{val: 3}")
 }
 
-///| same as `Ref::new`
+///|
+/// same as `Ref::new`
 pub fn[T] new(x : T) -> Ref[T] {
   { val: x }
 }
@@ -69,7 +70,7 @@ pub fn[T, R] protect(self : Ref[T], a : T, f : () -> R raise?) -> R raise? {
       self.val = old
       raise err
     }
-  } else {
+  } noraise {
     r => {
       self.val = old
       r
@@ -89,14 +90,12 @@ pub fn[T, R] protect(self : Ref[T], a : T, f : () -> R raise?) -> R raise? {
 ///   assert_eq(x.val, 2)
 ///   assert_eq(y.val, 1)
 /// ```
+#as_free_fn
 pub fn[T] Ref::swap(self : Ref[T], that : Ref[T]) -> Unit {
   let tmp = self.val
   self.val = that.val
   that.val = tmp
 }
-
-///|
-pub fnalias Ref::swap
 
 ///|
 test "swap" {
@@ -133,7 +132,7 @@ test "incr" {
 ///|
 pub impl[X : @quickcheck.Arbitrary] @quickcheck.Arbitrary for Ref[X] with arbitrary(
   size,
-  rs
+  rs,
 ) {
   new(X::arbitrary(size, rs))
 }

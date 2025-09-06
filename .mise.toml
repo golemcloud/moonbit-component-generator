@@ -1,0 +1,5 @@
+[tools]
+rust = "stable"
+
+[env]
+PATH = "/home/{{env.USER}}/.moon/bin:{{env.PATH}}"

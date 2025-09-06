@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-type MyBigInt BigInt
+struct MyBigInt(BigInt)
 
 ///|
 impl Show for MyBigInt with output(self, logger) {
@@ -42,7 +42,7 @@ test "debug_string" {
   //  Logger::trait_method()
   inspect(
     buf,
-    content=
+    content=(
       #|{limbs : [0, 0], sign : Positive, len : 1 }
       #|{limbs : [1, 0], sign : Positive, len : 1 }
       #|{limbs : [2, 0], sign : Positive, len : 1 }
@@ -52,7 +52,7 @@ test "debug_string" {
       #|{limbs : [1, 0], sign : Negative, len : 1 }
       #|{limbs : [2, 0], sign : Negative, len : 1 }
       #|{limbs : [3, 0], sign : Negative, len : 1 }
-    ,
+    ),
   )
 }
 

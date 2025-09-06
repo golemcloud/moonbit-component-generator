@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///| Returns the element that gives the maximum value from the specified function.
+///|
+/// Returns the element that gives the maximum value from the specified function.
 ///
 /// Returns the second argument if the comparison determines them to be equal.
 ///
 /// # Examples
 ///
 /// ```mbt
+///   inspect(@cmp.maximum_by_key(1, -2, @int.abs), content="-2")
 ///   inspect(@cmp.maximum_by_key(-2, 1, @int.abs), content="-2")
 ///   inspect(@cmp.maximum_by_key(-2, 2, @int.abs), content="2")
 /// ```
@@ -30,13 +32,15 @@ pub fn[T, K : Compare] maximum_by_key(x : T, y : T, f : (T) -> K) -> T {
   }
 }
 
-///| Returns the element that gives the minimum value from the specified function.
+///|
+/// Returns the element that gives the minimum value from the specified function.
 ///
 /// Returns the first argument if the comparison determines them to be equal.
 ///
 /// # Examples
 ///
 /// ```mbt
+///   inspect(@cmp.minimum_by_key(1, -2, @int.abs), content="1")
 ///   inspect(@cmp.minimum_by_key(-2, 1, @int.abs), content="1")
 ///   inspect(@cmp.minimum_by_key(-2, 2, @int.abs), content="-2")
 /// ```
@@ -56,8 +60,13 @@ pub fn[T, K : Compare] minimum_by_key(x : T, y : T, f : (T) -> K) -> T {
 /// # Examples
 ///
 /// ```mbt
-///   assert_eq(@cmp.maximum(1, 2), 2)
-///   assert_eq(@cmp.maximum(2, 2), 2)
+///   inspect(@cmp.maximum(1, 2), content="2")
+///   inspect(@cmp.maximum(2, 1), content="2")
+/// 
+///   let fst = []
+///   let snd = []
+///   @cmp.maximum(fst, snd).push(0)
+///   inspect(snd, content="[0]")
 /// ```
 pub fn[T : Compare] maximum(x : T, y : T) -> T {
   if x > y {
@@ -75,8 +84,13 @@ pub fn[T : Compare] maximum(x : T, y : T) -> T {
 /// # Examples
 ///
 /// ```mbt
-///   assert_eq(@cmp.minimum(1, 2), 1)
-///   assert_eq(@cmp.minimum(2, 2), 2)
+///   inspect(@cmp.minimum(1, 2), content="1")
+///   inspect(@cmp.minimum(2, 1), content="1")
+/// 
+///   let fst = []
+///   let snd = []
+///   @cmp.minimum(fst, snd).push(0)
+///   inspect(fst, content="[0]")
 /// ```
 pub fn[T : Compare] minimum(x : T, y : T) -> T {
   if x > y {

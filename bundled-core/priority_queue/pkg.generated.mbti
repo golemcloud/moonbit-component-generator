@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/core/priority_queue"
+
+import(
+  "moonbitlang/core/quickcheck"
+)
+
+// Values
+
+// Errors
+
+// Types and methods
+type T[A]
+fn[A] T::clear(Self[A]) -> Unit
+fn[A] T::copy(Self[A]) -> Self[A]
+#as_free_fn
+fn[A : Compare] T::from_array(Array[A]) -> Self[A]
+#as_free_fn
+fn[K : Compare] T::from_iter(Iter[K]) -> Self[K]
+fn[A] T::is_empty(Self[A]) -> Bool
+fn[A : Compare] T::iter(Self[A]) -> Iter[A]
+fn[A] T::length(Self[A]) -> Int
+#as_free_fn
+fn[A] T::new() -> Self[A]
+#as_free_fn
+fn[A : Compare] T::of(FixedArray[A]) -> Self[A]
+fn[A] T::peek(Self[A]) -> A?
+fn[A : Compare] T::pop(Self[A]) -> A?
+fn[A : Compare] T::push(Self[A], A) -> Unit
+fn[A : Compare] T::to_array(Self[A]) -> Array[A]
+fn[A : Compare] T::unsafe_pop(Self[A]) -> Unit
+impl[K] Default for T[K]
+impl[A : Show + Compare] Show for T[A]
+impl[A : ToJson + Compare] ToJson for T[A]
+impl[X : @quickcheck.Arbitrary + Compare] @quickcheck.Arbitrary for T[X]
+
+// Type aliases
+
+// Traits
+

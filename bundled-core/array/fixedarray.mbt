@@ -29,7 +29,7 @@
 /// ```
 pub fn[T] FixedArray::each(
   self : FixedArray[T],
-  f : (T) -> Unit raise?
+  f : (T) -> Unit raise?,
 ) -> Unit raise? {
   for v in self {
     f(v)
@@ -50,18 +50,18 @@ test "each" {
     i = 0
     ([] : FixedArray[_]).each(f)
     assert_false(failed)
-    assert_eq(i, 0)
+    inspect(i, content="0")
   }
   {
     i = 0
     ([1] : FixedArray[_]).each(f)
     assert_false(failed)
-    assert_eq(i, 1)
+    inspect(i, content="1")
   }
   i = 0
   ([1, 2, 3, 4, 5] : FixedArray[_]).each(f)
   assert_false(failed)
-  assert_eq(i, 5)
+  inspect(i, content="5")
 }
 
 ///|
@@ -81,7 +81,7 @@ test "each" {
 /// ```
 pub fn[T] FixedArray::eachi(
   self : FixedArray[T],
-  f : (Int, T) -> Unit raise?
+  f : (Int, T) -> Unit raise?,
 ) -> Unit raise? {
   for i, v in self {
     f(i, v)
@@ -102,18 +102,18 @@ test "eachi" {
     i = 0
     ([] : FixedArray[_]).eachi(f)
     assert_false(failed)
-    assert_eq(i, 0)
+    inspect(i, content="0")
   }
   {
     i = 0
     ([1] : FixedArray[_]).eachi(f)
     assert_false(failed)
-    assert_eq(i, 1)
+    inspect(i, content="1")
   }
   i = 0
   ([1, 2, 3, 4, 5] : FixedArray[_]).eachi(f)
   assert_false(failed)
-  assert_eq(i, 5)
+  inspect(i, content="5")
 }
 
 ///|
@@ -133,7 +133,7 @@ test "eachi" {
 /// ```
 pub fn[T] FixedArray::rev_each(
   self : FixedArray[T],
-  f : (T) -> Unit raise?
+  f : (T) -> Unit raise?,
 ) -> Unit raise? {
   for i = self.length() - 1; i >= 0; i = i - 1 {
     f(self[i])
@@ -154,18 +154,18 @@ test "rev_each" {
     i = 1
     ([] : FixedArray[_]).rev_each(f)
     assert_false(failed)
-    assert_eq(i, 1)
+    inspect(i, content="1")
   }
   {
     i = 2
     ([1] : FixedArray[_]).rev_each(f)
     assert_false(failed)
-    assert_eq(i, 1)
+    inspect(i, content="1")
   }
   i = 6
   ([1, 2, 3, 4, 5] : FixedArray[_]).rev_each(f)
   assert_false(failed)
-  assert_eq(i, 1)
+  inspect(i, content="1")
 }
 
 ///|
@@ -185,7 +185,7 @@ test "rev_each" {
 /// ```
 pub fn[T] FixedArray::rev_eachi(
   self : FixedArray[T],
-  f : (Int, T) -> Unit raise?
+  f : (Int, T) -> Unit raise?,
 ) -> Unit raise? {
   let len = self.length()
   for i in 0..<len {
@@ -210,23 +210,23 @@ test "rev_eachi" {
     j = 0
     ([] : FixedArray[_]).rev_eachi(f)
     assert_false(failed)
-    assert_eq(i, 1)
-    assert_eq(j, 0)
+    inspect(i, content="1")
+    inspect(j, content="0")
   }
   {
     i = 2
     j = 0
     ([1] : FixedArray[_]).rev_eachi(f)
     assert_false(failed)
-    assert_eq(i, 1)
-    assert_eq(j, 1)
+    inspect(i, content="1")
+    inspect(j, content="1")
   }
   i = 6
   j = 0
   ([1, 2, 3, 4, 5] : FixedArray[_]).rev_eachi(f)
   assert_false(failed)
-  assert_eq(i, 1)
-  assert_eq(j, 5)
+  inspect(i, content="1")
+  inspect(j, content="5")
 }
 
 ///|
@@ -241,7 +241,7 @@ test "rev_eachi" {
 /// ```
 pub fn[T, U] FixedArray::map(
   self : FixedArray[T],
-  f : (T) -> U raise?
+  f : (T) -> U raise?,
 ) -> FixedArray[U] raise? {
   if self.length() == 0 {
     return []
@@ -276,7 +276,7 @@ test "map" {
 /// ```
 pub fn[T, U] FixedArray::mapi(
   self : FixedArray[T],
-  f : (Int, T) -> U raise?
+  f : (Int, T) -> U raise?,
 ) -> FixedArray[U] raise? {
   if self.length() == 0 {
     return []
@@ -322,7 +322,7 @@ test "mapi" {
 /// ```
 pub fn[T] FixedArray::makei(
   length : Int,
-  value : (Int) -> T raise?
+  value : (Int) -> T raise?,
 ) -> FixedArray[T] raise? {
   if length <= 0 {
     []
@@ -338,14 +338,14 @@ pub fn[T] FixedArray::makei(
 ///|
 test "fixedarray_new_with_index" {
   let empty = FixedArray::makei(0, i => i)
-  assert_eq(empty.length(), 0)
+  inspect(empty.length(), content="0")
   let simple_arr = FixedArray::makei(1, i => i)
-  assert_eq(simple_arr.length(), 1)
-  assert_eq(simple_arr[0], 0)
+  inspect(simple_arr.length(), content="1")
+  inspect(simple_arr[0], content="0")
   let arr = FixedArray::makei(2, i => i)
-  assert_eq(arr.length(), 2)
-  assert_eq(arr[0], 0)
-  assert_eq(arr[1], 1)
+  inspect(arr.length(), content="2")
+  inspect(arr[0], content="0")
+  inspect(arr[1], content="1")
 }
 
 ///|
@@ -382,12 +382,12 @@ test "from_array" {
 /// # Example
 /// ```mbt
 ///   let sum = [1, 2, 3, 4, 5].fold(init=0, (sum, elem) => sum + elem)
-///   assert_eq(sum, 15)
+///   inspect(sum, content="15")
 /// ```
 pub fn[A, B] FixedArray::fold(
   self : FixedArray[A],
   init~ : B,
-  f : (B, A) -> B raise?
+  f : (B, A) -> B raise?,
 ) -> B raise? {
   for i = 0, acc = init; i < self.length(); {
     continue i + 1, f(acc, self[i])
@@ -399,12 +399,12 @@ pub fn[A, B] FixedArray::fold(
 ///|
 test "fold" {
   let sum = ([] : FixedArray[_]).fold(init=1, (sum, elem) => sum + elem)
-  assert_eq(sum, 1)
+  inspect(sum, content="1")
   let sum = ([1] : FixedArray[_]).fold(init=2, (sum, elem) => sum + elem)
-  assert_eq(sum, 3)
+  inspect(sum, content="3")
   let sum = ([1, 2, 3, 4, 5] : FixedArray[_]).fold(init=0, (sum, elem) => sum +
     elem)
-  assert_eq(sum, 15)
+  inspect(sum, content="15")
 }
 
 ///|
@@ -413,12 +413,12 @@ test "fold" {
 /// # Example
 /// ```mbt
 ///   let sum = [1, 2, 3, 4, 5].rev_fold(init=0, (sum, elem) => sum + elem)
-///   assert_eq(sum, 15)
+///   inspect(sum, content="15")
 /// ```
 pub fn[A, B] FixedArray::rev_fold(
   self : FixedArray[A],
   init~ : B,
-  f : (B, A) -> B raise?
+  f : (B, A) -> B raise?,
 ) -> B raise? {
   for i = self.length() - 1, acc = init; i >= 0; {
     continue i - 1, f(acc, self[i])
@@ -430,12 +430,12 @@ pub fn[A, B] FixedArray::rev_fold(
 ///|
 test "rev_fold" {
   let sum = ([] : FixedArray[_]).rev_fold(init=1, (sum, elem) => sum + elem)
-  assert_eq(sum, 1)
+  inspect(sum, content="1")
   let sum = ([1] : FixedArray[_]).rev_fold(init=2, (sum, elem) => sum + elem)
-  assert_eq(sum, 3)
+  inspect(sum, content="3")
   let sum = ([1, 2, 3, 4, 5] : FixedArray[_]).rev_fold(init=0, (sum, elem) => sum +
     elem)
-  assert_eq(sum, 15)
+  inspect(sum, content="15")
 }
 
 ///|
@@ -444,12 +444,12 @@ test "rev_fold" {
 /// # Example
 /// ```mbt
 ///   let sum = [1, 2, 3, 4, 5].foldi(init=0, (index, sum, _elem) => sum + index)
-///   assert_eq(sum, 10)
+///   inspect(sum, content="10")
 /// ```
 pub fn[A, B] FixedArray::foldi(
   self : FixedArray[A],
   init~ : B,
-  f : (Int, B, A) -> B raise?
+  f : (Int, B, A) -> B raise?,
 ) -> B raise? {
   for i = 0, acc = init; i < self.length(); {
     continue i + 1, f(i, acc, self[i])
@@ -463,14 +463,14 @@ test "fold_lefti" {
   let f = (index, sum, elem) => index + sum + elem
   {
     let sum = ([] : FixedArray[_]).foldi(init=1, f)
-    assert_eq(sum, 1)
+    inspect(sum, content="1")
   }
   {
     let sum = ([1] : FixedArray[_]).foldi(init=2, f)
-    assert_eq(sum, 3)
+    inspect(sum, content="3")
   }
   let sum = ([1, 2, 3, 4, 5] : FixedArray[_]).foldi(init=0, f)
-  assert_eq(sum, 25)
+  inspect(sum, content="25")
 }
 
 ///|
@@ -479,12 +479,12 @@ test "fold_lefti" {
 /// # Example
 /// ```mbt
 ///   let sum = [1, 2, 3, 4, 5].rev_foldi(init=0, (index, sum, _elem) => sum + index)
-///   assert_eq(sum, 10)
+///   inspect(sum, content="10")
 /// ```
 pub fn[A, B] FixedArray::rev_foldi(
   self : FixedArray[A],
   init~ : B,
-  f : (Int, B, A) -> B raise?
+  f : (Int, B, A) -> B raise?,
 ) -> B raise? {
   let len = self.length()
   for i = len - 1, acc = init; i >= 0; {
@@ -499,14 +499,14 @@ test "rev_foldi" {
   let f = (index, sum, elem) => index + sum + elem
   {
     let sum = ([] : FixedArray[_]).rev_foldi(init=1, f)
-    assert_eq(sum, 1)
+    inspect(sum, content="1")
   }
   {
     let sum = ([1] : FixedArray[_]).rev_foldi(init=2, f)
-    assert_eq(sum, 3)
+    inspect(sum, content="3")
   }
   let sum = ([1, 2, 3, 4, 5] : FixedArray[_]).rev_foldi(init=0, f)
-  assert_eq(sum, 25)
+  inspect(sum, content="25")
 }
 
 ///|
@@ -664,10 +664,10 @@ test "swap" {
 /// ```
 pub fn[T] FixedArray::all(
   self : FixedArray[T],
-  f : (T) -> Bool raise?
+  f : (T) -> Bool raise?,
 ) -> Bool raise? {
   for i in 0..<self.length() {
-    if not(f(self[i])) {
+    if !f(self[i]) {
       return false
     }
   }
@@ -703,7 +703,7 @@ test "all" {
 /// ```
 pub fn[T] FixedArray::any(
   self : FixedArray[T],
-  f : (T) -> Bool raise?
+  f : (T) -> Bool raise?,
 ) -> Bool raise? {
   for i in 0..<self.length() {
     if f(self[i]) {
@@ -829,7 +829,7 @@ test "contains" {
 /// ```
 pub fn[T : Eq] FixedArray::starts_with(
   self : FixedArray[T],
-  prefix : FixedArray[T]
+  prefix : FixedArray[T],
 ) -> Bool {
   if prefix.length() > self.length() {
     return false
@@ -877,7 +877,7 @@ test "starts_with" {
 /// ```
 pub fn[T : Eq] FixedArray::ends_with(
   self : FixedArray[T],
-  suffix : FixedArray[T]
+  suffix : FixedArray[T],
 ) -> Bool {
   let self_len = self.length()
   let suf_len = suffix.length()
@@ -944,9 +944,9 @@ test "ends_with" {
 ///   inspect(arr1 == arr2, content="true")
 ///   inspect(arr1 == arr3, content="false")
 /// ```
-pub impl[T : Eq] Eq for FixedArray[T] with op_equal(
+pub impl[T : Eq] Eq for FixedArray[T] with equal(
   self : FixedArray[T],
-  that : FixedArray[T]
+  that : FixedArray[T],
 ) -> Bool {
   if self.length() != that.length() {
     return false
@@ -988,7 +988,7 @@ test "op_equal" {
 }
 
 ///|
-/// Compares two fixed arrays lexicographically based on their elements. First
+/// Compares two fixed arrays based on shortlex order by their elements. First
 /// compares the lengths of the arrays, then compares elements pairwise until a
 /// difference is found or all elements have been compared.
 ///
@@ -1047,7 +1047,7 @@ pub impl[T : Compare] Compare for FixedArray[T] with compare(self, other) {
 ///   let arr2 : FixedArray[Int] = [4, 5, 6]
 ///   inspect(arr1 + arr2, content="[1, 2, 3, 4, 5, 6]")
 /// ```
-pub impl[T] Add for FixedArray[T] with op_add(self, other) {
+pub impl[T] Add for FixedArray[T] with add(self, other) {
   let slen = self.length()
   let nlen = other.length()
   FixedArray::makei(slen + nlen, i => if i < slen {
@@ -1095,14 +1095,14 @@ test "iter" {
   assert_eq(i, arr.length())
   inspect(
     exb,
-    content=
+    content=(
       #|1
       #|2
       #|3
       #|4
       #|5
       #|
-    ,
+    ),
   )
 }
 
@@ -1163,7 +1163,7 @@ pub fn[A] FixedArray::last(self : FixedArray[A]) -> A? {
 /// ```
 pub fn FixedArray::join(
   self : FixedArray[String],
-  separator : @string.View
+  separator : @string.View,
 ) -> String {
   let len = self.length()
   if len == 0 {
@@ -1238,7 +1238,7 @@ test "FixedArray::join" {
 ///|
 pub impl[X : @quickcheck.Arbitrary] @quickcheck.Arbitrary for FixedArray[X] with arbitrary(
   size,
-  rs
+  rs,
 ) {
   let len = if size == 0 { 0 } else { rs.next_positive_int() % size }
   FixedArray::makei(len, i => X::arbitrary(i, rs))

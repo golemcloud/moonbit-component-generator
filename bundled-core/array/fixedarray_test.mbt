@@ -16,14 +16,14 @@
 test "FixedArray::from_array with empty array" {
   let array : Array[Int] = []
   let fixedArray = FixedArray::from_array(array)
-  assert_eq(fixedArray.length(), 0)
+  inspect(fixedArray.length(), content="0")
 }
 
 ///|
 test "FixedArray::from_array with non-empty array" {
   let array : Array[Int] = [1, 2, 3, 4, 5]
   let fixedArray = FixedArray::from_array(array)
-  assert_eq(fixedArray.length(), 5)
+  inspect(fixedArray.length(), content="5")
   for i in 0..<5 {
     assert_eq(fixedArray[i], array[i])
   }
@@ -33,7 +33,7 @@ test "FixedArray::from_array with non-empty array" {
 test "FixedArray::from_array with array of different type" {
   let array : Array[String] = ["a", "b", "c"]
   let fixedArray = FixedArray::from_array(array)
-  assert_eq(fixedArray.length(), 3)
+  inspect(fixedArray.length(), content="3")
   for i in 0..<3 {
     assert_eq(fixedArray[i], array[i])
   }
@@ -65,16 +65,16 @@ test "FixedArray::last" {
   inspect(FixedArray::last([1, 2, 3]), content="Some(3)")
   inspect(
     FixedArray::last(["a", "b", "c"]),
-    content=
+    content=(
       #|Some("c")
-    ,
+    ),
   )
   inspect(FixedArray::last([1]), content="Some(1)")
   inspect(
     FixedArray::last(["single"]),
-    content=
+    content=(
       #|Some("single")
-    ,
+    ),
   )
 }
 
@@ -94,13 +94,31 @@ test "FixedArray::arbitrary" {
 ///|
 test "FixedArray::makei" {
   let empty = FixedArray::makei(0, _i => Ref::{ val: 3 })
-  assert_eq(empty.length(), 0)
+  inspect(empty.length(), content="0")
   let simple_arr = FixedArray::makei(1, _i => Ref::{ val: 2 })
-  assert_eq(simple_arr.length(), 1)
-  assert_eq(simple_arr[0].val, 2)
+  inspect(simple_arr.length(), content="1")
+  inspect(simple_arr[0].val, content="2")
   let arr = FixedArray::makei(2, _i => Ref::{ val: 1 })
-  assert_eq(arr.length(), 2)
+  inspect(arr.length(), content="2")
   @test.is_not(arr[0], arr[1])
-  assert_eq(arr[0].val, 1)
-  assert_eq(arr[1].val, 1)
+  inspect(arr[0].val, content="1")
+  inspect(arr[1].val, content="1")
+}
+
+///|
+test "FixedArray compare" {
+  let arr1 : FixedArray[Int] = [1, 2, 3]
+  let arr2 : FixedArray[Int] = [1, 2, 4]
+  let arr3 : FixedArray[Int] = [1, 2]
+  inspect(arr1.compare(arr2), content="-1") // arr1 < arr2
+  inspect(arr2.compare(arr1), content="1") // arr2 > arr1
+  inspect(arr1.compare(arr3), content="1") // arr1 > arr3 (longer)
+  inspect(arr1.compare(arr1), content="0") // arr1 = arr1
+
+  // Test empty arrays
+  let empty1 : FixedArray[Int] = []
+  let empty2 : FixedArray[Int] = []
+  inspect(empty1.compare(empty2), content="0")
+  inspect(empty1.compare(arr1), content="-1")
+  inspect(arr1.compare(empty1), content="1")
 }

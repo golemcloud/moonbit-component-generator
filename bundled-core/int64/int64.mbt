@@ -58,6 +58,7 @@ pub fn from_int(i : Int) -> Int64 {
 ///   inspect((-42L).abs(), content="42")
 ///   inspect(0L.abs(), content="0")
 /// ```
+#as_free_fn
 pub fn Int64::abs(self : Int64) -> Int64 {
   if self < 0L {
     -self
@@ -67,14 +68,13 @@ pub fn Int64::abs(self : Int64) -> Int64 {
 }
 
 ///|
-pub fnalias Int64::abs
-
-///| Converts the Int64 to a Bytes in big-endian byte order.
+/// Converts the Int64 to a Bytes in big-endian byte order.
 pub fn to_be_bytes(self : Int64) -> Bytes {
   self.reinterpret_as_uint64().to_be_bytes()
 }
 
-///| Converts the Int64 to a Bytes in little-endian byte order.
+///|
+/// Converts the Int64 to a Bytes in little-endian byte order.
 pub fn to_le_bytes(self : Int64) -> Bytes {
   self.reinterpret_as_uint64().to_le_bytes()
 }

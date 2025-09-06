@@ -38,12 +38,12 @@ test "iter early termination - value" {
       count = count + 1
       IterContinue
     })
-  assert_eq(count, 1)
+  inspect(count, content="1")
 }
 
 ///|
 test "iter terminates on right" {
-  let set = of([1, 2, 3])
+  let set = @sorted_set.of([1, 2, 3])
   let result = set.iter().take(2).to_array()
   inspect(result, content="[1, 2]")
 }

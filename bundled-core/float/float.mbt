@@ -111,6 +111,7 @@ pub let min_positive : Float = (0x00800000).reinterpret_as_float()
 ///   inspect((-0.0 : Float).abs(), content="0")
 ///   inspect(@float.not_a_number.abs().is_nan(), content="true")
 /// ```
+#as_free_fn
 pub fn Float::abs(self : Float) -> Float = "%f32.abs"
 
 ///|
@@ -218,9 +219,12 @@ pub impl Hash for Float with hash_combine(self, hasher) {
 ///
 /// ```moonbit
 ///   let x : Float = 1.0
-///   inspect(x.to_be_bytes(), content=
-///   #|b"\x3f\x80\x00\x00"
-/// )
+///   inspect(
+///     x.to_be_bytes(), 
+///     content=(
+///       #|b"\x3f\x80\x00\x00"
+///     ),
+///   )
 /// ```
 pub fn to_be_bytes(self : Float) -> Bytes {
   self.reinterpret_as_uint().to_be_bytes()
@@ -355,13 +359,13 @@ pub fn is_nan(self : Float) -> Bool {
 ///   let y = 1.000000001
 ///   inspect(x.is_close(y), content="false")
 ///   inspect(x.is_close(y, relative_tolerance=1.0e-10), content="false")
-///   inspect(infinity.is_close(infinity), content="true")
+///   inspect(@float.infinity.is_close(@float.infinity), content="true")
 /// ```
 pub fn Float::is_close(
   self : Self,
   other : Self,
-  relative_tolerance~ : Self = 1.0e-09,
-  absolute_tolerance~ : Self = 0.0
+  relative_tolerance? : Self = 1.0e-09,
+  absolute_tolerance? : Self = 0.0,
 ) -> Bool {
   if relative_tolerance < 0.0 || absolute_tolerance < 0.0 {
     abort("Tolerances must be non-negative")

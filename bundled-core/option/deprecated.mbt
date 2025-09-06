@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-#deprecated("inline instead for such tiny function")
+#deprecated("Use `if condition { Some(value()) } else { None }` instead")
 pub fn[T] when(condition : Bool, value : () -> T) -> T? {
   if condition {
     Some(value())
@@ -23,19 +23,19 @@ pub fn[T] when(condition : Bool, value : () -> T) -> T? {
 }
 
 ///|
-#deprecated("inline instead for such tiny function")
+#deprecated("Use `if !condition { Some(value()) } else { None }` instead")
 pub fn[T] unless(condition : Bool, value : () -> T) -> T? {
-  when(not(condition), value)
+  when(!condition, value)
 }
 
 ///|
-#deprecated("inline instead for such tiny function")
+#deprecated("Use `None` instead")
 pub fn[T] empty() -> T? {
   None
 }
 
 ///|
-#deprecated("inline instead for such tiny function")
+#deprecated("Use `Some(value)` instead")
 pub fn[T] some(value : T) -> T? {
   Some(value)
 }
@@ -65,4 +65,18 @@ pub fn[T : Default] Option::or_default(self : T?) -> T {
     None => T::default()
     Some(t) => t
   }
+}
+
+///|
+/// Checks if the option contains a value.
+#deprecated("use `x is Some(_)` instead")
+pub fn[T] is_some(self : T?) -> Bool {
+  self is Some(_)
+}
+
+///|
+/// Checks if the option is None.
+#deprecated("use `x is None` instead")
+pub fn[T] is_none(self : T?) -> Bool {
+  self is None
 }

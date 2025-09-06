@@ -20,8 +20,6 @@ fn[T : Show] debug_string(t : T) -> String {
 }
 
 ///|
-
-///|
 /// Assert referential equality of two values.
 ///
 /// Returns Ok if the two arguments are the same object by reference, using
@@ -37,8 +35,9 @@ fn[T : Show] debug_string(t : T) -> String {
 /// @test.same_object(a, a)
 /// @test.is_not(a, b)
 /// ```
-pub fn[T : Show] same_object(a : T, b : T, loc~ : SourceLoc = _) -> Unit raise {
-  if not(physical_equal(a, b)) {
+#callsite(autofill(loc))
+pub fn[T : Show] same_object(a : T, b : T, loc~ : SourceLoc) -> Unit raise {
+  if !physical_equal(a, b) {
     let a = debug_string(a)
     let b = debug_string(b)
     fail("`\{a} is \{b}`", loc~)
@@ -61,19 +60,21 @@ pub fn[T : Show] same_object(a : T, b : T, loc~ : SourceLoc = _) -> Unit raise {
 /// @test.is_not(a, b)
 /// @test.same_object(a, a)
 /// ```
-pub fn[T : Show] is_not(a : T, b : T, loc~ : SourceLoc = _) -> Unit raise {
+#callsite(autofill(loc))
+pub fn[T : Show] is_not(a : T, b : T, loc~ : SourceLoc) -> Unit raise {
   if physical_equal(a, b) {
     let a = debug_string(a)
     let b = debug_string(b)
-    fail("`not(\{a} is \{b})`", loc~)
+    fail("`!(\{a} is \{b})`", loc~)
   }
 }
 
-///| 
+///|
 /// Expected to be used in test blocks, don't catch this error.
 ///  
 /// Produces an error message similar to @builtin.fail.
-pub fn[T] fail(msg : String, loc~ : SourceLoc = _) -> T raise {
+#callsite(autofill(loc))
+pub fn[T] fail(msg : String, loc~ : SourceLoc) -> T raise {
   @builtin.fail(msg, loc~)
 }
 
@@ -85,7 +86,7 @@ pub fn write(self : T, obj : &Show) -> Unit {
   self.buffer.write_string(obj.to_string())
 }
 
-///| 
+///|
 /// Write data to snapshot buffer and newline, use `snapshot` to output.
 /// 
 /// See also `@test.T::write`
@@ -98,17 +99,18 @@ pub fn writeln(self : T, obj : &Show) -> Unit {
 /// Take a snapshot of the current buffer and write to a file.
 /// 
 /// ```mbt
-///   let t = new("test.txt")
+///   let t = @test.new("test.txt")
 ///   t.writeln("hello")
 ///   t.snapshot(filename="test.txt") // actual test block end
 /// ```
 ///
 /// Currently it can only be used once and should be used as the last step.
+#callsite(autofill(args_loc, loc))
 pub fn snapshot(
   self : T,
   filename~ : String,
-  loc~ : SourceLoc = _,
-  args_loc~ : ArgsLoc = _
+  loc~ : SourceLoc,
+  args_loc~ : ArgsLoc,
 ) -> Unit raise SnapshotError {
   let loc = loc.to_string().escape()
   let args_loc = args_loc.to_json().escape()

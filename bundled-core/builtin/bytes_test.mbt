@@ -16,6 +16,17 @@
 const HELLO_WORLD = b"H\x00e\x00l\x00l\x00o\x00,\x00 \x00W\x00o\x00r\x00l\x00d\x00!\x00"
 
 ///|
+test "json repr" {
+  @json.inspect(b"hello", content="hello")
+  @json.inspect(
+    b"\x00\x01\x02\x03",
+    content=(
+      #|\x00\x01\x02\x03
+    ),
+  )
+}
+
+///|
 test "to_string" {
   assert_eq(HELLO_WORLD.to_unchecked_string(), "Hello, World!")
 }
@@ -42,9 +53,9 @@ test "set_utf8_char (ASCII)" {
   assert_eq(len, 1)
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\x41\x00\x00\x00"
-    ,
+    ),
   )
 }
 
@@ -57,9 +68,9 @@ test "set_utf8_char (CJK)" {
   assert_eq(len, 3)
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\xe6\x8b\xbc\x00"
-    ,
+    ),
   )
 }
 
@@ -73,9 +84,9 @@ test "set_utf8_char (0x600)" {
   assert_eq(len, 2)
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\xd8\x80\x00\x00"
-    ,
+    ),
   )
 }
 
@@ -88,9 +99,9 @@ test "set_utf8_char (Emoji)" {
   assert_eq(len, 4)
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\xf0\x9f\x99\x85"
-    ,
+    ),
   )
 }
 
@@ -104,9 +115,9 @@ test "set_utf16le_char" {
   assert_eq(bytes.to_unchecked_string(offset=0, length=2), "A")
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\x41\x00\x00\x00"
-    ,
+    ),
   )
 }
 
@@ -120,9 +131,9 @@ test "set_utf16le_char (surrogate pair)" {
   assert_eq(bytes.to_unchecked_string(offset=0, length=4), "🉑")
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\x3c\xd8\x51\xde"
-    ,
+    ),
   )
 }
 
@@ -135,10 +146,20 @@ test "set_utf16be_char" {
   assert_eq(len, 2)
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\x00\x41\x00\x00"
-    ,
+    ),
   )
+  let arr = FixedArray::make(2, b'\x00')
+  let _ = arr.set_utf16be_char(0, '中') // Unicode U+4E2D
+  inspect(arr[0], content="b'\\x4E'")
+  inspect(arr[1], content="b'\\x2D'")
+  let arr = FixedArray::make(4, b'\x00')
+  let _ = arr.set_utf16be_char(0, '😃') // Unicode U+1F603
+  inspect(arr[0], content="b'\\xD8'")
+  inspect(arr[1], content="b'\\x3D'")
+  inspect(arr[2], content="b'\\xDE'")
+  inspect(arr[3], content="b'\\x03'")
 }
 
 ///|

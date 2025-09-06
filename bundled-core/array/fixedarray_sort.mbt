@@ -80,7 +80,7 @@ fn[T : Compare] timsort(arr : FixedArraySlice[T]) -> Unit {
 
 ///|
 fn[T : Compare] FixedArraySlice::insertion_sort(
-  arr : FixedArraySlice[T]
+  arr : FixedArraySlice[T],
 ) -> Unit {
   for i in 1..<arr.length() {
     for j = i; j > 0 && arr[j] < arr[j - 1]; j = j - 1 {
@@ -150,7 +150,7 @@ fn[T : Compare] find_streak(arr : FixedArraySlice[T]) -> (Int, Bool) {
 fn[T : Compare] provide_sorted_batch(
   arr : FixedArraySlice[T],
   start : Int,
-  end : Int
+  end : Int,
 ) -> Int {
   let len = arr.length()
   // This value is a balance between least comparisons and best performance, as
@@ -171,13 +171,14 @@ fn[T : Compare] provide_sorted_batch(
   }
 }
 
-///|
 // TimSort is infamous for its buggy implementations, as described here:
 // http://envisage-project.eu/timsort-specification-and-verification/
 //
 // This function correctly checks invariants for the top four runs. Additionally, if the top
 // run starts at index 0, it will always demand a merge operation until the stack is fully
 // collapsed, in order to complete the sort.
+
+///|
 fn collapse(runs : Array[TimSortRun], stop : Int) -> Int? {
   let n : Int = runs.length()
   if n >= 2 &&
@@ -221,7 +222,7 @@ pub fn[T : Compare] FixedArray::sort(self : FixedArray[T]) -> Unit {
 fn[T : Compare] fixed_quick_sort(
   arr : FixedArraySlice[T],
   pred : T?,
-  limit : Int
+  limit : Int,
 ) -> Unit {
   let mut limit = limit
   let mut arr = arr
@@ -253,7 +254,7 @@ fn[T : Compare] fixed_quick_sort(
     let (pivot, partitioned) = fixed_partition(arr, pivot_index)
     was_partitioned = partitioned
     balanced = minimum(pivot, len - pivot) >= len / 8
-    if not(balanced) {
+    if !balanced {
       limit -= 1
     }
     if pred is Some(pred) {
@@ -308,7 +309,7 @@ fn[T : Compare] fixed_try_bubble_sort(arr : FixedArraySlice[T]) -> Bool {
       sorted = false
       arr.swap(j, j - 1)
     }
-    if not(sorted) {
+    if !sorted {
       tries += 1
       if tries > max_tries {
         return false
@@ -336,14 +337,14 @@ fn[T : Compare] fixed_bubble_sort(arr : FixedArraySlice[T]) -> Unit {
 test "fixed_try_bubble_sort" {
   let arr : FixedArray[_] = [8, 7, 6, 5, 4, 3, 2, 1]
   let sorted = fixed_try_bubble_sort({ array: arr, start: 0, end: 8 })
-  assert_eq(sorted, true)
+  inspect(sorted, content="true")
   assert_eq(arr, [1, 2, 3, 4, 5, 6, 7, 8])
 }
 
 ///|
 fn[T : Compare] fixed_partition(
   arr : FixedArraySlice[T],
-  pivot_index : Int
+  pivot_index : Int,
 ) -> (Int, Bool) {
   arr.swap(pivot_index, arr.length() - 1)
   let pivot = arr[arr.length() - 1]
@@ -551,39 +552,39 @@ test "stable_sort_complex" {
 test "find_streak with empty array" {
   let arr : FixedArray[Int] = []
   let (streak_end, was_reversed) = find_streak({ array: arr, start: 0, end: 0 })
-  assert_eq(streak_end, 0)
-  assert_eq(was_reversed, false)
+  inspect(streak_end, content="0")
+  inspect(was_reversed, content="false")
 }
 
 ///|
 test "find_streak with single element array" {
   let arr : FixedArray[_] = [1]
   let (streak_end, was_reversed) = find_streak({ array: arr, start: 0, end: 1 })
-  assert_eq(streak_end, 1)
-  assert_eq(was_reversed, false)
+  inspect(streak_end, content="1")
+  inspect(was_reversed, content="false")
 }
 
 ///|
 test "find_streak with increasing elements" {
   let arr : FixedArray[_] = [1, 2, 3, 4, 5]
   let (streak_end, was_reversed) = find_streak({ array: arr, start: 0, end: 5 })
-  assert_eq(streak_end, 5)
-  assert_eq(was_reversed, false)
+  inspect(streak_end, content="5")
+  inspect(was_reversed, content="false")
 }
 
 ///|
 test "find_streak with decreasing elements" {
   let arr : FixedArray[_] = [5, 4, 3, 2, 1]
   let (streak_end, was_reversed) = find_streak({ array: arr, start: 0, end: 5 })
-  assert_eq(streak_end, 5)
-  assert_eq(was_reversed, true)
+  inspect(streak_end, content="5")
+  inspect(was_reversed, content="true")
 }
 
 ///|
 test "provide_sorted_batch with long run" {
   let arr : FixedArray[_] = [1, 2, 3, 4, 5]
   let end = provide_sorted_batch({ array: arr, start: 0, end: 5 }, 0, 5)
-  assert_eq(end, 5)
+  inspect(end, content="5")
 }
 
 ///|

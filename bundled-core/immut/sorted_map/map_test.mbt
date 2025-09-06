@@ -35,17 +35,17 @@ test "size" {
     (2, "two"),
     (0, "zero"),
   ])
-  assert_eq(m.size(), 5)
+  inspect(m.size(), content="5")
   let m = m.remove(1).remove(3)
-  assert_eq(m.size(), 3)
+  inspect(m.size(), content="3")
 }
 
 ///|
 test "is_empty" {
-  let m : @sorted_map.T[Int, Int] = @sorted_map.new()
-  assert_eq(m.is_empty(), true)
+  let m : @sorted_map.SortedMap[Int, Int] = @sorted_map.new()
+  inspect(m.is_empty(), content="true")
   let m = m.add(1, 1)
-  assert_eq(m.is_empty(), false)
+  inspect(m.is_empty(), content="false")
 }
 
 ///|
@@ -59,7 +59,7 @@ test "iter" {
   ])
   let mut s = ""
   m.each((k, v) => s = s + "(\{k},\{v})")
-  assert_eq(s, "(0,zero)(1,one)(2,two)(3,three)(8,eight)")
+  inspect(s, content="(0,zero)(1,one)(2,two)(3,three)(8,eight)")
 }
 
 ///|
@@ -73,13 +73,13 @@ test "iteri" {
   ])
   let mut s = ""
   m.eachi((i, k, v) => s = s + "(\{i},\{k},\{v})")
-  assert_eq(s, "(0,0,zero)(1,1,one)(2,2,two)(3,3,three)(4,8,eight)")
+  inspect(s, content="(0,0,zero)(1,1,one)(2,2,two)(3,3,three)(4,8,eight)")
 }
 
 ///|
 test "fold" {
   let m = @sorted_map.of([("a", 1), ("b", 2), ("c", 3), ("d", 4), ("e", 5)])
-  assert_eq(m.fold((acc, v) => acc + v, init=0), 15)
+  assert_eq(m.foldl_with_key((acc, _, v) => acc + v, init=0), 15)
 }
 
 ///|
@@ -109,7 +109,7 @@ test "to_array" {
 ///|
 test "keys" {
   let m = @sorted_map.of([(1, "one"), (2, "two"), (3, "three")])
-  assert_eq(m.keys(), [1, 2, 3])
+  assert_eq(m.keys_as_iter().collect(), [1, 2, 3])
 }
 
 ///|
@@ -135,13 +135,13 @@ test "op_equal" {
     (0, "zero"),
   ])
   let m3 = @sorted_map.of([(3, "three"), (8, "eight"), (1, "one"), (2, "two")])
-  assert_eq(m1 == m2, true)
-  assert_eq(m1 == m3, false)
+  inspect(m1 == m2, content="true")
+  inspect(m1 == m3, content="false")
 }
 
 ///|
 test "compare" {
-  let xss : Array[@sorted_map.T[Int, Int]] = @quickcheck.samples(5)
+  let xss : Array[@sorted_map.SortedMap[Int, Int]] = @quickcheck.samples(5)
   for xs in xss {
     for ys in xss {
       assert_eq(xs.compare(ys), xs.to_array().compare(ys.to_array()))
@@ -194,8 +194,8 @@ test "op_equal" {
     (0, "zero"),
   ])
   let m3 = @sorted_map.of([(3, "three"), (8, "eight"), (1, "one"), (2, "two")])
-  assert_eq(m1 == m2, true)
-  assert_eq(m1 == m3, false)
+  inspect(m1 == m2, content="true")
+  inspect(m1 == m3, content="false")
 }
 
 ///|
@@ -225,7 +225,9 @@ test "from_iter single element iter" {
 
 ///|
 test "from_iter empty iter" {
-  let pq : @sorted_map.T[Int, Int] = @sorted_map.from_iter(Iter::empty())
+  let pq : @sorted_map.SortedMap[Int, Int] = @sorted_map.from_iter(
+    Iter::empty(),
+  )
   inspect(pq, content="@immut/sorted_map.of([])")
 }
 

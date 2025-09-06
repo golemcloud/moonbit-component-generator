@@ -30,16 +30,19 @@ const UINT64_MAX : UInt64 = 0xffffffffffffffffUL
 /// These underscores do not affect the value.
 /// Examples:
 /// ```mbt
-///   inspect(parse_uint64("123"), content="123")
-///   inspect(parse_uint64("0xff", base=0), content="255")
-///   inspect(parse_uint64("0o10"), content="8")
-///   inspect(parse_uint64("0b1010"), content="10")
-///   inspect(parse_uint64("1_234"), content="1234")
-///   inspect(parse_uint64("ff", base=16), content="255")
-///   inspect(parse_uint64("zz", base=36), content="1295")
+///   inspect(@strconv.parse_uint64("123"), content="123")
+///   inspect(@strconv.parse_uint64("0xff", base=0), content="255")
+///   inspect(@strconv.parse_uint64("0o10"), content="8")
+///   inspect(@strconv.parse_uint64("0b1010"), content="10")
+///   inspect(@strconv.parse_uint64("1_234"), content="1234")
+///   inspect(@strconv.parse_uint64("ff", base=16), content="255")
+///   inspect(@strconv.parse_uint64("zz", base=36), content="1295")
 /// ```
 /// 
-pub fn parse_uint64(str : String, base~ : Int = 0) -> UInt64 raise StrConvError {
+pub fn parse_uint64(
+  str : @string.View,
+  base? : Int = 0,
+) -> UInt64 raise StrConvError {
   guard str != "" else { syntax_err() }
   if str is ['+' | '-', ..] {
     syntax_err()
@@ -85,7 +88,10 @@ pub fn parse_uint64(str : String, base~ : Int = 0) -> UInt64 raise StrConvError 
 ///|
 /// Parse a string in the given base (0, 2 to 36), return an UInt number or an error.
 /// If the `~base` argument is 0, the base will be inferred by the prefix.
-pub fn parse_uint(str : String, base~ : Int = 0) -> UInt raise StrConvError {
+pub fn parse_uint(
+  str : @string.View,
+  base? : Int = 0,
+) -> UInt raise StrConvError {
   let n = parse_uint64(str, base~)
   if n > UINT_MAX.to_uint64() {
     range_err()
