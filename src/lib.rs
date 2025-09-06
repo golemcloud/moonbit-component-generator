@@ -179,7 +179,7 @@ impl MoonBitComponent {
     pub fn define_bindgen_packages(&mut self) -> anyhow::Result<()> {
         let moonbit_root_package = self.moonbit_root_package()?;
         let world_name = self.world_name()?;
-        let world_snake = world_name.to_snake_case();
+        let world_snake = to_moonbit_ident(&world_name);
 
         let imported_interfaces = self.get_imported_interfaces()?;
         let exported_interfaces = self.get_exported_interfaces()?;
@@ -194,6 +194,7 @@ impl MoonBitComponent {
             name: format!("{moonbit_root_package}/ffi"),
             mbt_files: vec![Utf8Path::new("ffi").join("top.mbt")],
             warning_control: vec![WarningControl::Disable(Warning::Specific(44))],
+            alert_control: vec![],
             output: Utf8Path::new("target")
                 .join("wasm")
                 .join("release")
@@ -226,6 +227,7 @@ impl MoonBitComponent {
                     .join("stub.mbt"),
             ],
             warning_control: vec![],
+            alert_control: vec![],
             output: Utf8Path::new("target")
                 .join("wasm")
                 .join("release")
@@ -255,8 +257,8 @@ impl MoonBitComponent {
         gen_mbt_files.push(Utf8Path::new("gen").join(format!("world_{world_snake}_export.mbt")));
 
         for (package_name, interface_name) in &imported_interfaces {
-            let pkg_namespace = package_name.namespace.to_snake_case();
-            let pkg_name = package_name.name.to_snake_case();
+            let pkg_namespace = to_moonbit_ident(&package_name.namespace);
+            let pkg_name = to_moonbit_ident(&package_name.name);
             let interface_name = interface_name.to_lower_camel_case();
 
             let name = format!(
@@ -278,6 +280,7 @@ impl MoonBitComponent {
                 name: name.clone(),
                 mbt_files: vec![src.join("top.mbt"), src.join("ffi.mbt")],
                 warning_control: vec![],
+                alert_control: vec![],
                 output: output.join(format!("{interface_name}.core")),
                 dependencies: vec![ffi_dep.clone()],
                 package_sources: vec![(name, src)],
@@ -285,9 +288,12 @@ impl MoonBitComponent {
         }
 
         for (package_name, interface_name) in &exported_interfaces {
-            let pkg_namespace = package_name.namespace.to_snake_case();
-            let pkg_name = package_name.name.to_snake_case();
+            let pkg_namespace = to_moonbit_ident(&package_name.namespace);
+            let unescaped_pkg_namespace = package_name.namespace.to_snake_case();
+            let pkg_name = to_moonbit_ident(&package_name.name);
+            let unescaped_pkg_name = package_name.name.to_snake_case();
             let interface_name = interface_name.to_lower_camel_case();
+            let snake_interface_name = interface_name.to_snake_case();
 
             let name = format!(
                 "{moonbit_root_package}/gen/interface/{pkg_namespace}/{pkg_name}/{interface_name}"
@@ -310,6 +316,7 @@ impl MoonBitComponent {
                 name: name.clone(),
                 mbt_files: vec![src.join("top.mbt"), src.join("stub.mbt")],
                 warning_control: vec![],
+                alert_control: vec![],
                 output: output.join(format!("{interface_name}.core")),
 
                 dependencies: vec![],
@@ -320,7 +327,7 @@ impl MoonBitComponent {
                 interface_name.clone(),
             ));
             gen_mbt_files.push(Utf8Path::new("gen").join(format!(
-                "gen_interface_{pkg_namespace}_{pkg_name}_{interface_name}_export.mbt"
+                "gen_interface_{unescaped_pkg_namespace}_{unescaped_pkg_name}_{snake_interface_name}_export.mbt"
             )));
         }
 
@@ -329,6 +336,7 @@ impl MoonBitComponent {
             name: format!("{moonbit_root_package}/gen"),
             mbt_files: gen_mbt_files,
             warning_control: vec![],
+            alert_control: vec![],
             output: Utf8Path::new("target")
                 .join("wasm")
                 .join("release")
@@ -355,6 +363,19 @@ impl MoonBitComponent {
             .get_mut(package_name)
             .ok_or_else(|| anyhow::anyhow!("Package '{package_name}' not found"))?;
         package.warning_control = warning_control;
+        Ok(())
+    }
+
+    pub fn set_alert_control(
+        &mut self,
+        package_name: &str,
+        alert_control: Vec<WarningControl>,
+    ) -> anyhow::Result<()> {
+        let package = self
+            .packages
+            .get_mut(package_name)
+            .ok_or_else(|| anyhow::anyhow!("Package '{package_name}' not found"))?;
+        package.alert_control = alert_control;
         Ok(())
     }
 
@@ -413,8 +434,9 @@ impl MoonBitComponent {
         interface_name: &str,
         moonbit_source: &str,
     ) -> anyhow::Result<()> {
-        let package_name_snake = package_name.name.to_snake_case();
-        let package_namespace_snake = package_name.namespace.to_snake_case();
+        let package_name_snake = to_moonbit_ident(&package_name.name);
+        let package_namespace_snake = to_moonbit_ident(&package_name.namespace);
+
         let path = self
             .dir
             .join("gen")
@@ -437,8 +459,8 @@ impl MoonBitComponent {
         interface_name: &str,
         json: serde_json::Value,
     ) -> anyhow::Result<()> {
-        let package_name_snake = package_name.name.to_snake_case();
-        let package_namespace_snake = package_name.namespace.to_snake_case();
+        let package_name_snake = to_moonbit_ident(&package_name.name);
+        let package_namespace_snake = to_moonbit_ident(&package_name.namespace);
         let path = self
             .dir
             .join("gen")
@@ -484,6 +506,7 @@ impl MoonBitComponent {
             self.build_package(
                 &package.mbt_files,
                 &package.warning_control,
+                &package.alert_control,
                 &package.output,
                 &package.name,
                 &package.dependencies,
@@ -551,16 +574,39 @@ impl MoonBitComponent {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_package(
         &self,
         mbt_files: &[Utf8PathBuf],
         warning_control: &[WarningControl],
+        alert_control: &[WarningControl],
         output: &Utf8Path,
         package: &str,
         dependencies: &[(Utf8PathBuf, String)],
         package_sources: &[(String, Utf8PathBuf)],
     ) -> anyhow::Result<()> {
         info!("Building MoonBit package: {package}");
+
+        for mbt_file in mbt_files {
+            let abs = self.dir.join(mbt_file);
+            if !abs.exists() {
+                return Err(anyhow!("MBT file does not exist at {abs}"));
+            }
+        }
+        for (path, name) in dependencies {
+            let abs = self.dir.join(path);
+            if !abs.exists() {
+                return Err(anyhow!("Dependency {name} does not exist at {abs}"));
+            }
+        }
+        for (source_name, source_path) in package_sources {
+            let abs = self.dir.join(source_path);
+            if !abs.exists() {
+                return Err(anyhow!(
+                    "Package source {source_name} does not exist at {abs}"
+                ));
+            }
+        }
 
         let mut args = vec!["build-package".to_string()];
         for file in mbt_files {
@@ -570,6 +616,10 @@ impl MoonBitComponent {
         for w in warning_control {
             args.push("-w".to_string());
             args.push(w.to_string());
+        }
+        for a in alert_control {
+            args.push("-alert".to_string());
+            args.push(a.to_string());
         }
         args.push("-o".to_string());
         args.push(self.dir.join(output).to_string());
@@ -587,6 +637,12 @@ impl MoonBitComponent {
         args.push("wasm".to_string());
 
         MOONC.run(args)?;
+
+        let abs = self.dir.join(output);
+        if !abs.exists() {
+            return Err(anyhow!("Output does not exist at {abs}"));
+        }
+
         Ok(())
     }
 
@@ -810,33 +866,26 @@ impl MoonBitComponent {
             .ok_or_else(|| anyhow::anyhow!("Could not find world"))?;
         let mut imported_interfaces = Vec::new();
         for (_, item) in &world.imports {
-            if let wit_parser::WorldItem::Interface { id, .. } = item {
-                if let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id)) {
-                    if let Some(interface_name) = interface.name.as_ref() {
-                        let owner_package = interface.package.ok_or_else(|| {
-                            anyhow::anyhow!(
-                                "Interface '{}' does not have a package",
-                                interface_name
-                            )
+            if let wit_parser::WorldItem::Interface { id, .. } = item
+                && let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id))
+            {
+                if let Some(interface_name) = interface.name.as_ref() {
+                    let owner_package = interface.package.ok_or_else(|| {
+                        anyhow::anyhow!("Interface '{}' does not have a package", interface_name)
+                    })?;
+                    let package = self
+                        .resolve
+                        .as_ref()
+                        .and_then(|r| r.packages.get(owner_package))
+                        .ok_or_else(|| {
+                            anyhow::anyhow!("Package for interface '{}' not found", interface_name)
                         })?;
-                        let package = self
-                            .resolve
-                            .as_ref()
-                            .and_then(|r| r.packages.get(owner_package))
-                            .ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "Package for interface '{}' not found",
-                                    interface_name
-                                )
-                            })?;
 
-                        imported_interfaces
-                            .push((package.name.clone(), interface_name.to_string()));
-                    } else {
-                        return Err(anyhow::anyhow!(
-                            "Anonymous imported interfaces are not supported"
-                        ));
-                    }
+                    imported_interfaces.push((package.name.clone(), interface_name.to_string()));
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "Anonymous imported interfaces are not supported"
+                    ));
                 }
             }
         }
@@ -851,33 +900,26 @@ impl MoonBitComponent {
             .ok_or_else(|| anyhow::anyhow!("Could not find world"))?;
         let mut exported_interfaces = Vec::new();
         for (_, item) in &world.exports {
-            if let wit_parser::WorldItem::Interface { id, .. } = item {
-                if let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id)) {
-                    if let Some(interface_name) = interface.name.as_ref() {
-                        let owner_package = interface.package.ok_or_else(|| {
-                            anyhow::anyhow!(
-                                "Interface '{}' does not have a package",
-                                interface_name
-                            )
+            if let wit_parser::WorldItem::Interface { id, .. } = item
+                && let Some(interface) = self.resolve.as_ref().and_then(|r| r.interfaces.get(*id))
+            {
+                if let Some(interface_name) = interface.name.as_ref() {
+                    let owner_package = interface.package.ok_or_else(|| {
+                        anyhow::anyhow!("Interface '{}' does not have a package", interface_name)
+                    })?;
+                    let package = self
+                        .resolve
+                        .as_ref()
+                        .and_then(|r| r.packages.get(owner_package))
+                        .ok_or_else(|| {
+                            anyhow::anyhow!("Package for interface '{}' not found", interface_name)
                         })?;
-                        let package = self
-                            .resolve
-                            .as_ref()
-                            .and_then(|r| r.packages.get(owner_package))
-                            .ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "Package for interface '{}' not found",
-                                    interface_name
-                                )
-                            })?;
 
-                        exported_interfaces
-                            .push((package.name.clone(), interface_name.to_string()));
-                    } else {
-                        return Err(anyhow::anyhow!(
-                            "Anonymous exported interfaces are not supported"
-                        ));
-                    }
+                    exported_interfaces.push((package.name.clone(), interface_name.to_string()));
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "Anonymous exported interfaces are not supported"
+                    ));
                 }
             }
         }
@@ -907,6 +949,7 @@ pub struct MoonBitPackage {
     pub name: String,
     pub mbt_files: Vec<Utf8PathBuf>,
     pub warning_control: Vec<WarningControl>,
+    pub alert_control: Vec<WarningControl>,
     pub output: Utf8PathBuf,
     pub dependencies: Vec<(Utf8PathBuf, String)>,
     pub package_sources: Vec<(String, Utf8PathBuf)>,
@@ -939,6 +982,31 @@ impl Display for WarningControl {
             WarningControl::Disable(code) => write!(f, "-{code}"),
             WarningControl::EnableAsError(code) => write!(f, "@{code}"),
         }
+    }
+}
+
+pub fn to_moonbit_ident(name: impl AsRef<str>) -> String {
+    // Escape MoonBit keywords and reserved keywords
+    let name = name.as_ref();
+    match name {
+        // Keywords
+        "as" | "else" | "extern" | "fn" | "fnalias" | "if" | "let" | "const" | "match" | "using"
+        | "mut" | "type" | "typealias" | "struct" | "enum" | "trait" | "traitalias" | "derive"
+        | "while" | "break" | "continue" | "import" | "return" | "throw" | "raise" | "try" | "catch"
+        | "pub" | "priv" | "readonly" | "true" | "false" | "_" | "test" | "loop" | "for" | "in" | "impl"
+        | "with" | "guard" | "async" | "is" | "suberror" | "and" | "letrec" | "enumview" | "noraise"
+        | "defer" | "init" | "main"
+        // Reserved keywords
+        | "module" | "move" | "ref" | "static" | "super" | "unsafe" | "use" | "where" | "await"
+        | "dyn" | "abstract" | "do" | "final" | "macro" | "override" | "typeof" | "virtual" | "yield"
+        | "local" | "method" | "alias" | "assert" | "recur" | "isnot" | "define" | "downcast"
+        | "inherit" | "member" | "namespace" | "upcast" | "void" | "lazy" | "include" | "mixin"
+        | "protected" | "sealed" | "constructor" | "atomic" | "volatile" | "anyframe" | "anytype"
+        | "asm" | "comptime" | "errdefer" | "export" | "opaque" | "orelse" | "resume" | "threadlocal"
+        | "unreachable" | "dynclass" | "dynobj" | "dynrec" | "var" | "finally" | "noasync" => {
+            format ! ("{name}_")
+        }
+        _ => name.to_snake_case(),
     }
 }
 
