@@ -13,6 +13,7 @@ permissions:
   pull-requests: write
 env:
   CARGO_TERM_COLOR: always
+  MOONBIT_INSTALL_VERSION: 0.6.19
 
 jobs:
   build:
@@ -33,7 +34,7 @@ jobs:
           override: true
       - name: Install moonbit
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- ${{env.MOONBIT_INSTALL_VERSION}}
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
@@ -66,7 +67,7 @@ jobs:
         run: cargo binstall --force --locked wasmtime-cli@33.0.0
       - name: Install moonbit
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- ${{env.MOONBIT_INSTALL_VERSION}}
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm
@@ -80,8 +81,77 @@ jobs:
           report_paths: "**/target/report-*.xml"
           detailed_summary: true
           include_passed: true
+          check_name: "Unix Unit Tests"
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: v1-rust
+          shared-key: debug
+          cache-all-crates: true
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Install moonbit
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          echo ($env:USERPROFILE + "\.moon\bin") | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Bundle core MoonBit library
+        run: moon.exe bundle --target wasm
+        working-directory: core
+      - name: Check formatting
+        run: cargo fmt -- --check
+      - name: Clippy
+        run: cargo clippy -- -Dwarnings
+      - name: Build
+        run: cargo build --all-features --all-targets
+  test-win:
+    needs: [build-win]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: v1-rust
+          shared-key: debug
+          cache-all-crates: false
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - uses: cargo-bins/cargo-binstall@main
+      - name: Install wasmtime-cli
+        run: cargo binstall --force --locked wasmtime-cli@33.0.0
+      - name: Install moonbit
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser; irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          echo ($env:USERPROFILE + "\.moon\bin") | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Bundle core MoonBit library
+        run: moon.exe bundle --target wasm
+        working-directory: core
+      - name: Tests
+        run: cargo test -p moonbit-component-generator -- --nocapture --report-time --format junit --test-threads=1 > target/report-win.xml
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v5
+        if: success() || failure() # always run even if the previous step fails
+        with:
+          report_paths: "**/target/report-*.xml"
+          detailed_summary: true
+          include_passed: true
+          check_name: "Windows Unit Tests"
   publish:
-    needs: [test]
+    needs: [test, test-win]
     if: "startsWith(github.ref, 'refs/tags/v')"
     runs-on: ubuntu-latest
     steps:
@@ -96,7 +166,7 @@ jobs:
           override: true
       - name: Install moonbit
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- ${{env.MOONBIT_INSTALL_VERSION}}
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Bundle core MoonBit library
         run: moon bundle --target wasm

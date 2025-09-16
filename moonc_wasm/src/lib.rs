@@ -1,3 +1,6 @@
+use std::path::Path as StdPath;
+use unix_path::PathBuf as UnixPathBuf;
+
 mod wasmoo_extern;
 
 pub fn run_wasmoo(argv: Vec<String>) -> anyhow::Result<()> {
@@ -16,8 +19,12 @@ pub fn run_wasmoo(argv: Vec<String>) -> anyhow::Result<()> {
 
     let process_argv = v8::Array::new(scope, argv.len() as i32);
     for (i, s) in argv.iter().enumerate() {
-        let s = v8::String::new(scope, s).unwrap();
-        process_argv.set_index(scope, i as u32, s.into());
+        let p = as_unix_path(s);
+        let v8_str = match p {
+            Some(p_str) => v8::String::new(scope, &p_str).unwrap(),
+            None => v8::String::new(scope, s).unwrap(),
+        };
+        process_argv.set_index(scope, i as u32, v8_str.into());
     }
     let ident = v8::String::new(scope, "process_argv").unwrap();
     global_proxy.set(scope, ident.into(), process_argv.into());
@@ -53,4 +60,20 @@ pub fn initialize_v8() -> anyhow::Result<()> {
     v8::V8::initialize_platform(platform);
     v8::V8::initialize();
     Ok(())
+}
+
+pub fn as_unix_path(path_str: &String) -> Option<String> {
+    let path = StdPath::new(path_str);
+    if !path.has_root() {
+        return None;
+    }
+    let mut u_path = UnixPathBuf::new();
+    for component in path.components() {
+        if let Some(part_str) = component.as_os_str().to_str() {
+            u_path.push(part_str);
+        } else {
+            return None; // Invalid UTF-8 sequence in path component
+        }
+    }
+    u_path.to_str().map(String::from)
 }

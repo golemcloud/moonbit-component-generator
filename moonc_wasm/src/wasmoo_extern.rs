@@ -1,14 +1,16 @@
 use std::{
     collections::HashMap,
-    ffi::CString,
-    fs::{self, File, OpenOptions, Permissions, metadata},
+    fs::{self, File, OpenOptions, metadata},
     io::{IsTerminal, Read, Write},
-    os::{
-        fd::AsRawFd,
-        unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt},
-    },
     path::Path,
     process::{Command, Stdio},
+};
+
+#[cfg(unix)]
+use std::{
+    ffi::CString,
+    os::fd::AsRawFd,
+    os::unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt},
 };
 
 // getenv : JSString -> JSString
@@ -144,23 +146,32 @@ fn chmod(
     args: v8::FunctionCallbackArguments,
     mut ret: v8::ReturnValue,
 ) {
-    let path = args.get(0);
-    let path = path.to_string(scope).unwrap();
-    let path = path.to_rust_string_lossy(scope);
-    let path = Path::new(&path);
-    let mode = args.get(1);
-    let mode = mode.to_number(scope).unwrap().value() as u32;
-    let permission = Permissions::from_mode(mode);
-    match fs::set_permissions(path, permission) {
-        Err(err) => {
-            let message = v8::String::new(scope, &err.to_string()).unwrap();
-            let exn = v8::Exception::error(scope, message);
-            scope.throw_exception(exn);
+    #[cfg(unix)]
+    {
+        let path = args.get(0);
+        let path = path.to_string(scope).unwrap();
+        let path = path.to_rust_string_lossy(scope);
+        let path = Path::new(&path);
+        let mode = args.get(1);
+        let mode = mode.to_number(scope).unwrap().value() as u32;
+        let permission = PermissionsExt::from_mode(mode);
+        match fs::set_permissions(path, permission) {
+            Err(err) => {
+                let message = v8::String::new(scope, &err.to_string()).unwrap();
+                let exn = v8::Exception::error(scope, message);
+                scope.throw_exception(exn);
+            }
+            Ok(_) => {
+                let undefined = v8::undefined(scope);
+                ret.set(undefined.into())
+            }
         }
-        Ok(_) => {
-            let undefined = v8::undefined(scope);
-            ret.set(undefined.into())
-        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = args;
+        let undefined = v8::undefined(scope);
+        ret.set(undefined.into())
     }
 }
 
@@ -251,11 +262,17 @@ const O_APPEND: i32 = 8;
 const O_CREAT: i32 = 16;
 const O_TRUNC: i32 = 32;
 const O_EXCL: i32 = 64;
+
+#[cfg(unix)]
 const O_NONBLOCK: i32 = 128;
+#[cfg(unix)]
 const O_NOCTTY: i32 = 256;
+#[cfg(unix)]
 const O_DSYNC: i32 = 512;
+#[cfg(unix)]
 const O_SYNC: i32 = 1024;
 
+#[cfg(unix)]
 // open : JSString as Path, Number as Flags, Number as PermissionMode -> FileDescriptor
 fn open(
     scope: &mut v8::HandleScope,
@@ -299,19 +316,77 @@ fn open(
     }
     let mut custom_flags = 0;
     if (flags & O_NONBLOCK) != 0 {
-        custom_flags |= libc::O_NONBLOCK;
+        custom_flags |= O_NONBLOCK;
     }
     if (flags & O_NOCTTY) != 0 {
-        custom_flags |= libc::O_NOCTTY;
+        custom_flags |= O_NOCTTY;
     }
     if (flags & O_DSYNC) != 0 {
-        custom_flags |= libc::O_DSYNC;
+        custom_flags |= O_DSYNC;
     }
     if (flags & O_SYNC) != 0 {
-        custom_flags |= libc::O_SYNC;
+        custom_flags |= O_SYNC;
     }
     opts.custom_flags(custom_flags);
     opts.mode((mode & 0o777) as u32); // assure permission is legal
+    match opts.open(path) {
+        Err(err) => {
+            let message = v8::String::new(scope, &err.to_string()).unwrap();
+            let exn = v8::Exception::error(scope, message);
+            scope.throw_exception(exn);
+        }
+        Ok(file) => {
+            let context = scope.get_current_context();
+            let fd_table = context.get_slot_mut::<FdTable>().unwrap();
+            let fd = fd_table.add(file) as f64;
+            let fd = v8::Number::new(scope, fd);
+            ret.set(fd.into())
+        }
+    }
+}
+
+#[cfg(not(unix))]
+// open : JSString as Path, Number as Flags, Number as PermissionMode -> FileDescriptor
+fn open(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut ret: v8::ReturnValue,
+) {
+    let path = args.get(0);
+    let path = path.to_string(scope).unwrap();
+    let path = path.to_rust_string_lossy(scope);
+    let flags = args.get(1);
+    let flags = flags.to_number(scope).unwrap().value() as i32;
+    let _mode = args.get(2); // mode is ignored on non-unix
+
+    let access_mode = flags & (O_RDONLY | O_WRONLY | O_RDWR);
+    let (read, write) = match access_mode {
+        O_RDONLY => (true, false),
+        O_WRONLY => (false, true),
+        O_RDWR => (true, true),
+        _ => {
+            let err_msg = "Invalid Flags: Must specify O_RDONLY, O_WRONLY or O_RDWR";
+            let message = v8::String::new(scope, err_msg).unwrap();
+            let exn = v8::Exception::error(scope, message);
+            scope.throw_exception(exn);
+            return;
+        }
+    };
+
+    let mut opts = OpenOptions::new();
+    opts.read(read)
+        .write(write)
+        .append((flags & O_APPEND) != 0)
+        .truncate((flags & O_TRUNC) != 0);
+
+    let has_creat = (flags & O_CREAT) != 0;
+    let has_excl = (flags & O_EXCL) != 0;
+    if has_creat && has_excl {
+        opts.create_new(true);
+    } else if has_creat {
+        opts.create(true);
+    }
+
     match opts.open(path) {
         Err(err) => {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
@@ -359,12 +434,13 @@ fn close(
     }
 }
 
-// access flags for wasm_of_ocaml
 const R_OK: i32 = 8;
 const W_OK: i32 = 4;
-const X_OK: i32 = 2;
 const F_OK: i32 = 1;
+#[cfg(unix)]
+const X_OK: i32 = 2;
 
+#[cfg(unix)]
 // access : JSString as Path, i32 as Mode -> undefined
 fn access(
     scope: &mut v8::HandleScope,
@@ -423,6 +499,52 @@ fn access(
             }
         }
     }
+
+    let undefined = v8::undefined(scope);
+    ret.set(undefined.into())
+}
+
+#[cfg(not(unix))]
+// access : JSString as Path, i32 as Mode -> undefined
+fn access(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut ret: v8::ReturnValue,
+) {
+    let path = args.get(0);
+    let path = path.to_string(scope).unwrap();
+    let path = path.to_rust_string_lossy(scope);
+    let path = Path::new(&path);
+    let mode = args.get(1);
+    let mode_val = mode.to_number(scope).unwrap().value() as i32;
+    if mode_val & F_OK != 0
+        && let Err(err) = metadata(path)
+    {
+        let message = v8::String::new(scope, &err.to_string()).unwrap();
+        let exn = v8::Exception::error(scope, message);
+        scope.throw_exception(exn);
+        return;
+    }
+
+    if mode_val & R_OK != 0
+        && let Err(err) = File::open(path)
+    {
+        let message = v8::String::new(scope, &err.to_string()).unwrap();
+        let exn = v8::Exception::error(scope, message);
+        scope.throw_exception(exn);
+        return;
+    }
+
+    if mode_val & W_OK != 0
+        && let Err(err) = OpenOptions::new().write(true).open(path)
+    {
+        let message = v8::String::new(scope, &err.to_string()).unwrap();
+        let exn = v8::Exception::error(scope, message);
+        scope.throw_exception(exn);
+        return;
+    }
+
+    // X_OK not checked on non-unix.
 
     let undefined = v8::undefined(scope);
     ret.set(undefined.into())
@@ -610,6 +732,7 @@ fn file_size(
     ret.set(size.into());
 }
 
+#[cfg(unix)]
 fn timeval_from_f64(t: f64) -> std::io::Result<libc::timeval> {
     if !t.is_finite() {
         return Err(std::io::Error::new(
@@ -629,6 +752,7 @@ fn timeval_from_f64(t: f64) -> std::io::Result<libc::timeval> {
     })
 }
 
+#[cfg(unix)]
 fn __utimes(path: String, atime: f64, mtime: f64) -> std::io::Result<()> {
     let c_path = CString::new(path)?;
 
@@ -646,6 +770,7 @@ fn __utimes(path: String, atime: f64, mtime: f64) -> std::io::Result<()> {
     }
 }
 
+#[cfg(unix)]
 // utimes: JSString as Path, F64 as AccessTime, F64 as ModifyTime -> undefined
 fn utimes(
     scope: &mut v8::HandleScope,
@@ -671,12 +796,24 @@ fn utimes(
     }
 }
 
+#[cfg(not(unix))]
+// utimes: JSString as Path, F64 as AccessTime, F64 as ModifyTime -> undefined
+fn utimes(
+    scope: &mut v8::HandleScope,
+    _args: v8::FunctionCallbackArguments,
+    mut ret: v8::ReturnValue,
+) {
+    let undefined = v8::undefined(scope);
+    ret.set(undefined.into());
+}
+
 // exit: i32 -> undefined
 fn exit(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _ret: v8::ReturnValue) {
     let code = args.get(0).to_int32(scope).unwrap();
     std::process::exit(code.value());
 }
 
+#[cfg(unix)]
 // isatty: FileDescriptor -> Number(1 | 0)
 fn isatty(
     scope: &mut v8::HandleScope,
@@ -708,6 +845,36 @@ fn isatty(
         }
     };
 
+    let rescode = v8::Number::new(scope, rescode as f64);
+    ret.set(rescode.into());
+}
+
+#[cfg(not(unix))]
+// isatty: FileDescriptor -> Number(1 | 0)
+fn isatty(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut ret: v8::ReturnValue,
+) {
+    let fd = args.get(0);
+    let fd = fd.to_number(scope).unwrap().value() as i32;
+    let rescode = if fd == STDIN {
+        if std::io::stdin().is_terminal() { 1 } else { 0 }
+    } else if fd == STDOUT {
+        if std::io::stdout().is_terminal() {
+            1
+        } else {
+            0
+        }
+    } else if fd == STDERR {
+        if std::io::stderr().is_terminal() {
+            1
+        } else {
+            0
+        }
+    } else {
+        0
+    };
     let rescode = v8::Number::new(scope, rescode as f64);
     ret.set(rescode.into());
 }
@@ -754,6 +921,7 @@ fn chdir(
     }
 }
 
+#[cfg(unix)]
 // mkdir: JSString as Path, i32 as Mode -> undefined
 fn mkdir(
     scope: &mut v8::HandleScope,
@@ -772,8 +940,33 @@ fn mkdir(
         scope.throw_exception(exn);
         return;
     }
-    let permissions = fs::Permissions::from_mode(mode as u32);
+    let permissions = PermissionsExt::from_mode(mode as u32);
     match fs::set_permissions(path, permissions) {
+        Err(err) => {
+            let message = v8::String::new(scope, &err.to_string()).unwrap();
+            let exn = v8::Exception::error(scope, message);
+            scope.throw_exception(exn);
+        }
+        Ok(_) => {
+            let undefined = v8::undefined(scope);
+            ret.set(undefined.into());
+        }
+    }
+}
+
+#[cfg(not(unix))]
+// mkdir: JSString as Path, i32 as Mode -> undefined
+fn mkdir(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut ret: v8::ReturnValue,
+) {
+    let path = args.get(0);
+    let path = path.to_string(scope).unwrap();
+    let path = path.to_rust_string_lossy(scope);
+    let path = Path::new(&path);
+    // mode is ignored on non-unix
+    match fs::create_dir(path) {
         Err(err) => {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
             let exn = v8::Exception::error(scope, message);
@@ -1086,6 +1279,7 @@ fn read_dir(
 //     }
 // }
 
+#[cfg(unix)]
 // stat : JSString as Path -> Object
 fn stat(
     scope: &mut v8::HandleScope,
@@ -1177,6 +1371,51 @@ fn stat(
     ret.set(stat.into());
 }
 
+#[cfg(not(unix))]
+// stat : JSString as Path -> Object
+fn stat(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut ret: v8::ReturnValue,
+) {
+    let path = args.get(0);
+    let path = path.to_string(scope).unwrap();
+    let path = path.to_rust_string_lossy(scope);
+    let path = Path::new(&path);
+    let metadata = match fs::metadata(path) {
+        Err(err) => {
+            let message = v8::String::new(scope, &err.to_string()).unwrap();
+            let exn = v8::Exception::error(scope, message);
+            scope.throw_exception(exn);
+            return;
+        }
+        Ok(metadata) => metadata,
+    };
+    let filetype = metadata.file_type();
+    let kind = if filetype.is_file() {
+        0
+    } else if filetype.is_dir() {
+        1
+    } else if filetype.is_symlink() {
+        4
+    } else {
+        0 // Fallback for other types
+    };
+
+    let stat = v8::Object::new(scope);
+
+    let id = v8::String::new(scope, "kind").unwrap();
+    let kind = v8::Number::new(scope, kind as f64);
+    stat.set(scope, id.into(), kind.into());
+
+    let id = v8::String::new(scope, "size").unwrap();
+    let size = v8::Number::new(scope, metadata.len() as f64);
+    stat.set(scope, id.into(), size.into());
+
+    ret.set(stat.into());
+}
+
+#[cfg(unix)]
 // lstat : JSString as Path -> Object
 fn lstat(
     scope: &mut v8::HandleScope,
@@ -1268,6 +1507,51 @@ fn lstat(
     ret.set(stat.into());
 }
 
+#[cfg(not(unix))]
+// lstat : JSString as Path -> Object
+fn lstat(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut ret: v8::ReturnValue,
+) {
+    let path = args.get(0);
+    let path = path.to_string(scope).unwrap();
+    let path = path.to_rust_string_lossy(scope);
+    let path = Path::new(&path);
+    let metadata = match fs::symlink_metadata(path) {
+        Err(err) => {
+            let message = v8::String::new(scope, &err.to_string()).unwrap();
+            let exn = v8::Exception::error(scope, message);
+            scope.throw_exception(exn);
+            return;
+        }
+        Ok(metadata) => metadata,
+    };
+    let filetype = metadata.file_type();
+    let kind = if filetype.is_file() {
+        0
+    } else if filetype.is_dir() {
+        1
+    } else if filetype.is_symlink() {
+        4
+    } else {
+        0
+    };
+
+    let stat = v8::Object::new(scope);
+
+    let id = v8::String::new(scope, "kind").unwrap();
+    let kind = v8::Number::new(scope, kind as f64);
+    stat.set(scope, id.into(), kind.into());
+
+    let id = v8::String::new(scope, "size").unwrap();
+    let size = v8::Number::new(scope, metadata.len() as f64);
+    stat.set(scope, id.into(), size.into());
+
+    ret.set(stat.into());
+}
+
+#[cfg(unix)]
 // fstat: i32 as FileDescriptor -> Object
 fn fstat(
     scope: &mut v8::HandleScope,
@@ -1368,17 +1652,15 @@ fn fstat(
     ret.set(stat.into());
 }
 
-// fchmod: i32 as FileDescriptor, i32 as Mode -> undefined
-fn fchmod(
+#[cfg(not(unix))]
+// fstat: i32 as FileDescriptor -> Object
+fn fstat(
     scope: &mut v8::HandleScope,
     args: v8::FunctionCallbackArguments,
     mut ret: v8::ReturnValue,
 ) {
     let fd = args.get(0);
     let fd = fd.to_number(scope).unwrap().value() as i32;
-    let mode = args.get(1);
-    let mode = mode.to_number(scope).unwrap().value() as u32;
-    let permission = Permissions::from_mode(mode);
     let context = scope.get_current_context();
     let fd_table = context.get_slot_mut::<FdTable>().unwrap();
     let file = match fd_table.get(fd) {
@@ -1390,16 +1672,80 @@ fn fchmod(
             return;
         }
     };
-    match file.set_permissions(permission) {
+    let metadata = match file.metadata() {
         Err(err) => {
             let message = v8::String::new(scope, &err.to_string()).unwrap();
             let exn = v8::Exception::error(scope, message);
             scope.throw_exception(exn);
+            return;
         }
-        Ok(_) => {
-            let undefined = v8::undefined(scope);
-            ret.set(undefined.into())
+        Ok(metadata) => metadata,
+    };
+    let filetype = metadata.file_type();
+    let kind = if filetype.is_file() {
+        0
+    } else if filetype.is_dir() {
+        1
+    } else if filetype.is_symlink() {
+        4
+    } else {
+        0
+    };
+
+    let stat = v8::Object::new(scope);
+
+    let id = v8::String::new(scope, "kind").unwrap();
+    let kind = v8::Number::new(scope, kind as f64);
+    stat.set(scope, id.into(), kind.into());
+
+    let id = v8::String::new(scope, "size").unwrap();
+    let size = v8::Number::new(scope, metadata.len() as f64);
+    stat.set(scope, id.into(), size.into());
+
+    ret.set(stat.into());
+}
+
+// fchmod: i32 as FileDescriptor, i32 as Mode -> undefined
+fn fchmod(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    mut ret: v8::ReturnValue,
+) {
+    #[cfg(unix)]
+    {
+        let fd = args.get(0);
+        let fd = fd.to_number(scope).unwrap().value() as i32;
+        let mode = args.get(1);
+        let mode = mode.to_number(scope).unwrap().value() as u32;
+        let permission = PermissionsExt::from_mode(mode);
+        let context = scope.get_current_context();
+        let fd_table = context.get_slot_mut::<FdTable>().unwrap();
+        let file = match fd_table.get(fd) {
+            Ok(file) => file,
+            Err(err_msg) => {
+                let message = v8::String::new(scope, &err_msg).unwrap();
+                let exn = v8::Exception::error(scope, message);
+                scope.throw_exception(exn);
+                return;
+            }
+        };
+        match file.set_permissions(permission) {
+            Err(err) => {
+                let message = v8::String::new(scope, &err.to_string()).unwrap();
+                let exn = v8::Exception::error(scope, message);
+                scope.throw_exception(exn);
+            }
+            Ok(_) => {
+                let undefined = v8::undefined(scope);
+                ret.set(undefined.into())
+            }
         }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = args;
+        let undefined = v8::undefined(scope);
+        ret.set(undefined.into())
     }
 }
 
