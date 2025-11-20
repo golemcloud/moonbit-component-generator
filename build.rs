@@ -83,12 +83,15 @@ fn main() -> Result<()> {
                 let mut core_archive = Archive::new(core_tar);
 
                 let core_target = manifest_path.clone();
-                std::fs::remove_dir_all(manifest_path.join("core")).with_context(|| {
-                    format!(
-                        "Failed to remove directory {:?}",
-                        manifest_path.join("core")
-                    )
-                })?;
+                let core_dir = manifest_path.join("core");
+                if core_dir.exists() {
+                    std::fs::remove_dir_all(core_dir).with_context(|| {
+                        format!(
+                            "Failed to remove directory {:?}",
+                            manifest_path.join("core")
+                        )
+                    })?;
+                }
                 core_archive.unpack(&core_target).with_context(|| {
                     format!("Failed to unpack file {:?} to {:?}", path, core_target)
                 })?;
