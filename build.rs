@@ -72,8 +72,8 @@ fn main() -> Result<()> {
                 })?;
                 println!("cargo:warning={:?} = {:?}", str, version.trim());
             }
-            if str == CORE_TGZ {
-                if !bundled_core_path.exists() {
+            if str == CORE_TGZ
+                && !bundled_core_path.exists() {
                     println!("cargo:info=Found core.tar.gz in archive, extracting to core",);
                     let core_tgz_path = PathBuf::from(out_dir.clone()).join("core.tar.gz");
                     entry.unpack(&core_tgz_path).with_context(|| {
@@ -98,7 +98,6 @@ fn main() -> Result<()> {
                         format!("Failed to unpack file {:?} to {:?}", path, core_target)
                     })?;
                 }
-            }
         }
     }
 
