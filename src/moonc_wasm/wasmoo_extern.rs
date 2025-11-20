@@ -1,8 +1,6 @@
-
-
 use std::{
     collections::HashMap,
-    fs::{self, metadata, File, OpenOptions},
+    fs::{self, File, OpenOptions, metadata},
     io::{IsTerminal, Read, Write},
     path::Path,
     process::{Command, Stdio},
@@ -12,12 +10,7 @@ use std::{
 use std::{ffi::CString, fs::Permissions};
 
 #[cfg(unix)]
-use std::os::{
-    fd::AsRawFd,
-    unix::fs::{PermissionsExt},
-};
-
-
+use std::os::{fd::AsRawFd, unix::fs::PermissionsExt};
 
 // Windows API structures and functions
 #[cfg(windows)]
@@ -40,25 +33,21 @@ unsafe extern "system" {
         dwFlagsAndAttributes: u32,
         hTemplateFile: *mut std::ffi::c_void,
     ) -> *mut std::ffi::c_void;
-    
+
     fn SetFileTime(
         hFile: *mut std::ffi::c_void,
         lpCreationTime: *const FileTime,
         lpLastAccessTime: *const FileTime,
         lpLastWriteTime: *const FileTime,
     ) -> i32;
-    
+
     fn CloseHandle(hObject: *mut std::ffi::c_void) -> i32;
-    
-    fn GetConsoleMode(
-        hConsoleHandle: *mut std::ffi::c_void,
-        lpMode: *mut u32,
-    ) -> i32;
+
+    fn GetConsoleMode(hConsoleHandle: *mut std::ffi::c_void, lpMode: *mut u32) -> i32;
 }
 
 #[cfg(windows)]
 const INVALID_HANDLE_VALUE: *mut std::ffi::c_void = (-1isize) as *mut std::ffi::c_void;
-
 
 fn on_windows(
     scope: &mut v8::HandleScope,
@@ -225,7 +214,7 @@ fn chmod(
     let path = Path::new(&path);
     let mode = args.get(1);
     let mode = mode.to_number(scope).unwrap().value() as u32;
-    
+
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -242,7 +231,7 @@ fn chmod(
             }
         }
     }
-    
+
     #[cfg(windows)]
     {
         // Use the unified Unix permission simulation function
@@ -421,7 +410,7 @@ fn open(
         opts.custom_flags(custom_flags);
         opts.mode((mode & 0o777) as u32); // assure permission is legal
     }
-    
+
     #[cfg(windows)]
     {
         use std::os::windows::fs::OpenOptionsExt;
@@ -506,31 +495,31 @@ fn access(
     let path = Path::new(&path);
     let mode = args.get(1);
     let mode = mode.to_number(scope).unwrap().value() as i32;
-    if mode & F_OK != 0 {
-        if let Err(err) = metadata(path) {
-            let message = v8::String::new(scope, &err.to_string()).unwrap();
-            let exn = v8::Exception::error(scope, message);
-            scope.throw_exception(exn);
-            return;
-        }
+    if mode & F_OK != 0
+        && let Err(err) = metadata(path)
+    {
+        let message = v8::String::new(scope, &err.to_string()).unwrap();
+        let exn = v8::Exception::error(scope, message);
+        scope.throw_exception(exn);
+        return;
     }
 
-    if mode & R_OK != 0 {
-        if let Err(err) = File::open(path) {
-            let message = v8::String::new(scope, &err.to_string()).unwrap();
-            let exn = v8::Exception::error(scope, message);
-            scope.throw_exception(exn);
-            return;
-        }
+    if mode & R_OK != 0
+        && let Err(err) = File::open(path)
+    {
+        let message = v8::String::new(scope, &err.to_string()).unwrap();
+        let exn = v8::Exception::error(scope, message);
+        scope.throw_exception(exn);
+        return;
     }
 
-    if mode & W_OK != 0 {
-        if let Err(err) = OpenOptions::new().write(true).open(path) {
-            let message = v8::String::new(scope, &err.to_string()).unwrap();
-            let exn = v8::Exception::error(scope, message);
-            scope.throw_exception(exn);
-            return;
-        }
+    if mode & W_OK != 0
+        && let Err(err) = OpenOptions::new().write(true).open(path)
+    {
+        let message = v8::String::new(scope, &err.to_string()).unwrap();
+        let exn = v8::Exception::error(scope, message);
+        scope.throw_exception(exn);
+        return;
     }
 
     if mode & X_OK != 0 {
@@ -558,8 +547,12 @@ fn access(
                     if let Some(ext) = path.extension() {
                         if let Some(ext_str) = ext.to_str() {
                             let executable_exts = ["exe", "com", "bat", "cmd", "ps1"];
-                            if !executable_exts.iter().any(|&e| ext_str.eq_ignore_ascii_case(e)) {
-                                let message = v8::String::new(scope, "execute permission denied").unwrap();
+                            if !executable_exts
+                                .iter()
+                                .any(|&e| ext_str.eq_ignore_ascii_case(e))
+                            {
+                                let message =
+                                    v8::String::new(scope, "execute permission denied").unwrap();
                                 let exn = v8::Exception::error(scope, message);
                                 scope.throw_exception(exn);
                                 return;
@@ -782,8 +775,6 @@ fn timeval_from_f64(t: f64) -> std::io::Result<libc::timeval> {
     })
 }
 
-
-
 #[cfg(unix)]
 fn __utimes(path: String, atime: f64, mtime: f64) -> std::io::Result<()> {
     let c_path = CString::new(path)?;
@@ -806,44 +797,46 @@ fn __utimes(path: String, atime: f64, mtime: f64) -> std::io::Result<()> {
 fn __utimes(path: String, atime: f64, mtime: f64) -> std::io::Result<()> {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
-    use std::time::{UNIX_EPOCH, Duration};
+    use std::time::{Duration, UNIX_EPOCH};
 
-    
     // Convert Unix timestamps to Windows FileTime
     let atime_duration = Duration::from_secs_f64(atime);
     let mtime_duration = Duration::from_secs_f64(mtime);
-    
+
     let atime_system = UNIX_EPOCH + atime_duration;
     let mtime_system = UNIX_EPOCH + mtime_duration;
-    
+
     // Convert path to wide string for Windows API
-    let path_wide: Vec<u16> = OsStr::new(&path).encode_wide().chain(std::iter::once(0)).collect();
-    
+    let path_wide: Vec<u16> = OsStr::new(&path)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+
     unsafe {
         use std::ptr;
-        
+
         // Open file for setting times
         let handle = CreateFileW(
             path_wide.as_ptr(),
             0x100, // FILE_WRITE_ATTRIBUTES
             7,     // FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
             ptr::null_mut(),
-            3,     // OPEN_EXISTING
-            0,     // No special flags
+            3, // OPEN_EXISTING
+            0, // No special flags
             ptr::null_mut(),
         );
-        
+
         if handle == INVALID_HANDLE_VALUE {
             return Err(std::io::Error::last_os_error());
         }
-        
+
         // Convert SystemTime to FileTime
         let atime_ft = system_time_to_filetime(atime_system)?;
         let mtime_ft = system_time_to_filetime(mtime_system)?;
-        
+
         let result = SetFileTime(handle, ptr::null(), &atime_ft, &mtime_ft);
         CloseHandle(handle);
-        
+
         if result == 0 {
             Err(std::io::Error::last_os_error())
         } else {
@@ -854,15 +847,17 @@ fn __utimes(path: String, atime: f64, mtime: f64) -> std::io::Result<()> {
 
 #[cfg(windows)]
 fn system_time_to_filetime(time: std::time::SystemTime) -> std::io::Result<FileTime> {
-    use std::time::{UNIX_EPOCH};
-    
-    let duration = time.duration_since(UNIX_EPOCH)
-        .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Time before Unix epoch"))?;
-    
+    use std::time::UNIX_EPOCH;
+
+    let duration = time.duration_since(UNIX_EPOCH).map_err(|_| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "Time before Unix epoch")
+    })?;
+
     // Windows FileTime is 100-nanosecond intervals since January 1, 1601
     // Unix epoch (1970-01-01) is 11644473600 seconds after Windows epoch
-    let windows_ticks = (duration.as_secs() + 11644473600) * 10_000_000 + duration.subsec_nanos() as u64 / 100;
-    
+    let windows_ticks =
+        (duration.as_secs() + 11644473600) * 10_000_000 + duration.subsec_nanos() as u64 / 100;
+
     Ok(FileTime {
         dwLowDateTime: (windows_ticks & 0xFFFFFFFF) as u32,
         dwHighDateTime: (windows_ticks >> 32) as u32,
@@ -883,15 +878,15 @@ impl FileTypeExtWindows for std::fs::FileType {
     fn is_char_device(&self) -> bool {
         false // Windows doesn't distinguish char devices in the same way
     }
-    
+
     fn is_block_device(&self) -> bool {
         false // Windows doesn't distinguish block devices in the same way
     }
-    
+
     fn is_fifo(&self) -> bool {
         false // Windows doesn't have FIFO files
     }
-    
+
     fn is_socket(&self) -> bool {
         false // Regular filesystem API doesn't handle sockets on Windows
     }
@@ -919,12 +914,12 @@ impl MetadataExtWindows for std::fs::Metadata {
         // Use a simple hash of file path since volume_serial_number is unstable
         0 // Simplified implementation
     }
-    
+
     fn ino(&self) -> u64 {
         // file_index is unstable, use simple fallback
         0 // Simplified implementation
     }
-    
+
     fn mode(&self) -> u32 {
         let mut mode = 0o644; // Default readable/writable
         if self.is_dir() {
@@ -937,28 +932,28 @@ impl MetadataExtWindows for std::fs::Metadata {
         }
         mode
     }
-    
+
     fn nlink(&self) -> u64 {
         // number_of_links is unstable, use simple fallback
         1 // Default to 1 for regular files
     }
-    
+
     fn uid(&self) -> u32 {
         0 // Windows doesn't have Unix-style UIDs
     }
-    
+
     fn gid(&self) -> u32 {
         0 // Windows doesn't have Unix-style GIDs
     }
-    
+
     fn rdev(&self) -> u64 {
         0 // Not applicable on Windows
     }
-    
+
     fn size(&self) -> u64 {
         self.len()
     }
-    
+
     fn atime(&self) -> i64 {
         self.accessed()
             .unwrap_or(std::time::UNIX_EPOCH)
@@ -966,7 +961,7 @@ impl MetadataExtWindows for std::fs::Metadata {
             .unwrap_or_default()
             .as_secs() as i64
     }
-    
+
     fn mtime(&self) -> i64 {
         self.modified()
             .unwrap_or(std::time::UNIX_EPOCH)
@@ -974,7 +969,7 @@ impl MetadataExtWindows for std::fs::Metadata {
             .unwrap_or_default()
             .as_secs() as i64
     }
-    
+
     fn ctime(&self) -> i64 {
         // Use modified time as creation time fallback
         self.modified()
@@ -1025,11 +1020,7 @@ fn isatty(
     let fd = args.get(0);
     let fd = fd.to_number(scope).unwrap().value() as i32;
     let rescode = if fd == STDIN {
-        if std::io::stdin().is_terminal() {
-            1
-        } else {
-            0
-        }
+        if std::io::stdin().is_terminal() { 1 } else { 0 }
     } else if fd == STDOUT {
         if std::io::stdout().is_terminal() {
             1
@@ -1064,7 +1055,7 @@ fn isatty(
                         }
                     }
                 }
-            },
+            }
             Err(_) => 0,
         }
     };
@@ -1134,51 +1125,60 @@ mod unix_perms {
 fn parse_unix_permissions(mode: u32) -> (bool, bool, bool, bool, bool, bool, bool, bool, bool) {
     use unix_perms::*;
     (
-        (mode & OWNER_READ) != 0,   // owner can read
-        (mode & OWNER_WRITE) != 0,  // owner can write
-        (mode & OWNER_EXEC) != 0,   // owner can execute
-        (mode & GROUP_READ) != 0,   // group can read
-        (mode & GROUP_WRITE) != 0,  // group can write
-        (mode & GROUP_EXEC) != 0,   // group can execute
-        (mode & OTHER_READ) != 0,   // others can read
-        (mode & OTHER_WRITE) != 0,  // others can write
-        (mode & OTHER_EXEC) != 0,   // others can execute
+        (mode & OWNER_READ) != 0,  // owner can read
+        (mode & OWNER_WRITE) != 0, // owner can write
+        (mode & OWNER_EXEC) != 0,  // owner can execute
+        (mode & GROUP_READ) != 0,  // group can read
+        (mode & GROUP_WRITE) != 0, // group can write
+        (mode & GROUP_EXEC) != 0,  // group can execute
+        (mode & OTHER_READ) != 0,  // others can read
+        (mode & OTHER_WRITE) != 0, // others can write
+        (mode & OTHER_EXEC) != 0,  // others can execute
     )
 }
 
 /// Parse Unix permission mode and apply equivalent Windows permissions
-/// 
+///
 /// Unix permissions are represented as a 3-digit octal number (e.g., 0o755):
 /// - First digit: owner permissions (4=read, 2=write, 1=execute)
-/// - Second digit: group permissions 
+/// - Second digit: group permissions
 /// - Third digit: other permissions
-/// 
+///
 /// On Windows, we can only control the read-only flag, so we focus on
 /// the owner write permission. If the owner lacks write permission,
 /// we set the file/directory as read-only.
 #[cfg(windows)]
 fn apply_unix_permissions_to_windows(path: &Path, mode: u32) -> std::io::Result<()> {
-    let (_owner_read, owner_write, _owner_exec, _group_read, _group_write, _group_exec, _other_read, _other_write, _other_exec) = 
-        parse_unix_permissions(mode);
-    
+    let (
+        _owner_read,
+        owner_write,
+        _owner_exec,
+        _group_read,
+        _group_write,
+        _group_exec,
+        _other_read,
+        _other_write,
+        _other_exec,
+    ) = parse_unix_permissions(mode);
+
     // Get current metadata to modify permissions
     let metadata = fs::metadata(path)?;
     let mut permissions = metadata.permissions();
-    
+
     // Set read-only flag based on owner write permission
     // If owner cannot write, make it read-only
     permissions.set_readonly(!owner_write);
-    
+
     // Apply the permissions
     fs::set_permissions(path, permissions)?;
-    
+
     // Log the permission mapping for debugging (if needed)
     #[cfg(debug_assertions)]
     eprintln!(
         "Unix mode {:o} -> Windows read-only: {} (owner: r:{} w:{} x:{})",
         mode, !owner_write, _owner_read, owner_write, _owner_exec
     );
-    
+
     Ok(())
 }
 
@@ -1194,14 +1194,14 @@ fn mkdir(
     let mode = args.get(1);
     let mode = mode.to_number(scope).unwrap().value() as u32;
     let path = Path::new(&path);
-    
+
     if let Err(err) = fs::create_dir(path) {
         let message = v8::String::new(scope, &err.to_string()).unwrap();
         let exn = v8::Exception::error(scope, message);
         scope.throw_exception(exn);
         return;
     }
-    
+
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -1218,7 +1218,7 @@ fn mkdir(
             }
         }
     }
-    
+
     #[cfg(windows)]
     {
         // On Windows, simulate Unix permissions by setting read-only flag
@@ -2131,7 +2131,7 @@ fn fchmod(
             return;
         }
     };
-    
+
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -2148,7 +2148,7 @@ fn fchmod(
             }
         }
     }
-    
+
     #[cfg(windows)]
     {
         // On Windows, we can only toggle read-only flag
@@ -2162,11 +2162,11 @@ fn fchmod(
                 return;
             }
         };
-        
+
         let mut permissions = metadata.permissions();
         let readonly = (mode & 0o200) == 0;
         permissions.set_readonly(readonly);
-        
+
         match file.set_permissions(permissions) {
             Err(err) => {
                 let message = v8::String::new(scope, &err.to_string()).unwrap();
