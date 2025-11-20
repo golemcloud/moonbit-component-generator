@@ -13,7 +13,7 @@ use std::ops::Range;
 use std::sync::atomic::{AtomicBool, Ordering};
 use topologic::AcyclicDependencyGraph;
 use wit_component::{ComponentEncoder, StringEncoding};
-use wit_parser::{PackageId, PackageName, Resolve, WorldId};
+use wit_parser::{PackageId, Resolve, WorldId};
 
 mod moonc_wasm;
 
@@ -24,6 +24,8 @@ pub mod get_script;
 /// An example generator that implements a simple typed configuration interface defined in WIT
 #[cfg(feature = "typed-config")]
 pub mod typed_config;
+
+pub use wit_parser::PackageName;
 
 static MOONBIT_CORE: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/bundled-core");
 
