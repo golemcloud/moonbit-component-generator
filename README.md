@@ -73,7 +73,8 @@ fn main() {
 
 To update and build the MoonBit core library:
 
-- See (and update) the printed moonbit version in `build.rs`
+- Delete the `bundled-core` directory
+- Rebuild the crate (this will create a `core` directory), see (and update) the printed moonbit version in `build.rs`
 - curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.32+6f48aae3f
 - `Use ./update-bundle.sh
 

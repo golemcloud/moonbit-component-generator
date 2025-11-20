@@ -22,6 +22,7 @@ fn main() -> Result<()> {
         .context("Failed to get CARGO_MANIFEST_DIR environment variable")?;
     let dest_path = PathBuf::from(out_dir.clone()).join(FINAL_FILE_NAME);
     let manifest_path = PathBuf::from(manifest_dir);
+    let bundled_core_path = manifest_path.join("bundled-core");
 
     //  Download the file using reqwest (blocking)
     //  Using a blocking request is simpler in a build script
@@ -72,29 +73,31 @@ fn main() -> Result<()> {
                 println!("cargo:warning={:?} = {:?}", str, version.trim());
             }
             if str == CORE_TGZ {
-                println!("cargo:info=Found core.tar.gz in archive, extracting to core",);
-                let core_tgz_path = PathBuf::from(out_dir.clone()).join("core.tar.gz");
-                entry.unpack(&core_tgz_path).with_context(|| {
-                    format!("Failed to unpack file {:?} to {:?}", path, core_tgz_path)
-                })?;
-                let bytes = std::fs::read(core_tgz_path)
-                    .with_context(|| format!("Failed to read file {:?}", path))?;
-                let core_tar = GzDecoder::new(bytes.as_slice());
-                let mut core_archive = Archive::new(core_tar);
+                if !bundled_core_path.exists() {
+                    println!("cargo:info=Found core.tar.gz in archive, extracting to core",);
+                    let core_tgz_path = PathBuf::from(out_dir.clone()).join("core.tar.gz");
+                    entry.unpack(&core_tgz_path).with_context(|| {
+                        format!("Failed to unpack file {:?} to {:?}", path, core_tgz_path)
+                    })?;
+                    let bytes = std::fs::read(core_tgz_path)
+                        .with_context(|| format!("Failed to read file {:?}", path))?;
+                    let core_tar = GzDecoder::new(bytes.as_slice());
+                    let mut core_archive = Archive::new(core_tar);
 
-                let core_target = manifest_path.clone();
-                let core_dir = manifest_path.join("core");
-                if core_dir.exists() {
-                    std::fs::remove_dir_all(core_dir).with_context(|| {
-                        format!(
-                            "Failed to remove directory {:?}",
-                            manifest_path.join("core")
-                        )
+                    let core_target = manifest_path.clone();
+                    let core_dir = manifest_path.join("core");
+                    if core_dir.exists() {
+                        std::fs::remove_dir_all(core_dir).with_context(|| {
+                            format!(
+                                "Failed to remove directory {:?}",
+                                manifest_path.join("core")
+                            )
+                        })?;
+                    }
+                    core_archive.unpack(&core_target).with_context(|| {
+                        format!("Failed to unpack file {:?} to {:?}", path, core_target)
                     })?;
                 }
-                core_archive.unpack(&core_target).with_context(|| {
-                    format!("Failed to unpack file {:?} to {:?}", path, core_target)
-                })?;
             }
         }
     }
