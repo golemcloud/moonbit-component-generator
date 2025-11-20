@@ -11,6 +11,7 @@ A mutable linked hash map based on a Robin Hood hash table, links all entry node
 You can create an empty map using `new()` or construct it using `from_array()`.
 
 ```moonbit 
+///|
 test {
   let _map1 : Map[String, Int] = {}
   let _map2 = { "one": 1, "two": 2, "three": 3, "four": 4, "five": 5 }
@@ -23,6 +24,7 @@ test {
 You can use `set()` to add a key-value pair to the map, and use `get()` to get a key-value pair.
 
 ```moonbit
+///|
 test {
   let map : Map[String, Int] = {}
   map.set("a", 1)
@@ -35,19 +37,41 @@ test {
 }
 ```
 
+#### Get from Views
+
+For maps with `String` or `Bytes` keys, you can efficiently retrieve values using `StringView` or `BytesView` without creating new strings or bytes. This is useful when working with substrings or sub-arrays.
+
+```moonbit
+///|
+test {
+  // Using get_from_string with StringView
+  let string_map = { "hello": 1, "world": 2 }
+  let full_string = "say hello to everyone"
+  let hello_view = full_string.view(start_offset=4, end_offset=9)
+  inspect(string_map.get_from_string(hello_view), content="Some(1)")
+
+  // Using get_from_bytes with BytesView
+  let bytes_map = { b"key": 42, b"value": 100 }
+  let full_bytes = b"mykey_data"
+  let key_view = full_bytes[2:5]
+  inspect(bytes_map.get_from_bytes(key_view), content="Some(42)")
+}
+```
+
 ### Remove
 
 You can use `remove()` to remove a key-value pair.
 
 ```moonbit
+///|
 test {
   let map = { "a": 1, "b": 2, "c": 3 }
   map.remove("a")
   inspect(
     map,
-    content=
+    content=(
       #|{"b": 2, "c": 3}
-    ,
+    ),
   )
 }
 ```
@@ -57,6 +81,7 @@ test {
 You can use `contains()` to check whether a key exists.
 
 ```moonbit
+///|
 test {
   let map = { "a": 1, "b": 2, "c": 3 }
   inspect(map.contains("a"), content="true")
@@ -69,16 +94,18 @@ test {
 You can use `size()` to get the number of key-value pairs in the map, or `capacity()` to get the current capacity.
 
 ```moonbit
+///|
 test {
   let map = { "a": 1, "b": 2, "c": 3 }
-  inspect(map.size(), content="3")
-  inspect(map.capacity(), content="8")
+  inspect(map.length(), content="3")
+  inspect(map.capacity(), content="4")
 }
 ```
 
 Similarly, you can use `is_empty()` to check whether the map is empty.
 
 ```moonbit
+///|
 test {
   let map : Map[String, Int] = {}
   inspect(map.is_empty(), content="true")
@@ -90,6 +117,7 @@ test {
 You can use `clear` to remove all key-value pairs from the map, but the allocated memory will not change.
 
 ```moonbit
+///|
 test {
   let map = { "a": 1, "b": 2, "c": 3 }
   map.clear()
@@ -102,13 +130,14 @@ test {
 You can use `each()` or `eachi()` to iterate through all key-value pairs in the order of insertion.
 
 ```moonbit
+///|
 test {
   let map = { "a": 1, "b": 2, "c": 3 }
   let arr = []
-  map.each((k, v) => { arr.push((k, v)) })
+  map.each((k, v) => arr.push((k, v)))
   @json.inspect(arr, content=[["a", 1], ["b", 2], ["c", 3]])
   let arr2 = []
-  map.eachi((i, k, v) => { arr2.push((i, k, v)) })
+  map.eachi((i, k, v) => arr2.push((i, k, v)))
   @json.inspect(arr2, content=[[0, "a", 1], [1, "b", 2], [2, "c", 3]])
 }
 ```

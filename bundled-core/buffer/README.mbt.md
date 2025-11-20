@@ -7,6 +7,7 @@ The buffer package provides a flexible byte buffer implementation for efficient 
 Create a new buffer and write basic data:
 
 ```moonbit
+///|
 test "basic buffer operations" {
   let buf = @buffer.new()
 
@@ -21,9 +22,9 @@ test "basic buffer operations" {
   let bytes = buf.contents()
   inspect(
     bytes,
-    content=
-      #|b"\x48\x69"
-    ,
+    content=(
+      #|b"Hi"
+    ),
   )
 
   // Reset buffer
@@ -37,6 +38,7 @@ test "basic buffer operations" {
 Write numbers in different encodings:
 
 ```moonbit
+///|
 test "number serialization" {
   inspect(
     @buffer.new()
@@ -44,9 +46,9 @@ test "number serialization" {
     ..write_int_be(42)
     ..write_int_le(42)
     .to_bytes(),
-    content=
-      #|b"\x00\x00\x00\x2a\x2a\x00\x00\x00"
-    ,
+    content=(
+      #|b"\x00\x00\x00**\x00\x00\x00"
+    ),
   )
   inspect(
     @buffer.new()
@@ -54,9 +56,9 @@ test "number serialization" {
     ..write_float_be(3.14)
     ..write_float_le(3.14)
     .to_bytes(),
-    content=
-      #|b"\x40\x48\xf5\xc3\xc3\xf5\x48\x40"
-    ,
+    content=(
+      #|b"@H\xf5\xc3\xc3\xf5H@"
+    ),
   )
   inspect(
     @buffer.new()
@@ -64,9 +66,9 @@ test "number serialization" {
     ..write_int64_be(0xAABBCCDDEEL)
     ..write_int64_le(0xAABBCCDDEEL)
     .to_bytes(),
-    content=
+    content=(
       #|b"\x00\x00\x00\xaa\xbb\xcc\xdd\xee\xee\xdd\xcc\xbb\xaa\x00\x00\x00"
-    ,
+    ),
   )
   inspect(
     @buffer.new()
@@ -74,9 +76,9 @@ test "number serialization" {
     ..write_uint_be(0x2077U)
     ..write_uint_le(0x2077U)
     .to_bytes(),
-    content=
-      #|b"\x00\x00\x20\x77\x77\x20\x00\x00"
-    ,
+    content=(
+      #|b"\x00\x00 ww \x00\x00"
+    ),
   )
 }
 ```
@@ -86,6 +88,7 @@ test "number serialization" {
 Write sequences of bytes:
 
 ```moonbit
+///|
 test "byte sequence writing" {
   let buf = @buffer.new()
 
@@ -98,9 +101,9 @@ test "byte sequence writing" {
   let contents = buf.to_bytes()
   inspect(
     contents,
-    content=
-      #|b"\x48\x65\x6c\x6c\x6f\x48\x65\x6c\x6c\x6f"
-    ,
+    content=(
+      #|b"HelloHello"
+    ),
   ) // "Hello" written twice
 }
 ```
@@ -110,6 +113,7 @@ test "byte sequence writing" {
 Write structured data that implements Show:
 
 ```moonbit
+///|
 test "object writing" {
   let buf = @buffer.new()
 
@@ -120,9 +124,9 @@ test "object writing" {
   let contents = buf.contents()
   inspect(
     contents,
-    content=
-      #|b"\x34\x00\x32\x00"
-    ,
+    content=(
+      #|b"4\x002\x00"
+    ),
   )
 }
 ```
@@ -132,6 +136,7 @@ test "object writing" {
 Provide size hints for better performance:
 
 ```moonbit
+///|
 test "buffer with size hint" {
   // Create buffer with initial capacity hint
   let buf = @buffer.new(size_hint=1024)
@@ -151,6 +156,7 @@ test "buffer with size hint" {
 The buffer implements the Logger trait for Show:
 
 ```moonbit
+///|
 test "buffer as logger" {
   let buf = @buffer.new()
   let array = [1, 2, 3]
@@ -160,9 +166,9 @@ test "buffer as logger" {
   let contents = buf.contents()
   inspect(
     contents,
-    content=
-      #|b"\x5b\x00\x31\x00\x2c\x00\x20\x00\x32\x00\x2c\x00\x20\x00\x33\x00\x5d\x00"
-    ,
+    content=(
+      #|b"[\x001\x00,\x00 \x002\x00,\x00 \x003\x00]\x00"
+    ),
   )
 }
 ```
@@ -172,6 +178,7 @@ test "buffer as logger" {
 Methods for converting buffer contents:
 
 ```moonbit
+///|
 test "buffer conversion" {
   let buf = @buffer.new()
   buf.write_byte(b'a')
@@ -180,9 +187,9 @@ test "buffer conversion" {
   let bytes = buf.to_bytes()
   inspect(
     bytes,
-    content=
-      #|b"\x61\x62\x63"
-    ,
+    content=(
+      #|b"abc"
+    ),
   )
 }
 ```
@@ -192,6 +199,7 @@ test "buffer conversion" {
 Support for viewing subsets of bytes:
 
 ```moonbit
+///|
 test "byte view writing" {
   let buf = @buffer.new()
   let bytes = b"Hello World"
@@ -201,9 +209,9 @@ test "byte view writing" {
   let contents = buf.to_bytes()
   inspect(
     contents,
-    content=
-      #|b"\x48\x65\x6c\x6c\x6f"
-    ,
+    content=(
+      #|b"Hello"
+    ),
   )
 }
 ```

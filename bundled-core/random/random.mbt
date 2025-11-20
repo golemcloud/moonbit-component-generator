@@ -15,7 +15,7 @@
 ///|
 /// `Rand` is a pseudo-random number generator (PRNG) that provides various
 /// methods to generate random numbers of different types.
-type Rand &Source
+struct Rand(&Source)
 
 ///|
 /// The [Source] trait defines a method to generate random numbers.
@@ -37,7 +37,7 @@ impl Source for @random_source.ChaCha8 with next(self : @random_source.ChaCha8) 
 /// Create a new random number generator with [seed].
 /// @alert unsafe "Panic if seed is not 32 bytes long"
 pub fn Rand::chacha8(
-  seed~ : Bytes = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ123456"
+  seed? : Bytes = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ123456",
 ) -> Rand {
   if seed.length() != 32 {
     abort("seed must be 32 bytes long")
@@ -46,30 +46,23 @@ pub fn Rand::chacha8(
 }
 
 ///|
-/// Create a new random number generator with [seed].
-#deprecated("You may use `Rand::chacha8(seed~)` instead of `Rand::new(chacha8(seed~))")
-pub fn chacha8(seed~ : Bytes = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ123456") -> &Source {
-  @random_source.ChaCha8::new(seed)
-}
-
-///|
 /// Create a new random number generator with a given [Gen] source.
 pub fn Rand::new(generator? : &Source) -> Rand {
   match generator {
-    None => chacha8()
+    None => Rand::chacha8()
     Some(gen) => Rand(gen)
   }
 }
 
 ///|
-fn next(self : Rand) -> UInt64 {
+fn Rand::next(self : Rand) -> UInt64 {
   let Rand(s) = self
   s.next()
 }
 
 ///|
 test "next" {
-  let r = new()
+  let r = Rand::new()
   let n = r.next()
   let exp = 13219109469176600229UL
   assert_eq(n, exp)
@@ -82,7 +75,7 @@ test "next" {
 ///
 /// * `limit` - The upper bound (exclusive) of the random number to be generated (Optional).
 ///             When limit is 0, the range is [0, 2^31).
-pub fn int(self : Rand, limit~ : Int = 0) -> Int {
+pub fn Rand::int(self : Rand, limit? : Int = 0) -> Int {
   if limit == 0 {
     // Range [0, 2^31)
     (self.next() >> 33).to_int()
@@ -98,7 +91,7 @@ pub fn int(self : Rand, limit~ : Int = 0) -> Int {
 ///
 /// * `limit` - The upper bound (exclusive) of the random number to be generated (Optional).
 ///            When limit is 0, the range is [0, 2^63).
-pub fn int64(self : Rand, limit~ : Int64 = 0) -> Int64 {
+pub fn Rand::int64(self : Rand, limit? : Int64 = 0) -> Int64 {
   if limit == 0 {
     // range [0, 2^63)
     // Create a mask that keeps the lower 63 bits
@@ -116,7 +109,7 @@ pub fn int64(self : Rand, limit~ : Int64 = 0) -> Int64 {
 ///
 /// * `limit` - The upper bound (exclusive) of the random number to be generated (Optional).
 ///            When limit is 0, the range is [0, 2^32).
-pub fn uint(self : Rand, limit~ : UInt = 0) -> UInt {
+pub fn Rand::uint(self : Rand, limit? : UInt = 0) -> UInt {
   if limit == 0 {
     // Range: [0, 2^32)
     return self.next().to_uint()
@@ -126,7 +119,7 @@ pub fn uint(self : Rand, limit~ : UInt = 0) -> UInt {
 
 ///|
 test "uint" {
-  let r = new()
+  let r = Rand::new()
   let n = r.uint(limit=10U)
   inspect(n, content="7")
   let n = r.uint(limit=10U)
@@ -142,7 +135,7 @@ test "uint" {
 ///
 /// * `limit` - The upper bound (exclusive) of the random number to be generated (Optional).
 ///           When limit is 0, the range is [0, 2^64).
-pub fn uint64(self : Rand, limit~ : UInt64 = 0) -> UInt64 {
+pub fn Rand::uint64(self : Rand, limit? : UInt64 = 0) -> UInt64 {
   if limit == 0 {
     // Range: [0, 2^64)
     return self.next()
@@ -150,23 +143,23 @@ pub fn uint64(self : Rand, limit~ : UInt64 = 0) -> UInt64 {
     // limit is a power of 2, mask to get the unbiased result.
     return self.next() & (limit - 1)
   }
-  umul128(self.next(), limit)
-  if gUInt128.lo < limit {
+  let mut r = umul128(self.next(), limit)
+  if r.lo < limit {
     let thresh = limit.lnot() % limit
-    while gUInt128.lo < thresh {
-      umul128(self.next(), limit)
+    while r.lo < thresh {
+      r = umul128(self.next(), limit)
     }
   }
-  gUInt128.hi
+  r.hi
 }
 
 ///|
 test "UInt64" {
-  let r = new()
+  let r = Rand::new()
   let n = r.uint64()
   let exp = 13219109469176600229UL
   assert_eq(n, exp)
-  let r = new()
+  let r = Rand::new()
   let n = r.uint64(limit=10UL)
   inspect(n, content="7")
   let n = r.uint64(limit=10UL)
@@ -177,22 +170,28 @@ test "UInt64" {
 
 ///|
 /// [double] returns a pseudo-random 64-bit Double in the range [0.0, 1.0)
-pub fn double(self : Rand) -> Double {
+pub fn Rand::double(self : Rand) -> Double {
   Double::convert_uint64(self.next() << 11 >> 11) /
   Double::convert_uint64(1UL << 53)
 }
 
 ///|
 test "double" {
-  let r = new()
+  let r = Rand::new()
   let n = r.double()
   inspect(n, content="0.615969772029264")
 }
 
 ///|
 /// [float] returns a pseudo-random 32-bit Float in the range [0.0, 1.0)
-pub fn float(self : Rand) -> Float {
+pub fn Rand::float(self : Rand) -> Float {
   (self.uint() << 8 >> 8).to_float() / (1U << 24).to_float()
+}
+
+///|
+/// [boolean] returns a random boolean value (true or false).
+pub fn Rand::boolean(self : Rand) -> Bool {
+  (self.next() & 1) == 1
 }
 
 ///|
@@ -206,11 +205,11 @@ pub fn float(self : Rand) -> Float {
 /// Example:
 ///
 /// ```moonbit
-///   let rand = Rand::new()
+///   let rand = @random.Rand::new()
 ///   let n = rand.bigint(8) // Generate random 8-bit number
 ///   inspect(n.bit_length() <= 8, content="true")
 /// ```
-pub fn bigint(self : Rand, bits : Int) -> @bigint.BigInt {
+pub fn Rand::bigint(self : Rand, bits : Int) -> @bigint.BigInt {
   let mod = bits % 8
   let len = if mod == 0 { bits / 8 } else { bits / 8 + 1 }
   let bytes = Bytes::makei(len, i => if i == 0 && mod != 0 {
@@ -224,7 +223,7 @@ pub fn bigint(self : Rand, bits : Int) -> @bigint.BigInt {
 
 ///|
 test "bigint" {
-  let r = new()
+  let r = Rand::new()
   inspect(r.bigint(1), content="1")
   inspect(r.bigint(3), content="4")
   inspect(r.bigint(7), content="124")
@@ -236,13 +235,11 @@ test "bigint" {
 }
 
 ///|
+#valtype
 priv struct UInt128 {
-  mut hi : UInt64
-  mut lo : UInt64
+  hi : UInt64
+  lo : UInt64
 }
-
-///|
-let gUInt128 : UInt128 = { hi: 0UL, lo: 0UL }
 
 ///|
 /// [umul128] returns the 128-bit product of x and y: (hi, lo) = x * y
@@ -250,7 +247,7 @@ let gUInt128 : UInt128 = { hi: 0UL, lo: 0UL }
 /// half returned in lo.
 ///
 /// This function's execution time does not depend on the inputs.
-fn umul128(a : UInt64, b : UInt64) -> Unit {
+fn umul128(a : UInt64, b : UInt64) -> UInt128 {
   let aLo = a & 0xffffffff
   let aHi = a >> 32
   let bLo = b & 0xffffffff
@@ -259,36 +256,35 @@ fn umul128(a : UInt64, b : UInt64) -> Unit {
   let y = aHi * bLo + (x >> 32)
   let z = aLo * bHi + (y & 0xffffffff)
   let w = aHi * bHi + (y >> 32) + (z >> 32)
-  gUInt128.hi = w
-  gUInt128.lo = a * b
+  { hi: w, lo: a * b }
 }
 
 ///|
 test "umul128" {
-  umul128(0x123456789ABCDEF0, 0xFEDCBA9876543210)
-  assert_eq(gUInt128.hi, 1305938385386173474UL)
-  assert_eq(gUInt128.lo, 2552847189736476416UL)
+  let r = umul128(0x123456789ABCDEF0, 0xFEDCBA9876543210)
+  assert_eq(r.hi, 1305938385386173474UL)
+  assert_eq(r.lo, 2552847189736476416UL)
 }
 
 ///|
 test "umul128: handles small numbers correctly" {
-  umul128(1UL, 1UL)
-  assert_eq(gUInt128.hi, 0UL)
-  assert_eq(gUInt128.lo, 1UL)
+  let r = umul128(1UL, 1UL)
+  assert_eq(r.hi, 0UL)
+  assert_eq(r.lo, 1UL)
 }
 
 ///|
 test "umul128: handles large numbers correctly" {
-  umul128(1UL, 0xFFFFFFFFFFFFFFFFUL)
-  assert_eq(gUInt128.hi, 0UL)
-  assert_eq(gUInt128.lo, 0xFFFFFFFFFFFFFFFFUL)
+  let r = umul128(1UL, 0xFFFFFFFFFFFFFFFFUL)
+  assert_eq(r.hi, 0UL)
+  assert_eq(r.lo, 0xFFFFFFFFFFFFFFFFUL)
 }
 
 ///|
 test "umul128: handles zero correctly" {
-  umul128(0UL, 0UL)
-  assert_eq(gUInt128.hi, 0UL)
-  assert_eq(gUInt128.lo, 0UL)
+  let r = umul128(0UL, 0UL)
+  assert_eq(r.hi, 0UL)
+  assert_eq(r.lo, 0UL)
 }
 
 ///|
@@ -297,7 +293,7 @@ test "umul128: handles zero correctly" {
 ///
 /// # Example
 /// ```mbt
-///   let r = Rand::new()
+///   let r = @random.Rand::new()
 ///   let a = [1, 2, 3, 4, 5]
 ///   r.shuffle(
 ///     a.length(),
@@ -308,7 +304,11 @@ test "umul128: handles zero correctly" {
 ///     },
 ///   )
 /// ```
-pub fn shuffle(self : Rand, limit : Int, swap : (Int, Int) -> Unit) -> Unit {
+pub fn Rand::shuffle(
+  self : Rand,
+  limit : Int,
+  swap : (Int, Int) -> Unit,
+) -> Unit {
   if limit < 0 {
     abort("Rand::shuffle: invalid argument limit")
   }
@@ -320,7 +320,7 @@ pub fn shuffle(self : Rand, limit : Int, swap : (Int, Int) -> Unit) -> Unit {
 
 ///|
 test "shuffle" {
-  let r = new()
+  let r = Rand::new()
   let a = [1, 2, 3, 4, 5]
   r.shuffle(a.length(), (i : Int, j : Int) => {
     let t = a[i]

@@ -18,7 +18,11 @@ fn ParseContext::lex_string(ctx : ParseContext) -> String raise ParseError {
   let mut start = ctx.offset
   fn flush(end : Int) {
     if start > 0 && end > start {
-      buf.write_substring(ctx.input, start, end - start)
+      buf.write_substring(
+        ctx.input.data(),
+        ctx.input.start_offset() + start,
+        end - start,
+      )
     }
   }
 
@@ -64,7 +68,7 @@ fn ParseContext::lex_string(ctx : ParseContext) -> String raise ParseError {
 ///|
 fn ParseContext::lex_hex_digits(
   ctx : ParseContext,
-  n : Int
+  n : Int,
 ) -> Int raise ParseError {
   let mut r = 0
   for i in 0..<n {

@@ -16,19 +16,24 @@
 
 ///|
 /// Construct a empty set.
-pub fn[V] new() -> T[V] {
+#as_free_fn
+pub fn[V] SortedSet::new() -> SortedSet[V] {
   { root: None, size: 0 }
 }
 
 ///|
 /// Returns the one-value set containing only `value`.
-pub fn[V] singleton(value : V) -> T[V] {
+#as_free_fn
+pub fn[V] SortedSet::singleton(value : V) -> SortedSet[V] {
   { root: Some({ value, left: None, right: None, height: 1 }), size: 1 }
 }
 
 ///|
 /// Initialize an set from an array.
-pub fn[V : Compare] from_array(array : Array[V]) -> T[V] {
+#as_free_fn
+#alias(of, deprecated="Use from_array instead")
+#as_free_fn(of, deprecated="Use from_array instead")
+pub fn[V : Compare] SortedSet::from_array(array : ArrayView[V]) -> SortedSet[V] {
   let set = new()
   for i in 0..<array.length() {
     set.add(array[i])
@@ -41,7 +46,8 @@ pub fn[V : Compare] from_array(array : Array[V]) -> T[V] {
 /// 
 /// It is just copying the tree structure, not the values.
 /// 
-pub fn[V] copy(self : T[V]) -> T[V] {
+#alias(deep_clone, deprecated)
+pub fn[V] SortedSet::copy(self : SortedSet[V]) -> SortedSet[V] {
   match self.root {
     None => new()
     Some(_) => { root: copy_tree(self.root), size: self.size }
@@ -64,9 +70,9 @@ fn[V] copy_tree(node : Node[V]?) -> Node[V]? {
 ///|
 fn[V] new_node(
   value : V,
-  left~ : Node[V]? = None,
-  right~ : Node[V]? = None,
-  height~ : Int = 1
+  left? : Node[V]? = None,
+  right? : Node[V]? = None,
+  height? : Int = 1,
 ) -> Node[V] {
   { value, left, right, height }
 }
@@ -75,7 +81,7 @@ fn[V] new_node(
 fn[V] new_node_update_height(
   value : V,
   left~ : Node[V]?,
-  right~ : Node[V]?
+  right~ : Node[V]?,
 ) -> Node[V] {
   { value, left, right, height: max(height(left), height(right)) + 1 }
 }
@@ -83,7 +89,7 @@ fn[V] new_node_update_height(
 // Manipulations
 
 ///|
-pub fn[V : Compare] add(self : T[V], value : V) -> Unit {
+pub fn[V : Compare] SortedSet::add(self : SortedSet[V], value : V) -> Unit {
   let (new_root, inserted) = add_node(self.root, value)
   if self.root != new_root {
     self.root = new_root
@@ -94,7 +100,7 @@ pub fn[V : Compare] add(self : T[V], value : V) -> Unit {
 }
 
 ///|
-pub fn[V : Compare] remove(self : T[V], value : V) -> Unit {
+pub fn[V : Compare] SortedSet::remove(self : SortedSet[V], value : V) -> Unit {
   if self.root is Some(old_root) {
     let (new_root, deleted) = delete_node(old_root, value)
     if self.root != new_root {
@@ -113,7 +119,7 @@ pub fn[V : Compare] remove(self : T[V], value : V) -> Unit {
 
 ///|
 /// Return if a value is contained in the set.
-pub fn[V : Compare] contains(self : T[V], value : V) -> Bool {
+pub fn[V : Compare] SortedSet::contains(self : SortedSet[V], value : V) -> Bool {
   loop (self.root, value) {
     (None, _) => false
     (Some(node), value) => {
@@ -131,7 +137,10 @@ pub fn[V : Compare] contains(self : T[V], value : V) -> Bool {
 
 ///|
 /// Returns the union of two sets.
-pub fn[V : Compare] union(self : T[V], src : T[V]) -> T[V] {
+pub fn[V : Compare] SortedSet::union(
+  self : SortedSet[V],
+  src : SortedSet[V],
+) -> SortedSet[V] {
   fn aux(a : Node[V]?, b : Node[V]?) -> Node[V]? {
     match (a, b) {
       (Some(_), None) => a
@@ -182,7 +191,7 @@ fn[V : Compare] split(root : Node[V]?, value : V) -> (Node[V]?, Node[V]?) {
 }
 
 ///|
-fn[V : Compare] join(left : Node[V]?, value : V, right : Node[V]?) -> Node[V] {
+fn[V] join(left : Node[V]?, value : V, right : Node[V]?) -> Node[V] {
   let (hl, hr) = (height(left), height(right))
   if hl > hr + 1 {
     join_right(left, value, right)
@@ -194,7 +203,7 @@ fn[V : Compare] join(left : Node[V]?, value : V, right : Node[V]?) -> Node[V] {
 }
 
 ///|
-fn[V : Compare] join_left(l : Node[V]?, v : V, r : Node[V]?) -> Node[V] {
+fn[V] join_left(l : Node[V]?, v : V, r : Node[V]?) -> Node[V] {
   let { value: rv, left: rl, right: rr, .. } = r.unwrap()
   let node = if height(rl) <= height(l) + 1 {
     let new_l = new_node_update_height(left=l, v, right=rl)
@@ -219,7 +228,7 @@ fn[V : Compare] join_left(l : Node[V]?, v : V, r : Node[V]?) -> Node[V] {
 }
 
 ///|
-fn[V : Compare] join_right(l : Node[V]?, v : V, r : Node[V]?) -> Node[V] {
+fn[V] join_right(l : Node[V]?, v : V, r : Node[V]?) -> Node[V] {
   let { value: lv, left: ll, right: lr, .. } = l.unwrap()
   let node = if height(lr) <= height(r) + 1 {
     let new_r = new_node_update_height(left=lr, v, right=r)
@@ -245,9 +254,13 @@ fn[V : Compare] join_right(l : Node[V]?, v : V, r : Node[V]?) -> Node[V] {
 
 ///|
 /// Returns the difference of two sets.
-pub fn[V : Compare] difference(self : T[V], src : T[V]) -> T[V] {
+#alias(diff, deprecated)
+pub fn[V : Compare] SortedSet::difference(
+  self : SortedSet[V],
+  src : SortedSet[V],
+) -> SortedSet[V] {
   let ret = new()
-  self.each(x => if not(src.contains(x)) { ret.add(x) })
+  self.each(x => if !src.contains(x) { ret.add(x) })
   ret
 }
 
@@ -272,7 +285,10 @@ pub fn[V : Compare] difference(self : T[V], src : T[V]) -> T[V] {
 ///   let diff = set1.symmetric_difference(set2)
 ///   inspect(diff, content="@sorted_set.from_array([1, 2, 5, 6])")
 /// ```
-pub fn[V : Compare] symmetric_difference(self : T[V], other : T[V]) -> T[V] {
+pub fn[V : Compare] SortedSet::symmetric_difference(
+  self : SortedSet[V],
+  other : SortedSet[V],
+) -> SortedSet[V] {
   // TODO: Optimize this function to avoid creating two intermediate sets.
   let set1 = self.difference(other)
   let set2 = other.difference(self)
@@ -281,7 +297,11 @@ pub fn[V : Compare] symmetric_difference(self : T[V], other : T[V]) -> T[V] {
 
 ///|
 /// Returns the intersection of two sets.
-pub fn[V : Compare] intersection(self : T[V], src : T[V]) -> T[V] {
+#alias(intersect, deprecated)
+pub fn[V : Compare] SortedSet::intersection(
+  self : SortedSet[V],
+  src : SortedSet[V],
+) -> SortedSet[V] {
   let ret = new()
   self.each(x => if src.contains(x) { ret.add(x) })
   ret
@@ -289,15 +309,21 @@ pub fn[V : Compare] intersection(self : T[V], src : T[V]) -> T[V] {
 
 ///|
 /// Returns if a set is a subset of another set.
-pub fn[V : Compare] subset(self : T[V], src : T[V]) -> Bool {
+pub fn[V : Compare] SortedSet::subset(
+  self : SortedSet[V],
+  src : SortedSet[V],
+) -> Bool {
   let mut ret = true
-  self.each(x => if not(src.contains(x)) { ret = false })
+  self.each(x => if !src.contains(x) { ret = false })
   ret
 }
 
 ///|
 /// Returns if two sets are disjoint.
-pub fn[V : Compare] disjoint(self : T[V], src : T[V]) -> Bool {
+pub fn[V : Compare] SortedSet::disjoint(
+  self : SortedSet[V],
+  src : SortedSet[V],
+) -> Bool {
   let mut ret = true
   self.each(x => if src.contains(x) { ret = false })
   ret
@@ -306,25 +332,36 @@ pub fn[V : Compare] disjoint(self : T[V], src : T[V]) -> Bool {
 // General collection operations
 
 ///|
-pub impl[V : Eq] Eq for T[V] with op_equal(self, other) {
-  self.to_array() == other.to_array()
+pub impl[V : Eq] Eq for SortedSet[V] with equal(self, other) {
+  guard self.size == other.size else { return false }
+  let iter = self.iterator()
+  let iter1 = other.iterator()
+  while iter.next() is Some(a) && iter1.next() is Some(b) {
+    guard a == b else { break false }
+  } else {
+    true
+  }
 }
 
 ///|
 /// Returns if the set is empty.
-pub fn[V] is_empty(self : T[V]) -> Bool {
+pub fn[V] SortedSet::is_empty(self : SortedSet[V]) -> Bool {
   self.root is None
 }
 
 ///|
 /// Returns the number of elements in the set.
-pub fn[V] size(self : T[V]) -> Int {
+#alias(size, deprecated)
+pub fn[V] SortedSet::length(self : SortedSet[V]) -> Int {
   self.size
 }
 
 ///|
 /// Iterates the set.
-pub fn[V] each(self : T[V], f : (V) -> Unit raise?) -> Unit raise? {
+pub fn[V] SortedSet::each(
+  self : SortedSet[V],
+  f : (V) -> Unit raise?,
+) -> Unit raise? {
   fn dfs(root : Node[V]?) -> Unit raise? {
     if root is Some(root) {
       dfs(root.left)
@@ -338,7 +375,10 @@ pub fn[V] each(self : T[V], f : (V) -> Unit raise?) -> Unit raise? {
 
 ///|
 /// Iterates the set with index.
-pub fn[V] eachi(self : T[V], f : (Int, V) -> Unit raise?) -> Unit raise? {
+pub fn[V] SortedSet::eachi(
+  self : SortedSet[V],
+  f : (Int, V) -> Unit raise?,
+) -> Unit raise? {
   let mut i = 0
   self.each(v => {
     f(i, v)
@@ -348,7 +388,7 @@ pub fn[V] eachi(self : T[V], f : (Int, V) -> Unit raise?) -> Unit raise? {
 
 ///|
 /// Converts the set to an array.
-pub fn[V] to_array(self : T[V]) -> Array[V] {
+pub fn[V] SortedSet::to_array(self : SortedSet[V]) -> Array[V] {
   if self.size == 0 {
     []
   } else {
@@ -371,7 +411,7 @@ pub fn[V] to_array(self : T[V]) -> Array[V] {
 
 ///|
 /// Returns a iterator.
-pub fn[V] iter(self : T[V]) -> Iter[V] {
+pub fn[V] SortedSet::iter(self : SortedSet[V]) -> Iter[V] {
   Iter::new(yield_ => {
     fn go(x : Node[V]?) {
       match x {
@@ -392,23 +432,59 @@ pub fn[V] iter(self : T[V]) -> Iter[V] {
 }
 
 ///|
-pub fn[V : Compare] from_iter(iter : Iter[V]) -> T[V] {
+/// Returns a iterator.
+pub fn[V] SortedSet::iterator(self : SortedSet[V]) -> Iterator[V] {
+  let mut curr_node = self.root
+  let parents = []
+  Iterator::new(fn() {
+    loop curr_node {
+      Some({ left: None, value, right, height: _ }) => {
+        curr_node = right
+        Some(value)
+      }
+      Some({ left, value, right, height: _ }) => {
+        parents.push((value, right))
+        continue left
+      }
+      None if parents.pop() is Some((value, right)) => {
+        curr_node = right
+        Some(value)
+      }
+      None => None
+    }
+  })
+}
+
+///|
+#as_free_fn
+pub fn[V : Compare] SortedSet::from_iter(iter : Iter[V]) -> SortedSet[V] {
   let s = new()
   iter.each(e => s.add(e))
   s
 }
 
 ///|
+#as_free_fn
+pub fn[V : Compare] SortedSet::from_iterator(
+  iter : Iterator[V],
+) -> SortedSet[V] {
+  let s = new()
+  while iter.next() is Some(e) {
+    s.add(e)
+  }
+  s
+}
+
+///|
 /// Converts the set to string.
-pub impl[V : Show] Show for T[V] with output(self, logger) {
+pub impl[V : Show] Show for SortedSet[V] with output(self, logger) {
   logger.write_iter(self.iter(), prefix="@sorted_set.from_array([", suffix="])")
 }
 
 ///|
-pub impl[X : @quickcheck.Arbitrary + Compare] @quickcheck.Arbitrary for T[X] with arbitrary(
-  size,
-  rs
-) {
+pub impl[X : @quickcheck.Arbitrary + Compare] @quickcheck.Arbitrary for SortedSet[
+  X,
+] with arbitrary(size, rs) {
   @quickcheck.Arbitrary::arbitrary(size, rs) |> from_iter
 }
 
@@ -419,7 +495,11 @@ impl[T : Show] Show for Node[T] with output(self, logger) {
 }
 
 ///|
-pub fn[V : Compare] range(self : T[V], low : V, high : V) -> Iter[V] {
+pub fn[V : Compare] SortedSet::range(
+  self : SortedSet[V],
+  low : V,
+  high : V,
+) -> Iter[V] {
   Iter::new(yield_ => {
     fn go(x : Node[V]?) {
       match x {
@@ -449,10 +529,7 @@ pub fn[V : Compare] range(self : T[V], low : V, high : V) -> Iter[V] {
 // AVL tree operations
 
 ///|
-fn[V : Compare] replace_root_with_min(
-  root : Node[V],
-  node : Node[V]
-) -> Node[V]? {
+fn[V] replace_root_with_min(root : Node[V], node : Node[V]) -> Node[V]? {
   let (l, r) = (node.left, node.right)
   match l {
     None => {
@@ -467,7 +544,7 @@ fn[V : Compare] replace_root_with_min(
 }
 
 ///|
-fn[V] update_height(self : Node[V]) -> Unit {
+fn[V] Node::update_height(self : Node[V]) -> Unit {
   self.height = 1 + max(height(self.left), height(self.right))
 }
 
@@ -610,7 +687,7 @@ test "copy" {
   let copied_set = set.copy()
   inspect(copied_set, content="@sorted_set.from_array([1, 2, 3, 4, 5])")
   inspect(set.debug_tree() == copied_set.debug_tree(), content="true")
-  let set : T[Int] = from_array([])
+  let set : SortedSet[Int] = from_array([])
   let copied_set = set.copy()
   inspect(copied_set, content="@sorted_set.from_array([])")
   inspect(set.debug_tree() == copied_set.debug_tree(), content="true")
@@ -643,7 +720,7 @@ test "union" {
   inspect(set3.debug_tree(), content="([2]2,([1]1,_,_),([1]3,_,_))")
 
   // Test 4: Union of two empty sets
-  let set1 : T[Int] = new()
+  let set1 : SortedSet[Int] = new()
   let set2 = new()
   let set3 = set1.union(set2)
   inspect(set3, content="@sorted_set.from_array([])")
@@ -785,7 +862,7 @@ test "add duplicate value" {
   set.add(1)
   set.add(1)
   assert_eq(set.contains(1), true)
-  assert_eq(set.size(), 1)
+  assert_eq(set.length(), 1)
   inspect(set.debug_tree(), content="([1]1,_,_)")
 }
 
@@ -798,7 +875,7 @@ test "add multiple values" {
   assert_eq(set.contains(1), true)
   assert_eq(set.contains(2), true)
   assert_eq(set.contains(3), true)
-  assert_eq(set.size(), 3)
+  assert_eq(set.length(), 3)
   inspect(set.debug_tree(), content="([2]2,([1]1,_,_),([1]3,_,_))")
 }
 
@@ -985,6 +1062,6 @@ test "add_and_remove" {
 }
 
 ///|
-pub impl[K] Default for T[K] with default() {
+pub impl[K] Default for SortedSet[K] with default() {
   new()
 }

@@ -75,7 +75,7 @@ test "UInt16::from_int64" {
 }
 
 ///|
-test "UInt16::op_add" {
+test "UInt16::add" {
   fn add(a : UInt16, b : UInt16) -> UInt16 {
     a + b
   }
@@ -93,7 +93,7 @@ test "UInt16::op_add" {
 }
 
 ///|
-test "UInt16::op_sub" {
+test "UInt16::sub" {
   fn sub(a : UInt16, b : UInt16) -> UInt16 {
     a - b
   }
@@ -112,7 +112,7 @@ test "UInt16::op_sub" {
 }
 
 ///|
-test "UInt16::op_mul" {
+test "UInt16::mul" {
   fn mul(a : UInt16, b : UInt16) -> UInt16 {
     a * b
   }
@@ -131,7 +131,7 @@ test "UInt16::op_mul" {
 }
 
 ///|
-test "UInt16::op_div" {
+test "UInt16::div" {
   fn div(a : UInt16, b : UInt16) -> UInt16 {
     a / b
   }
@@ -174,23 +174,23 @@ test "UInt16::compare" {
 
 ///|
 test "UInt16::hash" {
-  inspect(UInt16::hash(0), content="0")
-  inspect(UInt16::hash(123), content="123")
-  inspect(UInt16::hash(65535), content="65535")
+  inspect(Hasher::new(seed=0)..combine(0).finalize(), content="148298089")
+  inspect(Hasher::new(seed=0)..combine(123).finalize(), content="-868461090")
+  inspect(Hasher::new(seed=0)..combine(65535).finalize(), content="-888052495")
 }
 
 ///|
-test "UInt16::op_equal" {
-  inspect(UInt16::op_equal(1, 2), content="false")
-  inspect(UInt16::op_equal(2, 1), content="false")
-  inspect(UInt16::op_equal(1, 1), content="true")
-  inspect(UInt16::op_equal(0, 1), content="false")
-  inspect(UInt16::op_equal(1, 0), content="false")
-  inspect(UInt16::op_equal(0, 0), content="true")
+test "UInt16::equal" {
+  inspect(UInt16::equal(1, 2), content="false")
+  inspect(UInt16::equal(2, 1), content="false")
+  inspect(UInt16::equal(1, 1), content="true")
+  inspect(UInt16::equal(0, 1), content="false")
+  inspect(UInt16::equal(1, 0), content="false")
+  inspect(UInt16::equal(0, 0), content="true")
 }
 
 ///|
-test "UInt16::op_shl" {
+test "UInt16::shl" {
   fn shl(a : UInt16, b : Int) -> UInt16 {
     a << b
   }
@@ -216,7 +216,7 @@ test "UInt16::op_shl" {
 }
 
 ///|
-test "UInt16::op_shr" {
+test "UInt16::shr" {
   fn shr(a : UInt16, b : Int) -> UInt16 {
     a >> b
   }
@@ -312,7 +312,7 @@ test "UInt16::lxor" {
 }
 
 ///|
-test "UInt16::op_mod" {
+test "UInt16::mod" {
   fn mod(a : UInt16, b : UInt16) -> UInt16 {
     a % b
   }
@@ -357,4 +357,58 @@ test "UInt16::to_uint64" {
   inspect(UInt16::to_uint64(65535), content="65535")
   inspect(UInt16::to_uint64(32768), content="32768")
   inspect(UInt16::to_uint64(12345), content="12345")
+}
+
+///|
+test "UInt16::hash_combine" {
+  let hasher = @builtin.Hasher::new(seed=0)
+  let value : UInt16 = 42
+  value.hash_combine(hasher)
+  inspect(hasher.finalize(), content="1161967057")
+}
+
+///|
+test "UInt16::default" {
+  inspect(UInt16::default(), content="0")
+}
+
+///|
+test "UInt16::reinterpret_as_int16" {
+  inspect(UInt16::reinterpret_as_int16(0), content="0")
+  inspect(UInt16::reinterpret_as_int16(1), content="1")
+  inspect(UInt16::reinterpret_as_int16(32768), content="-32768")
+  inspect(UInt16::reinterpret_as_int16(65535), content="-1")
+  inspect(UInt16::reinterpret_as_int16(65534), content="-2")
+  inspect(UInt16::reinterpret_as_int16(12345), content="12345")
+  inspect(UInt16::reinterpret_as_int16(54321), content="-11215")
+}
+
+///|
+test "UInt16::unsafe_to_char" {
+  let c1 = (0x41 : UInt16).unsafe_to_char()
+  inspect(c1.to_int(), content="65")
+  let c2 = (0x61 : UInt16).unsafe_to_char()
+  inspect(c2.to_int(), content="97")
+  let c3 = (0x30 : UInt16).unsafe_to_char()
+  inspect(c3.to_int(), content="48")
+  let c4 = (0x20 : UInt16).unsafe_to_char()
+  inspect(c4.to_int(), content="32")
+}
+
+///|
+test "UInt16::to_char" {
+  // Valid characters in BMP (Basic Multilingual Plane)
+  inspect((0x41 : UInt16).to_char(), content="Some('A')")
+  inspect((0x61 : UInt16).to_char(), content="Some('a')")
+  inspect((0x30 : UInt16).to_char(), content="Some('0')")
+  inspect((0 : UInt16).to_char(), content="Some('\\u{00}')")
+  inspect((0xD7FF : UInt16).to_char(), content="Some('퟿')")
+  // Surrogate range - should return None
+  inspect((0xD800 : UInt16).to_char(), content="None")
+  inspect((0xDBFF : UInt16).to_char(), content="None")
+  inspect((0xDC00 : UInt16).to_char(), content="None")
+  inspect((0xDFFF : UInt16).to_char(), content="None")
+  // Valid characters after surrogate range
+  inspect((0xE000 : UInt16).to_char(), content="Some('\\u{e000}')")
+  inspect((0xFFFF : UInt16).to_char(), content="Some('\\u{ffff}')")
 }

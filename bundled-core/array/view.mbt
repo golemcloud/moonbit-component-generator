@@ -14,39 +14,18 @@
 
 ///|
 ///
-/// A `@array.View` represents a view into a section of an array without copying the data.
+/// A `ArrayView` represents a view into a section of an array without copying the data.
 ///
 /// # Example
 ///
 /// ```moonbit
-///   let arr = [1, 2, 3, 4, 5]
-///   let view = arr[1:4]  // Creates a view of elements at indices 1,2,3
-///   assert_eq(view[0], 2)
-/// assert_eq(view.length(), 3)
+/// let arr = [1, 2, 3, 4, 5]
+/// let view = arr[1:4] // Creates a view of elements at indices 1,2,3
+/// inspect(view[0], content="2")
+/// inspect(view.length(), content="3")
 /// ```
-pub typealias ArrayView as View
-
-///|
-/// Reverses the elements in the array view in place.
-///
-/// Parameters:
-///
-/// * `self` : The array view whose elements are to be reversed.
-///
-/// Example:
-///
-/// ```moonbit
-///   let arr = [1, 2, 3, 4, 5]
-///   arr[:].rev_inplace()
-///   inspect(arr, content="[5, 4, 3, 2, 1]")
-/// ```
-pub fn[T] View::rev_inplace(self : View[T]) -> Unit {
-  let mid_len = self.length() / 2
-  for i in 0..<mid_len {
-    let j = self.length() - i - 1
-    self.swap(i, j)
-  }
-}
+#deprecated
+pub type View[T] = ArrayView[T]
 
 ///|
 /// Iterates over each element in the array view and applies a function to it.
@@ -65,7 +44,10 @@ pub fn[T] View::rev_inplace(self : View[T]) -> Unit {
 ///   arr.each(x => sum = sum + x)
 ///   inspect(sum, content="6")
 /// ```
-pub fn[T] View::each(self : View[T], f : (T) -> Unit raise?) -> Unit raise? {
+pub fn[T] ArrayView::each(
+  self : ArrayView[T],
+  f : (T) -> Unit raise?,
+) -> Unit raise? {
   for v in self {
     f(v)
   }
@@ -80,11 +62,11 @@ pub fn[T] View::each(self : View[T], f : (T) -> Unit raise?) -> Unit raise? {
 ///   let v = [3, 4, 5][:]
 ///   let mut sum = 0
 ///   v.eachi((i, x) => { sum = sum + x + i })
-///   assert_eq(sum, 15)
+///   inspect(sum, content="15")
 /// ```
-pub fn[T] View::eachi(
-  self : View[T],
-  f : (Int, T) -> Unit raise?
+pub fn[T] ArrayView::eachi(
+  self : ArrayView[T],
+  f : (Int, T) -> Unit raise?,
 ) -> Unit raise? {
   for i, v in self {
     f(i, v)
@@ -101,9 +83,12 @@ pub fn[T] View::eachi(
 ///   assert_false(v[:].all(elem => elem % 2 == 0))
 ///   assert_true(v[1:4].all(elem => elem % 2 == 0))
 /// ```
-pub fn[T] View::all(self : View[T], f : (T) -> Bool raise?) -> Bool raise? {
+pub fn[T] ArrayView::all(
+  self : ArrayView[T],
+  f : (T) -> Bool raise?,
+) -> Bool raise? {
   for v in self {
-    if not(f(v)) {
+    if !f(v) {
       return false
     }
   }
@@ -120,7 +105,10 @@ pub fn[T] View::all(self : View[T], f : (T) -> Bool raise?) -> Bool raise? {
 ///   assert_true(v.any(ele => ele < 6))
 ///   assert_false(v.any(ele => ele < 1))
 /// ```
-pub fn[T] View::any(self : View[T], f : (T) -> Bool raise?) -> Bool raise? {
+pub fn[T] ArrayView::any(
+  self : ArrayView[T],
+  f : (T) -> Bool raise?,
+) -> Bool raise? {
   for v in self {
     if f(v) {
       return true
@@ -148,7 +136,7 @@ pub fn[T] View::any(self : View[T], f : (T) -> Bool raise?) -> Bool raise? {
 ///   inspect(arr.contains(3), content="true")
 ///   inspect(arr.contains(6), content="false")
 /// ```
-pub fn[T : Eq] View::contains(self : View[T], value : T) -> Bool {
+pub fn[T : Eq] ArrayView::contains(self : ArrayView[T], value : T) -> Bool {
   for v in self {
     if v == value {
       break true
@@ -177,11 +165,32 @@ pub fn[T : Eq] View::contains(self : View[T], value : T) -> Bool {
 ///   view.iter().each(x => sum = sum + x)
 ///   inspect(sum, content="5")
 /// ```
-pub fn[A] View::iter(self : View[A]) -> Iter[A] {
+pub fn[A] ArrayView::iter(self : ArrayView[A]) -> Iter[A] {
   Iter::new(yield_ => for v in self {
     guard yield_(v) is IterContinue else { break IterEnd }
   } else {
     IterContinue
+  })
+}
+
+///|
+pub fn[X] ArrayView::rev_iterator(self : ArrayView[X]) -> Iterator[X] {
+  let mut i = self.length()
+  Iterator::new(fn() {
+    guard i > 0 else { None }
+    i -= 1
+    Some(self.unsafe_get(i))
+  })
+}
+
+///|
+pub fn[X] ArrayView::iterator2(self : ArrayView[X]) -> Iterator2[Int, X] {
+  let mut i = 0
+  Iterator2::new(fn() {
+    guard i < self.length() else { None }
+    let result = Some((i, self.unsafe_get(i)))
+    i += 1
+    result
   })
 }
 
@@ -202,7 +211,7 @@ pub fn[A] View::iter(self : View[A]) -> Iter[A] {
 ///   inspect(sum, content="5")
 ///   inspect(sum_keys, content="1")
 /// ```
-pub fn[A] View::iter2(self : View[A]) -> Iter2[Int, A] {
+pub fn[A] ArrayView::iter2(self : ArrayView[A]) -> Iter2[Int, A] {
   Iter2::new(yield_ => for i, v in self {
     guard yield_(i, v) is IterContinue else { break IterEnd }
   } else {
@@ -211,17 +220,17 @@ pub fn[A] View::iter2(self : View[A]) -> Iter2[Int, A] {
 }
 
 ///|
-/// Fold out values from an View according to certain rules.
+/// Fold out values from an ArrayView according to certain rules.
 ///
 /// # Example
 /// ```mbt
 ///   let sum = [1, 2, 3, 4, 5][:].fold(init=0, (sum, elem) => sum + elem)
-///   assert_eq(sum, 15)
+///   inspect(sum, content="15")
 /// ```
-pub fn[A, B] View::fold(
-  self : View[A],
+pub fn[A, B] ArrayView::fold(
+  self : ArrayView[A],
   init~ : B,
-  f : (B, A) -> B raise?
+  f : (B, A) -> B raise?,
 ) -> B raise? {
   for i = 0, acc = init; i < self.length(); {
     continue i + 1, f(acc, self[i])
@@ -231,17 +240,17 @@ pub fn[A, B] View::fold(
 }
 
 ///|
-/// Fold out values from an View according to certain rules in reversed turn.
+/// Fold out values from an ArrayView according to certain rules in reversed turn.
 ///
 /// # Example
 /// ```mbt
 ///   let sum = [1, 2, 3, 4, 5][:].rev_fold(init=0, (sum, elem) => sum + elem)
-///   assert_eq(sum, 15)
+///   inspect(sum, content="15")
 /// ```
-pub fn[A, B] View::rev_fold(
-  self : View[A],
+pub fn[A, B] ArrayView::rev_fold(
+  self : ArrayView[A],
   init~ : B,
-  f : (B, A) -> B raise?
+  f : (B, A) -> B raise?,
 ) -> B raise? {
   for i = self.length() - 1, acc = init; i >= 0; {
     continue i - 1, f(acc, self[i])
@@ -251,17 +260,17 @@ pub fn[A, B] View::rev_fold(
 }
 
 ///|
-/// Fold out values from an View according to certain rules with index.
+/// Fold out values from an ArrayView according to certain rules with index.
 ///
 /// # Example
 /// ```mbt
 ///   let sum = [1, 2, 3, 4, 5][:].foldi(init=0, (index, sum, _elem) => sum + index)
-///   assert_eq(sum, 10)
+///   inspect(sum, content="10")
 /// ```
-pub fn[A, B] View::foldi(
-  self : View[A],
+pub fn[A, B] ArrayView::foldi(
+  self : ArrayView[A],
   init~ : B,
-  f : (Int, B, A) -> B raise?
+  f : (Int, B, A) -> B raise?,
 ) -> B raise? {
   for i = 0, acc = init; i < self.length(); {
     continue i + 1, f(i, acc, self[i])
@@ -271,17 +280,17 @@ pub fn[A, B] View::foldi(
 }
 
 ///|
-/// Fold out values from an View according to certain rules in reversed turn with index.
+/// Fold out values from an ArrayView according to certain rules in reversed turn with index.
 ///
 /// # Example
 /// ```mbt
 ///   let sum = [1, 2, 3, 4, 5][:].rev_foldi(init=0, (index, sum, _elem)=> { sum + index })
-///   assert_eq(sum, 10)
+///   inspect(sum, content="10")
 /// ```
-pub fn[A, B] View::rev_foldi(
-  self : View[A],
+pub fn[A, B] ArrayView::rev_foldi(
+  self : ArrayView[A],
   init~ : B,
-  f : (Int, B, A) -> B raise?
+  f : (Int, B, A) -> B raise?,
 ) -> B raise? {
   let len = self.length()
   for i = len - 1, acc = init; i >= 0; {
@@ -300,26 +309,14 @@ pub fn[A, B] View::rev_foldi(
 ///   let v2 = v[1:].map((x) => {x + 1})
 ///   assert_eq(v2, [5, 6])
 /// ```
-pub fn[T, U] View::map(self : View[T], f : (T) -> U raise?) -> Array[U] raise? {
+pub fn[T, U] ArrayView::map(
+  self : ArrayView[T],
+  f : (T) -> U raise?,
+) -> Array[U] raise? {
   if self.length() == 0 {
     return []
   }
   Array::makei(self.length(), i => f(self[i]))
-}
-
-///|
-/// Maps a function over the elements of the array view in place.
-///
-/// # Example
-/// ```mbt
-///   let v = [3, 4, 5]
-///   v[1:].map_inplace((x) => {x + 1})
-///   assert_eq(v, [3, 5, 6])
-/// ```
-pub fn[T] View::map_inplace(self : View[T], f : (T) -> T raise?) -> Unit raise? {
-  for i, v in self {
-    self[i] = f(v)
-  }
 }
 
 ///|
@@ -331,32 +328,14 @@ pub fn[T] View::map_inplace(self : View[T], f : (T) -> T raise?) -> Unit raise? 
 ///   let v2 = v[1:].mapi((i, x) => {x + i})
 ///   assert_eq(v2, [4, 6])
 /// ```
-pub fn[T, U] View::mapi(
-  self : View[T],
-  f : (Int, T) -> U raise?
+pub fn[T, U] ArrayView::mapi(
+  self : ArrayView[T],
+  f : (Int, T) -> U raise?,
 ) -> Array[U] raise? {
   if self.length() == 0 {
     return []
   }
   Array::makei(self.length(), i => f(i, self[i]))
-}
-
-///|
-/// Maps a function over the elements of the array view with index in place.
-///
-/// # Example
-/// ```mbt
-///   let v = [3, 4, 5]
-///   v[1:].mapi_inplace((i, x) => {x + i})
-///   assert_eq(v, [3, 4, 6])
-/// ```
-pub fn[T] View::mapi_inplace(
-  self : View[T],
-  f : (Int, T) -> T raise?
-) -> Unit raise? {
-  for i, v in self {
-    self[i] = f(i, v)
-  }
 }
 
 ///|
@@ -368,9 +347,9 @@ pub fn[T] View::mapi_inplace(
 ///   let v = arr[2:].filter((x) => { x % 2 == 0 })
 ///   assert_eq(v, [4, 6])
 /// ```
-pub fn[T] View::filter(
-  self : View[T],
-  f : (T) -> Bool raise?
+pub fn[T] ArrayView::filter(
+  self : ArrayView[T],
+  f : (T) -> Bool raise?,
 ) -> Array[T] raise? {
   let arr = []
   for v in self {
@@ -390,7 +369,7 @@ pub fn[T] View::filter(
 ///   let arr = view.to_array()
 ///   assert_eq(arr, [3, 4])
 /// ```
-pub fn[T] View::to_array(self : View[T]) -> Array[T] {
+pub fn[T] ArrayView::to_array(self : ArrayView[T]) -> Array[T] {
   let len = self.length()
   if len == 0 {
     []
@@ -413,29 +392,38 @@ pub fn[T] View::to_array(self : View[T]) -> Array[T] {
 ///   let array_view = a[:]
 ///   inspect(array_view.join(","), content="1,2,3")
 /// ```
-pub fn View::join(self : ArrayView[String], separator : @string.View) -> String {
+pub fn[A : @string.ToStringView] ArrayView::join(
+  self : ArrayView[A],
+  separator : StringView,
+) -> String {
   match self {
     [] => ""
     [hd, .. tl] => {
+      let hd = hd.to_string_view()
       let mut size_hint = hd.length()
       for s in tl {
-        size_hint += s.length() + separator.length()
+        size_hint += s.to_string_view().length() + separator.length()
       }
       size_hint = size_hint << 1
       let buf = StringBuilder::new(size_hint~)
-      buf.write_string(hd)
+      // buf.write_string(hd)
+      buf.write_substring(hd.data(), hd.start_offset(), hd.length())
       if separator is "" {
         for s in tl {
-          buf.write_string(s)
+          // buf.write_string(s)
+          let s = s.to_string_view()
+          buf.write_substring(s.data(), s.start_offset(), s.length())
         }
       } else {
         for s in tl {
+          let s = s.to_string_view()
           buf.write_substring(
             separator.data(),
             separator.start_offset(),
             separator.length(),
           )
-          buf.write_string(s)
+          // buf.write_string(s)
+          buf.write_substring(s.data(), s.start_offset(), s.length())
         }
       }
       buf.to_string()
@@ -444,17 +432,17 @@ pub fn View::join(self : ArrayView[String], separator : @string.View) -> String 
 }
 
 ///|
-pub impl[X : Show] Show for View[X] with output(self, logger) {
+pub impl[X : Show] Show for ArrayView[X] with output(self, logger) {
   logger.write_iter(self.iter())
 }
 
 ///|
-pub impl[T : Eq] Eq for View[T] with op_equal(self, other) -> Bool {
+pub impl[T : Eq] Eq for ArrayView[T] with equal(self, other) -> Bool {
   if self.length() != other.length() {
     return false
   }
   for i in 0..<self.length() {
-    if not(self[i] == other[i]) {
+    if !(self[i] == other[i]) {
       return false
     }
   } else {
@@ -463,7 +451,7 @@ pub impl[T : Eq] Eq for View[T] with op_equal(self, other) -> Bool {
 }
 
 ///|
-pub impl[T : Compare] Compare for View[T] with compare(self, other) -> Int {
+pub impl[T : Compare] Compare for ArrayView[T] with compare(self, other) -> Int {
   let len_self = self.length()
   let len_other = other.length()
   let cmp = len_self.compare(len_other)
@@ -477,16 +465,16 @@ pub impl[T : Compare] Compare for View[T] with compare(self, other) -> Int {
 }
 
 ///|
-pub impl[A : Hash] Hash for View[A] with hash_combine(self, hasher) {
+pub impl[A : Hash] Hash for ArrayView[A] with hash_combine(self, hasher) {
   for e in self {
     hasher.combine(e)
   }
 }
 
 ///|
-pub impl[A : @quickcheck.Arbitrary] @quickcheck.Arbitrary for View[A] with arbitrary(
-  size,
-  rs
-) {
-  Array::arbitrary(size, rs)[:]
+fn[T] ArrayView::start(self : ArrayView[T]) -> Int = "%arrayview.start"
+
+///|
+pub fn[T] ArrayView::start_offset(self : Self[T]) -> Int {
+  self.start()
 }

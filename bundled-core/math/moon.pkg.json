@@ -5,7 +5,8 @@
     "moonbitlang/core/float",
     "moonbitlang/core/int",
     "moonbitlang/core/bigint",
-    "moonbitlang/core/random"
+    "moonbitlang/core/random",
+    "moonbitlang/core/array"
   ],
   "targets" : {
     "algebraic_double_js.mbt": ["js"],
@@ -18,6 +19,8 @@
     "pow_double_nonjs.mbt": ["not", "js"],
     "trig_double_js.mbt": ["js"],
     "trig_double_nonjs.mbt": ["not", "js"],
+    "trig_double_sincos_native.mbt": ["native"],
+    "trig_double_sincos_non_native_or_js.mbt": ["not", "js", "native"],
     "hyperbolic_double_js.mbt": ["js"],
     "hyperbolic_double_nonjs.mbt": ["not", "js"],
     "utils.mbt": ["not", "js"]

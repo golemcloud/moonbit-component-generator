@@ -13,6 +13,11 @@
 // limitations under the License.
 
 ///|
+pub impl[X : Show] Show for Ref[X] with output(self, logger) {
+  logger..write_string("{val: ")..write_object(self.val)..write_string("}")
+}
+
+///|
 /// create a reference from value
 pub fn[T] Ref::new(x : T) -> Ref[T] {
   { val: x }
@@ -23,7 +28,8 @@ test "to_string" {
   inspect(new(3), content="{val: 3}")
 }
 
-///| same as `Ref::new`
+///|
+/// same as `Ref::new`
 pub fn[T] new(x : T) -> Ref[T] {
   { val: x }
 }
@@ -36,7 +42,7 @@ pub fn[T] new(x : T) -> Ref[T] {
 /// ```mbt
 ///   assert_eq(@ref.new(1).map((a) => { a + 1 }).val, 2)
 /// ```
-pub fn[T, R] map(self : Ref[T], f : (T) -> R raise?) -> Ref[R] raise? {
+pub fn[T, R] Ref::map(self : Ref[T], f : (T) -> R raise?) -> Ref[R] raise? {
   { val: f(self.val) }
 }
 
@@ -61,7 +67,7 @@ pub fn[T, R] map(self : Ref[T], f : (T) -> R raise?) -> Ref[R] raise? {
 ///   x.protect(2, () => { x.val = 3 })
 ///   assert_eq(x.val, 1)
 /// ```
-pub fn[T, R] protect(self : Ref[T], a : T, f : () -> R raise?) -> R raise? {
+pub fn[T, R] Ref::protect(self : Ref[T], a : T, f : () -> R raise?) -> R raise? {
   let old = self.val
   self.val = a
   try f() catch {
@@ -69,7 +75,7 @@ pub fn[T, R] protect(self : Ref[T], a : T, f : () -> R raise?) -> R raise? {
       self.val = old
       raise err
     }
-  } else {
+  } noraise {
     r => {
       self.val = old
       r
@@ -89,14 +95,12 @@ pub fn[T, R] protect(self : Ref[T], a : T, f : () -> R raise?) -> R raise? {
 ///   assert_eq(x.val, 2)
 ///   assert_eq(y.val, 1)
 /// ```
+#as_free_fn
 pub fn[T] Ref::swap(self : Ref[T], that : Ref[T]) -> Unit {
   let tmp = self.val
   self.val = that.val
   that.val = tmp
 }
-
-///|
-pub fnalias Ref::swap
 
 ///|
 test "swap" {
@@ -108,7 +112,7 @@ test "swap" {
 }
 
 ///|
-pub fn[T] update(self : Ref[T], f : (T) -> T raise?) -> Unit raise? {
+pub fn[T] Ref::update(self : Ref[T], f : (T) -> T raise?) -> Unit raise? {
   self.val = f(self.val)
 }
 
@@ -133,7 +137,7 @@ test "incr" {
 ///|
 pub impl[X : @quickcheck.Arbitrary] @quickcheck.Arbitrary for Ref[X] with arbitrary(
   size,
-  rs
+  rs,
 ) {
   new(X::arbitrary(size, rs))
 }

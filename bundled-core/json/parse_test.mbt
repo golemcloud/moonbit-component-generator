@@ -13,7 +13,8 @@
 // limitations under the License.
 
 ///|
-fn test_parse(input : String, loc~ : SourceLoc = _) -> Json raise Error {
+#callsite(autofill(loc))
+fn test_parse(input : String, loc~ : SourceLoc) -> Json raise Error {
   @json.parse(input) catch {
     err => fail("Parse failed, \{loc}, \{err}")
   }
@@ -30,15 +31,15 @@ test "parses empty object" {
 test "parses object" {
   inspect(
     try? @json.parse("{\"a\":1}"),
-    content=
+    content=(
       #|Ok(Object({"a": Number(1)}))
-    ,
+    ),
   )
   inspect(
     try? @json.parse("{\"a\":1,\"b\":2}"),
-    content=
+    content=(
       #|Ok(Object({"a": Number(1), "b": Number(2)}))
-    ,
+    ),
   )
 }
 
@@ -46,9 +47,9 @@ test "parses object" {
 test "parses multiple properties" {
   inspect(
     try? @json.parse("{\"abc\":1,\"def\":2}"),
-    content=
+    content=(
       #|Ok(Object({"abc": Number(1), "def": Number(2)}))
-    ,
+    ),
   )
 }
 
@@ -56,9 +57,9 @@ test "parses multiple properties" {
 test "parses nested objects" {
   inspect(
     try? @json.parse("{\"a\":{\"b\":2}}"),
-    content=
+    content=(
       #|Ok(Object({"a": Object({"b": Number(2)})}))
-    ,
+    ),
   )
 }
 //endregion
@@ -101,7 +102,7 @@ test "parses nested arrays" {
 ///|
 test "parses nulls" {
   let json = test_parse("null")
-  assert_eq(json, Json::null())
+  assert_eq(json, null)
 }
 //endregion
 
@@ -265,91 +266,33 @@ test "parse unexpected token in array" {
 }
 
 ///|
-test "parse unexpected token in value" {
-  let result = try? @json.parse("{a:1}")
-  inspect(result, content="Err(Invalid character 'a' at line 1, column 1)")
-}
-
-///|
-test "parse unexpected token in object property name" {
-  let result = try? @json.parse("{\"a\":1, b:2}")
-  inspect(result, content="Err(Invalid character 'b' at line 1, column 8)")
-}
-
-///|
-test "parse unexpected token after object property name" {
-  let result = try? @json.parse("{\"a\" b:2}")
-  inspect(result, content="Err(Invalid character 'b' at line 1, column 5)")
-}
-
-///|
-test "parse unexpected token after object value" {
-  let result = try? @json.parse("{\"a\":1 b:2}")
-  inspect(result, content="Err(Invalid character 'b' at line 1, column 7)")
-}
-
-///|
-test "parse unexpected token in array" {
-  let result = try? @json.parse("[1, 2 a]")
-  inspect(result, content="Err(Invalid character 'a' at line 1, column 6)")
-}
-
-///|
-test "parse unexpected token in value" {
-  let result = try? @json.parse("{a:1}")
-  inspect(result, content="Err(Invalid character 'a' at line 1, column 1)")
-}
-
-///|
-test "parse unexpected token in object property name" {
-  let result = try? @json.parse("{\"a\":1, b:2}")
-  inspect(result, content="Err(Invalid character 'b' at line 1, column 8)")
-}
-
-///|
-test "parse unexpected token after object property name" {
-  let result = try? @json.parse("{\"a\" b:2}")
-  inspect(result, content="Err(Invalid character 'b' at line 1, column 5)")
-}
-
-///|
-test "parse unexpected token after object value" {
-  let result = try? @json.parse("{\"a\":1 b:2}")
-  inspect(result, content="Err(Invalid character 'b' at line 1, column 7)")
-}
-
-///|
-test "parse unexpected token in array" {
-  let result = try? @json.parse("[1, 2 a]")
-  inspect(result, content="Err(Invalid character 'a' at line 1, column 6)")
-}
-
-///|
 test "parse multi-lines json" {
   let result = try? @json.parse(
+    (
       #|{
       #|  "a":2,
       #|  "b":3
       #|}
-      ,
-    )
+    ),
+  )
   inspect(
     result,
-    content=
+    content=(
       #|Ok(Object({"a": Number(2), "b": Number(3)}))
-    ,
+    ),
   )
 }
 
 ///|
 test "parse multi-lines json error" {
   let result = try? @json.parse(
+    (
       #|{
       #|  "a":2,
       #|  "b":a
       #|}
-      ,
-    )
+    ),
+  )
   inspect(result, content="Err(Invalid character 'a' at line 3, column 6)")
 }
 
@@ -369,12 +312,24 @@ test "parser error" {
   )
 }
 
-// TODO: fix the error message below
-// test "emojoi" {
-//  inspect(
-//     // test first char is emoji
-//     try? @json.parse("\u{1F600}"),
-
-//     content="Err(Invalid character '�' at line 1, column 1)",
-//   )
-// }
+///|
+test "emoji" {
+  inspect(
+    // test first char is emoji
+    try? @json.parse("\u{1F600}"),
+    content="Err(Invalid character '😀' at line 1, column 0)",
+  )
+  inspect(
+    try? @json.parse("a😀"),
+    content="Err(Invalid character 'a' at line 1, column 0)",
+  )
+  inspect(
+    try? @json.parse("a"),
+    content="Err(Invalid character 'a' at line 1, column 0)",
+  )
+  inspect(
+    // test first char is emoji (standalone emoji)
+    try? @json.parse("😀"),
+    content="Err(Invalid character '😀' at line 1, column 0)",
+  )
+}

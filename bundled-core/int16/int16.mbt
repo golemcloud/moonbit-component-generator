@@ -19,32 +19,32 @@ pub let max_value : Int16 = 32767
 pub let min_value : Int16 = -32768
 
 ///|
-pub impl Add for Int16 with op_add(self : Int16, that : Int16) -> Int16 {
+pub impl Add for Int16 with add(self : Int16, that : Int16) -> Int16 {
   (self.to_int() + that.to_int()).to_int16()
 }
 
 ///|
-pub impl Sub for Int16 with op_sub(self : Int16, that : Int16) -> Int16 {
+pub impl Sub for Int16 with sub(self : Int16, that : Int16) -> Int16 {
   (self.to_int() - that.to_int()).to_int16()
 }
 
 ///|
-pub impl Mul for Int16 with op_mul(self : Int16, that : Int16) -> Int16 {
+pub impl Mul for Int16 with mul(self : Int16, that : Int16) -> Int16 {
   (self.to_int() * that.to_int()).to_int16()
 }
 
 ///|
-pub impl Div for Int16 with op_div(self : Int16, that : Int16) -> Int16 {
+pub impl Div for Int16 with div(self : Int16, that : Int16) -> Int16 {
   (self.to_int() / that.to_int()).to_int16()
 }
 
 ///|
-pub impl Mod for Int16 with op_mod(self : Int16, that : Int16) -> Int16 {
+pub impl Mod for Int16 with mod(self : Int16, that : Int16) -> Int16 {
   (self.to_int() % that.to_int()).to_int16()
 }
 
 ///|
-pub impl Eq for Int16 with op_equal(self, that) {
+pub impl Eq for Int16 with equal(self, that) {
   self.to_int() == that.to_int()
 }
 
@@ -54,22 +54,17 @@ pub impl Compare for Int16 with compare(self, that) {
 }
 
 ///|
-pub impl Hash for Int16 with hash(self) {
-  self.to_int()
-}
-
-///|
 pub impl Hash for Int16 with hash_combine(self, hasher) {
   hasher.combine_int(self.to_int())
 }
 
 ///|
-pub impl Shl for Int16 with op_shl(self : Int16, that : Int) -> Int16 {
+pub impl Shl for Int16 with shl(self : Int16, that : Int) -> Int16 {
   (self.to_int() << that).to_int16()
 }
 
 ///|
-pub impl Shr for Int16 with op_shr(self : Int16, that : Int) -> Int16 {
+pub impl Shr for Int16 with shr(self : Int16, that : Int) -> Int16 {
   (self.to_int() >> that).to_int16()
 }
 
@@ -89,7 +84,7 @@ pub impl BitXOr for Int16 with lxor(self : Int16, that : Int16) -> Int16 {
 }
 
 ///|
-pub impl Neg for Int16 with op_neg(self : Int16) -> Int16 {
+pub impl Neg for Int16 with neg(self : Int16) -> Int16 {
   (-self.to_int()).to_int16()
 }
 
@@ -110,4 +105,10 @@ pub impl Default for Int16 with default() {
 ///|
 pub impl ToJson for Int16 with to_json(self : Int16) -> Json {
   Json::number(self.to_int().to_double())
+}
+
+///|
+/// reinterpret as an unsigned integer with binary complement
+pub fn Int16::reinterpret_as_uint16(self : Int16) -> UInt16 {
+  self.to_int().to_uint16()
 }

@@ -13,31 +13,30 @@
 // limitations under the License.
 
 ///|
-/// A `@bytes.View` represents a view into a section of a `Bytes` without copying the data.
+/// A `BytesView` represents a view into a section of a `Bytes` without copying the data.
 ///
 /// # Example
 /// 
 /// ```mbt
 ///   let bs = b"\x00\x01\x02\x03\x04\x05"
 ///   let bv = bs[1:4]
-///   assert_eq(bv.length(), 3)
+///   inspect(bv.length(), content="3")
 ///   assert_eq(bv[0], b'\x01')
 ///   assert_eq(bv[1], b'\x02')
 ///   assert_eq(bv[2], b'\x03')
 /// ```
-type View
+#builtin.valtype
+#deprecated("Use `BytesView` instead", skip_current_package=false)
+pub type View = BytesView
 
 ///|
-fn View::bytes(self : View) -> Bytes = "%bytesview.bytes"
+fn BytesView::bytes(self : BytesView) -> Bytes = "%bytesview.bytes"
 
 ///|
-fn View::start(self : View) -> Int = "%bytesview.start"
+fn BytesView::start(self : BytesView) -> Int = "%bytesview.start"
 
 ///|
-fn View::len(self : View) -> Int = "%bytesview.len"
-
-///|
-fn View::make(b : Bytes, start : Int, len : Int) -> View = "%bytesview.make"
+fn BytesView::make(b : Bytes, start : Int, len : Int) -> BytesView = "%bytesview.make"
 
 ///|
 /// Returns the number of bytes in the view.
@@ -55,9 +54,12 @@ fn View::make(b : Bytes, start : Int, len : Int) -> View = "%bytesview.make"
 ///   let view = bytes[2:4]
 ///   inspect(view.length(), content="2")
 /// ```
-pub fn View::length(self : View) -> Int {
+pub fn BytesView::length(self : BytesView) -> Int {
   self.len()
 }
+
+///|
+fn BytesView::len(self : BytesView) -> Int = "%bytesview.len"
 
 ///|
 /// Retrieves a byte from the view at the specified index.
@@ -76,10 +78,11 @@ pub fn View::length(self : View) -> Int {
 ///   let view = bytes[1:4] // view contains [0x02, 0x03, 0x04]
 ///   inspect(view[1], content="b'\\x03'")
 /// ```
-pub fn View::op_get(self : View, index : Int) -> Byte {
-  guard index >= 0 && index < self.len() else {
+#alias("_[_]")
+pub fn BytesView::at(self : BytesView, index : Int) -> Byte {
+  guard index >= 0 && index < self.length() else {
     abort(
-      "index out of bounds: the len is from 0 to \{self.len()} but the index is \{index}",
+      "index out of bounds: the len is from 0 to \{self.length()} but the index is \{index}",
     )
   }
   self.bytes()[self.start() + index]
@@ -107,8 +110,8 @@ pub fn View::op_get(self : View, index : Int) -> Byte {
 ///   let result = view.get(5)
 ///   inspect(result, content="None")
 /// ```
-pub fn View::get(self : View, index : Int) -> Byte? {
-  guard index >= 0 && index < self.len() else { None }
+pub fn BytesView::get(self : BytesView, index : Int) -> Byte? {
+  guard index >= 0 && index < self.length() else { None }
   Some(self.bytes().unsafe_get(self.start() + index))
 }
 
@@ -136,7 +139,8 @@ pub fn View::get(self : View, index : Int) -> Byte? {
 /// ```
 ///
 #internal(unsafe, "Panic if index is out of bounds")
-pub fn View::unsafe_get(self : View, index : Int) -> Byte {
+#doc(hidden)
+pub fn BytesView::unsafe_get(self : BytesView, index : Int) -> Byte {
   self.bytes()[self.start() + index]
 }
 
@@ -148,12 +152,13 @@ pub fn View::unsafe_get(self : View, index : Int) -> Byte {
 /// ```mbt
 ///   let bs = b"\x00\x01\x02\x03\x04\x05"
 ///   let bv = bs[1:4]
-///   assert_eq(bv.length(), 3)
+///   inspect(bv.length(), content="3")
 ///   assert_eq(bv[0], b'\x01')
 ///   assert_eq(bv[1], b'\x02')
 ///   assert_eq(bv[2], b'\x03')
 /// ```
-pub fn Bytes::op_as_view(self : Bytes, start~ : Int = 0, end? : Int) -> View {
+#alias("_[_:_]")
+pub fn Bytes::sub(self : Bytes, start? : Int = 0, end? : Int) -> BytesView {
   let len = self.length()
   let end = match end {
     None => len
@@ -163,7 +168,7 @@ pub fn Bytes::op_as_view(self : Bytes, start~ : Int = 0, end? : Int) -> View {
   guard start >= 0 && start <= end && end <= len else {
     abort("Invalid index for View")
   }
-  View::make(self, start, end - start)
+  BytesView::make(self, start, end - start)
 }
 
 ///|
@@ -174,10 +179,15 @@ pub fn Bytes::op_as_view(self : Bytes, start~ : Int = 0, end? : Int) -> View {
 /// ```mbt
 ///   let bv = b"\x00\x01\x02\x03\x04\x05"[:]
 ///   let bv2 = bv[1:4]
-///   assert_eq(bv2.length(), 3)
+///   inspect(bv2.length(), content="3")
 ///   assert_eq(bv2[1], b'\x02')
 /// ```
-pub fn View::op_as_view(self : View, start~ : Int = 0, end? : Int) -> View {
+#alias("_[_:_]")
+pub fn BytesView::sub(
+  self : BytesView,
+  start? : Int = 0,
+  end? : Int,
+) -> BytesView {
   let len = self.length()
   let end = match end {
     None => len
@@ -187,7 +197,7 @@ pub fn View::op_as_view(self : View, start~ : Int = 0, end? : Int) -> View {
   guard start >= 0 && start <= end && end <= len else {
     abort("Invalid index for View")
   }
-  View::make(self.bytes(), self.start() + start, end - start)
+  BytesView::make(self.bytes(), self.start() + start, end - start)
 }
 
 ///|
@@ -199,13 +209,84 @@ pub fn View::op_as_view(self : View, start~ : Int = 0, end? : Int) -> View {
 ///   let bv = b"\x00\x01\x02\x03\x04\x05"[:]
 ///   let mut sum = 0
 ///   bv.iter().each((x) => { sum = sum + x.to_int() })
-///   assert_eq(sum, 15)
+///   inspect(sum, content="15")
 /// ```
-pub fn View::iter(self : View) -> Iter[Byte] {
-  Iter::new(yield_ => for i in 0..<self.len() {
+pub fn BytesView::iter(self : BytesView) -> Iter[Byte] {
+  Iter::new(yield_ => for i in 0..<self.length() {
     guard yield_(self[i]) is IterContinue else { break IterEnd }
   } else {
     IterContinue
+  })
+}
+
+///|
+/// Creates an iterator that yields tuples of index and byte,
+/// indices start from 0.
+/// 
+/// # Example
+/// 
+/// ```mbt
+///   let bv = b"\x00\x01\x02\x03\x04\x05"[:]
+///   let mut sum = 0
+///   bv.iter2().each((i, x) => { sum = sum + i + x.to_int() })
+///   inspect(sum, content="30")
+/// ```
+pub fn BytesView::iter2(self : BytesView) -> Iter2[Int, Byte] {
+  Iter2::new(yield_ => for i in 0..<self.length() {
+    if yield_(i, self[i]) is IterEnd {
+      break IterEnd
+    }
+  } else {
+    IterContinue
+  })
+}
+
+///|
+/// Returns an iterator over the `View`.
+/// 
+/// # Example
+/// 
+/// ```mbt
+///   let bv = b"\x00\x01\x02\x03\x04\x05"[:]
+///   let mut sum = 0
+///   bv.iterator().each((x) => { sum = sum + x.to_int() })
+///   inspect(sum, content="15")
+/// ```
+pub fn BytesView::iterator(self : BytesView) -> Iterator[Byte] {
+  let mut i = 0
+  let len = self.length()
+  Iterator::new(fn() {
+    guard i < len else { None }
+    let result = self.unsafe_get(i)
+    i += 1
+    Some(result)
+  })
+}
+
+///|
+/// Returns an iterator over the `View` with index.
+/// 
+/// Example:
+///
+/// ```moonbit
+///   let buf = StringBuilder::new(size_hint=5)
+///   let keys = []
+///   let it = b"abcde"[:].iterator2()
+///   while it.next() is Some((i, x)) {
+///     buf.write_string(x.to_string())
+///     keys.push( i )
+///   }
+///   inspect(buf, content="b'\\x61'b'\\x62'b'\\x63'b'\\x64'b'\\x65'")
+///   inspect(keys, content="[0, 1, 2, 3, 4]")
+/// ```
+pub fn BytesView::iterator2(self : BytesView) -> Iterator2[Int, Byte] {
+  let mut i = 0
+  let len = self.length()
+  Iterator2::new(fn() {
+    guard i < len else { None }
+    let result = (i, self.unsafe_get(i))
+    i += 1
+    Some(result)
   })
 }
 
@@ -223,10 +304,12 @@ pub fn View::iter(self : View) -> Iter[Byte] {
 /// Example:
 ///
 /// ```moonbit
-///   let bytes = b"\x12\x34\x56\x78"[:]
-///   inspect(bytes.to_uint_be(), content="305419896") // 0x12345678
+///   let bytes = b"\x12\x34\x56\x78"
+///   guard bytes is [u32be(x),..]
+///   inspect(x, content="305419896") // 0x12345678
 /// ```
-pub fn View::to_uint_be(self : View) -> UInt {
+#deprecated(skip_current_package=false, "Use bits pattern directly")
+pub fn BytesView::to_uint_be(self : BytesView) -> UInt {
   (self[0].to_uint() << 24) +
   (self[1].to_uint() << 16) +
   (self[2].to_uint() << 8) +
@@ -251,11 +334,12 @@ pub fn View::to_uint_be(self : View) -> UInt {
 /// Example:
 ///
 /// ```moonbit
-///   let bytes = b"\x01\x02\x03\x04"
-///   let view = bytes[:]
-///   inspect(view.to_uint_le(), content="67305985") // 0x04030201
+/// let bytes = b"\x01\x02\x03\x04"
+/// guard bytes is [u32le(x),..]
+/// inspect(x, content="67305985") // 0x04030201
 /// ```
-pub fn View::to_uint_le(self : View) -> UInt {
+#deprecated(skip_current_package=false, "Use bits pattern directly")
+pub fn BytesView::to_uint_le(self : BytesView) -> UInt {
   self[0].to_uint() +
   (self[1].to_uint() << 8) +
   (self[2].to_uint() << 16) +
@@ -282,10 +366,12 @@ pub fn View::to_uint_le(self : View) -> UInt {
 /// Example:
 ///
 /// ```moonbit
-///   let bytes = b"\x01\x23\x45\x67\x89\xAB\xCD\xEF"[:]
-///   inspect(bytes.to_uint64_be(), content="81985529216486895")
+///   let bytes = b"\x01\x23\x45\x67\x89\xAB\xCD\xEF"
+///   guard bytes is [u64be(x),..]
+///   inspect(x, content="81985529216486895")
 /// ```
-pub fn View::to_uint64_be(self : View) -> UInt64 {
+#deprecated(skip_current_package=false, "Use bits pattern directly")
+pub fn BytesView::to_uint64_be(self : BytesView) -> UInt64 {
   (self[0].to_uint().to_uint64() << 56) +
   (self[1].to_uint().to_uint64() << 48) +
   (self[2].to_uint().to_uint64() << 40) +
@@ -317,10 +403,12 @@ pub fn View::to_uint64_be(self : View) -> UInt64 {
 /// Example:
 ///
 /// ```moonbit
-///   let bytes = b"\x01\x02\x03\x04\x05\x06\x07\x08"[:]
-///   inspect(bytes.to_uint64_le(), content="578437695752307201")
+///   let bytes = b"\x01\x02\x03\x04\x05\x06\x07\x08"
+///   guard bytes is [u64le(x),..]
+///   inspect(x, content="578437695752307201")
 /// ```
-pub fn View::to_uint64_le(self : View) -> UInt64 {
+#deprecated(skip_current_package=false, "Use bits pattern directly")
+pub fn BytesView::to_uint64_le(self : BytesView) -> UInt64 {
   self[0].to_uint().to_uint64() +
   (self[1].to_uint().to_uint64() << 8) +
   (self[2].to_uint().to_uint64() << 16) +
@@ -352,7 +440,7 @@ pub fn View::to_uint64_le(self : View) -> UInt64 {
 ///   let bytes = b"\x80\x00\x00\x00"[:] // Represents -2147483648 in two's complement
 ///   inspect(bytes.to_int_be(), content="-2147483648")
 /// ```
-pub fn View::to_int_be(self : View) -> Int {
+pub fn BytesView::to_int_be(self : BytesView) -> Int {
   self.to_uint_be().reinterpret_as_int()
 }
 
@@ -378,7 +466,7 @@ pub fn View::to_int_be(self : View) -> Int {
 ///   let view = bytes[:]
 ///   inspect(view.to_int_le(), content="305419896") // 0x12345678 in decimal
 /// ```
-pub fn View::to_int_le(self : View) -> Int {
+pub fn BytesView::to_int_le(self : BytesView) -> Int {
   self.to_uint_le().reinterpret_as_int()
 }
 
@@ -400,7 +488,7 @@ pub fn View::to_int_le(self : View) -> Int {
 ///   let bytes = b"\x80\x00\x00\x00\x00\x00\x00\x00"[:] // Most negative 64-bit integer
 ///   inspect(bytes.to_int64_be(), content="-9223372036854775808")
 /// ```
-pub fn View::to_int64_be(self : View) -> Int64 {
+pub fn BytesView::to_int64_be(self : BytesView) -> Int64 {
   self.to_uint64_be().reinterpret_as_int64()
 }
 
@@ -424,7 +512,7 @@ pub fn View::to_int64_be(self : View) -> Int64 {
 ///   let view = bytes[:]
 ///   inspect(view.to_int64_le(), content="578437695752307201")
 /// ```
-pub fn View::to_int64_le(self : View) -> Int64 {
+pub fn BytesView::to_int64_le(self : BytesView) -> Int64 {
   self.to_uint64_le().reinterpret_as_int64()
 }
 
@@ -445,12 +533,13 @@ pub fn View::to_int64_le(self : View) -> Int64 {
 ///
 /// ```moonbit
 ///   let bytes = b"\x40\x48\xF5\xC3" // Represents 3.14 in IEEE 754 format
-///   let view = bytes[:]
-///   let float = view.to_float_be()
+///   guard bytes is [u32be(bits),..]
+///   let float = bits.reinterpret_as_float()
 ///   // Convert to double for comparison since Float doesn't implement Show
 ///   inspect(float.to_double(), content="3.140000104904175")
 /// ```
-pub fn View::to_float_be(self : View) -> Float {
+#deprecated(skip_current_package=false, "Use bits pattern directly")
+pub fn BytesView::to_float_be(self : BytesView) -> Float {
   self.to_uint_be().reinterpret_as_float()
 }
 
@@ -469,10 +558,12 @@ pub fn View::to_float_be(self : View) -> Float {
 ///
 /// ```moonbit
 ///   let bytes = b"\x00\x00\x80\x3F" // Represents 1.0 in little-endian IEEE-754
-///   let f = bytes[:].to_float_le()
+///   guard bytes is [u32le(bits),..]
+///   let f = bits.reinterpret_as_float()
 ///   inspect(f.to_double(), content="1")
 /// ```
-pub fn View::to_float_le(self : View) -> Float {
+#deprecated(skip_current_package=false, "Use bits pattern directly")
+pub fn BytesView::to_float_le(self : BytesView) -> Float {
   self.to_uint_le().reinterpret_as_float()
 }
 
@@ -494,10 +585,11 @@ pub fn View::to_float_le(self : View) -> Float {
 /// ```moonbit
 ///   // Bytes representing 1.0 in IEEE 754 double-precision format (big-endian)
 ///   let bytes = b"\x3F\xF0\x00\x00\x00\x00\x00\x00"
-///   let view = bytes[:]
-///   inspect(view.to_double_be(), content="1")
+///   guard bytes is [u64be(bits),..]
+///   inspect(bits.reinterpret_as_double(), content="1")
 /// ```
-pub fn View::to_double_be(self : View) -> Double {
+#deprecated(skip_current_package=false, "Use bits pattern directly")
+pub fn BytesView::to_double_be(self : BytesView) -> Double {
   self.to_uint64_be().reinterpret_as_double()
 }
 
@@ -517,32 +609,30 @@ pub fn View::to_double_be(self : View) -> Double {
 ///
 /// ```moonbit
 ///   let bytes = b"\x00\x00\x00\x00\x00\x00\xF0\x3F" // represents 1.0 in little-endian
-///   let view = bytes[:]
-///   inspect(view.to_double_le(), content="1")
+///   guard bytes is [u64le(bits),..]
+///   inspect(bits.reinterpret_as_double(), content="1")
 /// ```
-pub fn View::to_double_le(self : View) -> Double {
+#deprecated(skip_current_package=false, "Use bits pattern directly")
+pub fn BytesView::to_double_le(self : BytesView) -> Double {
   self.to_uint64_le().reinterpret_as_double()
 }
 
 ///|
-pub impl Show for View with output(self, logger) {
-  fn to_hex_digit(i : Int) -> Char {
-    if i < 10 {
-      ('0'.to_int() + i).unsafe_to_char()
+pub impl Show for BytesView with output(self, logger) {
+  logger.write_string("b\"")
+  for byte in self {
+    if byte is (' '..='~') && byte != '"' && byte != '\\' {
+      logger.write_char(byte.to_char())
     } else {
-      ('a'.to_int() + (i - 10)).unsafe_to_char()
+      logger..write_string("\\x")..write_string(byte.to_hex())
     }
   }
-
-  logger.write_string("b\"")
-  for i in 0..<self.len() {
-    let byte = self[i].to_int()
-    logger
-    ..write_string("\\x")
-    ..write_char(to_hex_digit(byte / 16))
-    ..write_char(to_hex_digit(byte % 16))
-  }
   logger.write_string("\"")
+}
+
+///|
+pub impl Show for Bytes with output(self, logger) {
+  BytesView::output(self[:], logger)
 }
 
 ///|
@@ -563,16 +653,16 @@ pub impl Show for View with output(self, logger) {
 ///   inspect(bytes[0:3] == bytes[2:5], content="false")
 ///   inspect(bytes[0:4] == bytes[3:6], content="false")
 /// ```
-pub impl Eq for View with op_equal(self, other) -> Bool {
-  guard self.len() == other.len() else { return false }
-  for i in 0..<self.len() {
+pub impl Eq for BytesView with equal(self, other) -> Bool {
+  guard self.length() == other.length() else { return false }
+  for i in 0..<self.length() {
     guard self.unsafe_get(i) == other.unsafe_get(i) else { return false }
   }
   true
 }
 
 ///|
-/// Compares two views lexicographically. First compares the lengths of
+/// Compares two views based on shortlex order. First compares the lengths of
 /// the views, then compares bytes pairwise until a difference is found or
 /// all bytes have been compared.
 ///
@@ -597,9 +687,9 @@ pub impl Eq for View with op_equal(self, other) -> Bool {
 ///   inspect(bytes[0:3].compare(bytes[0:4]), content="-1") // abc < abca
 ///   inspect(bytes[1:5].compare(bytes[2:5]), content="1")  // bcab > cab
 /// ```
-pub impl Compare for View with compare(self, other) -> Int {
-  let self_len = self.len()
-  let other_len = other.len()
+pub impl Compare for BytesView with compare(self, other) -> Int {
+  let self_len = self.length()
+  let other_len = other.length()
   let cmp = self_len.compare(other_len)
   guard cmp == 0 else { return cmp }
   for i in 0..<self_len {
@@ -613,22 +703,45 @@ pub impl Compare for View with compare(self, other) -> Int {
 
 ///|
 /// Retrieves the underlying `Bytes` from a `View`.
-pub fn View::data(self : View) -> Bytes {
+pub fn BytesView::data(self : BytesView) -> Bytes {
   self.bytes()
 }
 
 ///|
 /// Retrieves the start index of the view.
-pub fn View::start_offset(self : View) -> Int {
+pub fn BytesView::start_offset(self : BytesView) -> Int {
   self.start()
 }
 
 ///|
-pub fn View::to_bytes(self : View) -> Bytes {
-  if self.len() == 0 && self.len() == self.bytes().length() {
+pub fn BytesView::to_bytes(self : BytesView) -> Bytes {
+  if self.length() == self.bytes().length() {
+    // If the view covers the entire bytes, return the original bytes to avoid copying
     return self.bytes()
   }
-  let bytes = FixedArray::make(self.len(), (0 : Byte))
-  bytes.blit_from_bytes(0, self.bytes(), self.start_offset(), self.len())
+  let bytes = FixedArray::make(self.length(), (0 : Byte))
+  bytes.blit_from_bytes(0, self.bytes(), self.start_offset(), self.length())
   unsafe_to_bytes(bytes)
+}
+
+///|
+pub impl ToJson for BytesView with to_json(self) -> Json {
+  let sb = StringBuilder::new()
+  for byte in self {
+    if byte is (' '..='~') && byte != '"' && byte != '\\' {
+      sb.write_char(byte.to_char())
+    } else {
+      sb..write_string("\\x")..write_string(byte.to_hex())
+    }
+  }
+  Json::string(sb.to_string())
+}
+
+///|
+/// Converts a `Bytes` value to a JSON representation.
+/// The representation is picked for easier debugging.
+/// Printable ASCII characters (from space to tilde, excluding '"' and '\') are output as-is.
+/// All other bytes are represented as \xHH, where HH is the two-digit hexadecimal value of the byte.
+pub impl ToJson for Bytes with to_json(self : Bytes) -> Json {
+  BytesView::to_json(self[:])
 }

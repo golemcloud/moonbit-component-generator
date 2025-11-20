@@ -14,9 +14,9 @@
 
 ///|
 test "remove on empty set" {
-  let set : @sorted_set.T[Int] = @sorted_set.new()
+  let set : @sorted_set.SortedSet[Int] = @sorted_set.new()
   set.remove(0)
-  inspect(set.size(), content="0")
+  inspect(set.length(), content="0")
 }
 
 ///|
@@ -75,7 +75,7 @@ test "each" {
   let result = StringBuilder::new(size_hint=10)
   set.each(x => result.write_string(x.to_string()))
   inspect(result.to_string(), content="123456789")
-  let set : @sorted_set.T[Int] = @sorted_set.new()
+  let set : @sorted_set.SortedSet[Int] = @sorted_set.new()
   set.each(_x => abort("Impossible to reach"))
 }
 
@@ -98,6 +98,39 @@ test "iter" {
 }
 
 ///|
+test "iterator" {
+  let set = @sorted_set.from_array([3, 2, 1])
+  inspect(set.iterator().collect(), content="[1, 2, 3]")
+  inspect(set.iterator().take(2).collect(), content="[1, 2]")
+}
+
+///|
+test "iter early termination in left subtree" {
+  // This test should trigger the uncovered line 381 in sorted_set/set.mbt
+  // We need a tree structure where the iterator terminates while traversing the left subtree
+  let set = @sorted_set.from_array([5, 3, 7, 1, 4, 6, 8])
+  let mut count = 0
+  let mut found_target = false
+
+  // Create an iterator that terminates when it finds value 3
+  // Since the tree is sorted and 3 is in the left subtree of 5,
+  // this should cause go(left) to return IterEnd, triggering line 381
+  let _ = set
+    .iter()
+    .run(x => {
+      count += 1
+      if x == 3 {
+        found_target = true
+        IterEnd // This should propagate up and trigger the uncovered line
+      } else {
+        IterContinue
+      }
+    })
+  inspect(found_target, content="true")
+  inspect(count, content="2") // Should visit 1, then 3 and terminate
+}
+
+///|
 test "contains" {
   let set = @sorted_set.from_array([7, 2, 9, 4, 6, 3, 8, 1])
   inspect(set.contains(5), content="false")
@@ -117,7 +150,7 @@ test "to_array" {
     content="[1, 2, 3, 4, 5, 6, 7, 8, 9]",
   )
   inspect(
-    (@sorted_set.from_array([]) : @sorted_set.T[Int]).to_array(),
+    (@sorted_set.from_array([]) : @sorted_set.SortedSet[Int]).to_array(),
     content="[]",
   )
 }
@@ -129,7 +162,7 @@ test "to_string" {
     content="@sorted_set.from_array([1, 2, 3, 4, 5])",
   )
   inspect(
-    (@sorted_set.from_array([]) : @sorted_set.T[Int]),
+    (@sorted_set.from_array([]) : @sorted_set.SortedSet[Int]),
     content="@sorted_set.from_array([])",
   )
 }
@@ -145,7 +178,7 @@ test "from_array" {
 ///|
 test "is_empty" {
   inspect(
-    (@sorted_set.from_array([]) : @sorted_set.T[Int]).is_empty(),
+    (@sorted_set.from_array([]) : @sorted_set.SortedSet[Int]).is_empty(),
     content="true",
   )
   inspect(@sorted_set.from_array([1]).is_empty(), content="false")
@@ -153,14 +186,17 @@ test "is_empty" {
 
 ///|
 test "size" {
-  inspect(@sorted_set.from_array([1, 2, 3, 4, 5]).size(), content="5")
-  inspect(@sorted_set.from_array([1]).size(), content="1")
-  inspect((@sorted_set.from_array([]) : @sorted_set.T[Int]).size(), content="0")
+  inspect(@sorted_set.from_array([1, 2, 3, 4, 5]).length(), content="5")
+  inspect(@sorted_set.from_array([1]).length(), content="1")
+  inspect(
+    (@sorted_set.from_array([]) : @sorted_set.SortedSet[Int]).length(),
+    content="0",
+  )
 }
 
 ///|
 test "singleton" {
-  inspect(@sorted_set.singleton(1).size(), content="1")
+  inspect(@sorted_set.singleton(1).length(), content="1")
   inspect(@sorted_set.singleton(1).contains(1), content="true")
   inspect(@sorted_set.singleton(1).contains(2), content="false")
 }
@@ -169,7 +205,7 @@ test "singleton" {
 test "show" {
   let set = @sorted_set.from_array([1, 2, 3, 4, 5])
   inspect(set, content="@sorted_set.from_array([1, 2, 3, 4, 5])")
-  let set : @sorted_set.T[Int] = @sorted_set.from_array([])
+  let set : @sorted_set.SortedSet[Int] = @sorted_set.from_array([])
   inspect(set, content="@sorted_set.from_array([])")
 }
 
@@ -191,7 +227,7 @@ test "mix_everything" {
   inspect(set1.subset(set3), content="true")
   set3.remove(3)
   inspect(set3, content="@sorted_set.from_array([1, 2, 4, 5, 6, 7, 8])")
-  inspect(set3.size(), content="7")
+  inspect(set3.length(), content="7")
   inspect(set3.is_empty(), content="false")
   inspect(set3.contains(1), content="true")
   inspect(set3.contains(3), content="false")
@@ -226,7 +262,7 @@ test "mix_everything" {
 }
 
 ///|
-test "op_equal" {
+test "equal" {
   let a = @sorted_set.from_array([1, 2, 3])
   let b = @sorted_set.from_array([4, 5, 6])
   inspect(a == a, content="true")
@@ -257,7 +293,35 @@ test "from_iter single element iter" {
 
 ///|
 test "from_iter empty iter" {
-  let pq : @sorted_set.T[Int] = @sorted_set.from_iter(Iter::empty())
+  let pq : @sorted_set.SortedSet[Int] = @sorted_set.from_iter(Iter::empty())
+  inspect(pq, content="@sorted_set.from_array([])")
+}
+
+///|
+test "from_iterator multiple elements iter" {
+  inspect(
+    @sorted_set.from_iterator([1, 2, 3].iterator()),
+    content="@sorted_set.from_array([1, 2, 3])",
+  )
+  inspect(
+    @sorted_set.from_iterator([1, 1, 1].iterator()),
+    content="@sorted_set.from_array([1])",
+  )
+}
+
+///|
+test "from_iterator single element iter" {
+  inspect(
+    @sorted_set.from_iterator([1].iterator()),
+    content="@sorted_set.from_array([1])",
+  )
+}
+
+///|
+test "from_iterator empty iter" {
+  let pq : @sorted_set.SortedSet[Int] = @sorted_set.from_iterator(
+    Iterator::empty(),
+  )
   inspect(pq, content="@sorted_set.from_array([])")
 }
 

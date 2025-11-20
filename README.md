@@ -67,19 +67,15 @@ fn main() {
 
 ## Development
 
-- `moonc_wasm` is a cloned and patched version of https://github.com/moonbitlang/moonc_wasm to make it library crate.
+- `src/moonc_wasm` is a cloned and patched version of https://github.com/moonbitlang/moonc_wasm as the published one does not properly export its functions.
 - `core` is a git submodule containing the MoonBit core library (https://github.com/moonbitlang/core)
 - `bundled-core` is the MoonBit core library (source and compiled for wasm), included in this repository to avoid users of the crate from having to build `core` themselves.
 
 To update and build the MoonBit core library:
 
-**NOTE**: requires the 0.6.19 version of MoonBit currently
-
-```
-curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
-git submodule update --recursive
-./update-bundle.sh
-```
+- See (and update) the printed moonbit version in `build.rs`
+- curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.32+6f48aae3f
+- `Use ./update-bundle.sh
 
 The bundled core library is included in the compiled crate using the `include_dir!` macro.
 It is also pushed into the repository (`bundled-core` directory) to avoid users of the crate from having to build the MoonBit core themselves as part

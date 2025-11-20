@@ -7,6 +7,7 @@ This package provides operations for working with 64-bit signed integers (`Int64
 `Int64` values can be created from regular 32-bit integers using `from_int`. The package also provides constants for the maximum and minimum values representable by `Int64`.
 
 ```moonbit
+///|
 test "basic operations" {
   let i : Int64 = -12345L // Int64 literal
   // You can also convert from an `Int` like so:
@@ -26,6 +27,7 @@ test "basic operations" {
 The package provides functions to convert `Int64` values to their binary representation in both big-endian and little-endian byte order:
 
 ```moonbit
+///|
 test "binary conversion" {
   let x = 258L // Int64 value of 258
   let be_bytes = x.to_be_bytes()
@@ -34,15 +36,15 @@ test "binary conversion" {
   // Convert to String for inspection
   inspect(
     be_bytes.to_string(),
-    content=
+    content=(
       #|b"\x00\x00\x00\x00\x00\x00\x01\x02"
-    ,
+    ),
   )
   inspect(
     le_bytes.to_string(),
-    content=
+    content=(
       #|b"\x02\x01\x00\x00\x00\x00\x00\x00"
-    ,
+    ),
   )
 
   // We can verify they represent the same number but in different byte orders
@@ -56,6 +58,7 @@ test "binary conversion" {
 All operations are also available as methods on `Int64` values:
 
 ```moonbit
+///|
 test "method style" {
   let x = -42L
 
@@ -65,9 +68,9 @@ test "method style" {
   // Binary conversions as methods
   inspect(
     x.to_be_bytes(),
-    content=
+    content=(
       #|b"\xff\xff\xff\xff\xff\xff\xff\xd6"
-    ,
+    ),
   )
 }
 ```

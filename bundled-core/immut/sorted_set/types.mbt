@@ -18,7 +18,8 @@
 
 ///|
 /// ImmutableSets are represented by balanced binary trees (the heights of the children differ by at most 2).
-enum T[A] {
+#alias(T, deprecated)
+enum SortedSet[A] {
   Empty
-  Node(left~ : T[A], right~ : T[A], size~ : Int, value~ : A)
+  Node(left~ : SortedSet[A], right~ : SortedSet[A], size~ : Int, value~ : A)
 }

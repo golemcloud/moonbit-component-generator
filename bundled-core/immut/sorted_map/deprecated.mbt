@@ -13,55 +13,50 @@
 // limitations under the License.
 
 ///|
-/// Create a new map with a key-value pair inserted.
-/// O(log n).
-///
-#deprecated("Use `add` instead")
+/// Ts over the values in the map.
+#deprecated("Use `map_with_key` instead. `map` will accept `(K, X) -> Y` in the future.", skip_current_package=false)
 #coverage.skip
-pub fn[K : Compare, V] insert(self : T[K, V], key : K, value : V) -> T[K, V] {
-  self.add(key, value)
+pub fn[K, X, Y] SortedMap::map(
+  self : SortedMap[K, X],
+  f : (X) -> Y,
+) -> SortedMap[K, Y] {
+  self.map_with_key((_, value) => f(value))
 }
 
 ///|
-#deprecated("use `@immut/sorted_map.new` instead")
-#coverage.skip
-pub fn[K, V] T::new() -> T[K, V] {
-  Empty
+/// Fold the values in the map.
+/// O(n).
+#deprecated("Use `foldl_with_key` instead. `fold` will accept `(A, K, V) -> A` in the future.", skip_current_package=false)
+pub fn[K, V, A] SortedMap::fold(
+  self : SortedMap[K, V],
+  init~ : A,
+  f : (A, V) -> A,
+) -> A {
+  self.foldl_with_key((acc, _k, v) => f(acc, v), init~)
 }
 
 ///|
-#deprecated("use `@immut/sorted_map.singleton` instead")
+/// Return all keys of the map in ascending order.
+#deprecated("Use `keys_as_iter` instead. `keys` will return `Iter[K]` instead of `Array[K]` in the future.", skip_current_package=false)
 #coverage.skip
-pub fn[K, V] T::singleton(key : K, value : V) -> T[K, V] {
-  singleton(key, value)
+pub fn[K, V] SortedMap::keys(self : SortedMap[K, V]) -> Array[K] {
+  self.iter().map(p => p.0).collect()
 }
 
 ///|
-#deprecated("use `@immut/sorted_map.from_array` instead")
+#deprecated("Use `values` instead", skip_current_package=false)
 #coverage.skip
-pub fn[K : Compare, V] T::from_array(array : Array[(K, V)]) -> T[K, V] {
-  from_array(array)
+pub fn[K, V] SortedMap::elems(self : SortedMap[K, V]) -> Array[V] {
+  self.values().collect()
 }
 
 ///|
-#deprecated("use `@immut/sorted_map.from_iter` instead")
+/// Filter values that satisfy the predicate
+#deprecated("Use `filter_with_key` instead. `filter` will accept `(K, V) -> Bool` in the future.", skip_current_package=false)
 #coverage.skip
-pub fn[K : Compare, V] T::from_iter(iter : Iter[(K, V)]) -> T[K, V] {
-  from_iter(iter)
-}
-
-///|
-#deprecated("use `@immut/sorted_map.of` instead")
-#coverage.skip
-pub fn[K : Compare, V] T::of(array : FixedArray[(K, V)]) -> T[K, V] {
-  of(array)
-}
-
-///|
-#deprecated("use `@immut/sorted_map.from_json` instead")
-#coverage.skip
-pub fn[V : @json.FromJson] T::from_json(
-  json : Json
-) -> T[String, V] raise @json.JsonDecodeError {
-  @json.from_json(json)
+pub fn[K, V] SortedMap::filter(
+  self : SortedMap[K, V],
+  pred : (V) -> Bool raise?,
+) -> SortedMap[K, V] raise? {
+  self.filter_with_key((_, v) => pred(v))
 }

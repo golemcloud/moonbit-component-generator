@@ -13,8 +13,8 @@
 // limitations under the License.
 
 ///|
-test "op_get with existing key" {
-  let map = @sorted_map.of([
+test "get with existing key" {
+  let map = @sorted_map.from_array([
     (3, "three"),
     (8, "eight"),
     (1, "one"),
@@ -25,8 +25,20 @@ test "op_get with existing key" {
 }
 
 ///|
-test "op_get with non-existing key" {
-  let map = @sorted_map.of([
+test "_[_] with existing key" {
+  let map = @sorted_map.from_array([
+    (3, "three"),
+    (8, "eight"),
+    (1, "one"),
+    (2, "two"),
+    (0, "zero"),
+  ])
+  assert_eq(map[3], "three")
+}
+
+///|
+test "get with non-existing key" {
+  let map = @sorted_map.from_array([
     (3, "three"),
     (8, "eight"),
     (1, "one"),
@@ -37,8 +49,21 @@ test "op_get with non-existing key" {
 }
 
 ///|
-test "op_get after insertion" {
-  let map = @sorted_map.of([
+test "get with pattern" {
+  let map = @sorted_map.from_array([
+    (3, "three"),
+    (8, "eight"),
+    (1, "one"),
+    (2, "two"),
+    (0, "zero"),
+  ])
+  guard map
+    is { 3: "three", 8: "eight", 1: "one", 2: "two", 0: "zero", 4? : None, .. }
+}
+
+///|
+test "get after insertion" {
+  let map = @sorted_map.from_array([
     (3, "three"),
     (8, "eight"),
     (1, "one"),
@@ -50,8 +75,21 @@ test "op_get after insertion" {
 }
 
 ///|
-test "op_get after removal" {
-  let map = @sorted_map.of([
+test "_[_] after insertion" {
+  let map = @sorted_map.from_array([
+    (3, "three"),
+    (8, "eight"),
+    (1, "one"),
+    (2, "two"),
+    (0, "zero"),
+  ])
+  let map = map.add(4, "four")
+  assert_eq(map[4], "four")
+}
+
+///|
+test "get after removal" {
+  let map = @sorted_map.from_array([
     (3, "three"),
     (8, "eight"),
     (1, "one"),
@@ -63,9 +101,34 @@ test "op_get after removal" {
 }
 
 ///|
+test "panic get with non-existing key" {
+  let map = @sorted_map.from_array([
+    (3, "three"),
+    (8, "eight"),
+    (1, "one"),
+    (2, "two"),
+    (0, "zero"),
+  ])
+  map[4] |> ignore
+}
+
+///|
+test "panic get after removal" {
+  let map = @sorted_map.from_array([
+    (3, "three"),
+    (8, "eight"),
+    (1, "one"),
+    (2, "two"),
+    (0, "zero"),
+  ])
+  let map = map.remove(3)
+  map[3] |> ignore
+}
+
+///|
 test "iter" {
   let map = [(3, "three"), (8, "eight"), (1, "one"), (2, "two"), (0, "zero")]
-    |> @sorted_map.of
+    |> @sorted_map.from_array
   let buf = StringBuilder::new()
   for k, v in map {
     buf.write_object(k)
@@ -79,7 +142,7 @@ test "iter" {
   }
   inspect(
     buf,
-    content=
+    content=(
       #|0: "zero"
       #|1: "one"
       #|2: "two"
@@ -91,20 +154,26 @@ test "iter" {
       #|(3, "three")
       #|(8, "eight")
       #|
-    ,
+    ),
   )
 }
 
 ///|
-test "op_get with empty map" {
-  let map : @sorted_map.T[Int, String] = @sorted_map.new()
+test "get with empty map" {
+  let map : @sorted_map.SortedMap[Int, String] = @sorted_map.new()
   assert_eq(map.get(3), None)
+}
+
+///|
+test "panic get with empty map" {
+  let map : @sorted_map.SortedMap[Int, String] = @sorted_map.new()
+  map[3] |> ignore
 }
 
 ///|
 test "to_json with non-empty map" {
   let map = [(3, "three"), (8, "eight"), (1, "one"), (2, "two"), (0, "zero")]
-    |> @sorted_map.of
+    |> @sorted_map.from_array
   @json.inspect(map.to_json(), content={
     "0": "zero",
     "1": "one",
@@ -116,13 +185,14 @@ test "to_json with non-empty map" {
 
 ///|
 test "to_json with empty map" {
-  let map : @sorted_map.T[Int, String] = @sorted_map.new()
+  let map : @sorted_map.SortedMap[Int, String] = @sorted_map.new()
   @json.inspect(map.to_json(), content={})
 }
 
 ///|
 test "from_json" {
-  for xs in (@quickcheck.samples(20) : Array[@sorted_map.T[String, Int]]) {
+  for
+    xs in (@quickcheck.samples(20) : Array[@sorted_map.SortedMap[String, Int]]) {
     assert_eq(xs, @json.from_json(xs.to_json()))
   }
 }

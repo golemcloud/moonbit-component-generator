@@ -26,19 +26,24 @@
 ///   let buf = @buffer.new(size_hint=100)
 ///   buf.write_string("Tes")
 ///   buf.write_char('t')
-///   inspect(buf.contents(), content=
-///     #|b"\x54\x00\x65\x00\x73\x00\x74\x00"
+///   inspect(
+///     buf.contents(), 
+///     content=(
+///       
+///   #|b"T\x00e\x00s\x00t\x00"
+/// 
+///     ),
 ///   )
 /// ```
-struct T {
+#alias(T, deprecated)
+struct Buffer {
   mut data : FixedArray[Byte]
   mut len : Int
-  initial_data : FixedArray[Byte]
 }
 
 ///|
 /// Expand the buffer size if capacity smaller than required space.
-fn grow_if_necessary(self : T, required : Int) -> Unit {
+fn Buffer::grow_if_necessary(self : Buffer, required : Int) -> Unit {
   let start = if self.data.length() <= 0 { 1 } else { self.data.length() }
   let enough_space = for space = start {
     if space >= required {
@@ -69,7 +74,7 @@ fn grow_if_necessary(self : T, required : Int) -> Unit {
 ///   buf.write_string("Test")
 ///   inspect(buf.length(), content="8") // each char takes 2 bytes in UTF-16
 /// ```
-pub fn length(self : T) -> Int {
+pub fn Buffer::length(self : Buffer) -> Int {
   self.len
 }
 
@@ -91,7 +96,7 @@ pub fn length(self : T) -> Int {
 ///   buf.write_string("test")
 ///   inspect(buf.is_empty(), content="false")
 /// ```
-pub fn is_empty(self : T) -> Bool {
+pub fn Buffer::is_empty(self : Buffer) -> Bool {
   self.len == 0
 }
 
@@ -107,17 +112,17 @@ pub fn is_empty(self : T) -> Bool {
 /// Example:
 ///
 /// ```moonbit
-///   let buf = @buffer.new()
-///   buf.write_string("Test")
-///   inspect(
-///     buf.contents(),
-///     content=
-///       #|b"\x54\x00\x65\x00\x73\x00\x74\x00"
-///     ,
-///   )
+/// let buf = @buffer.new()
+/// buf.write_string("Test")
+/// inspect(
+///   buf.contents(),
+///   content=(
+///     #|b"T\x00e\x00s\x00t\x00"
+///   ),
+/// )
 /// ```
-pub fn contents(self : T) -> Bytes {
-  @bytes.from_fixedarray(self.data, len=self.len)
+pub fn Buffer::contents(self : Buffer) -> Bytes {
+  Bytes::from_array(self.data[0:self.len])
 }
 
 ///|
@@ -129,7 +134,7 @@ pub fn contents(self : T) -> Bytes {
 ///
 /// * `size_hint` : Initial capacity of the buffer in bytes. Defaults to 0.
 ///
-/// Returns a new buffer of type `T`.
+/// Returns a new buffer of type `Buffer`.
 ///
 /// Example:
 ///
@@ -139,14 +144,15 @@ pub fn contents(self : T) -> Bytes {
 ///   buf.write_string("test")
 ///   inspect(buf.length(), content="8")
 /// ```
-pub fn new(size_hint~ : Int = 0) -> T {
+pub fn new(size_hint? : Int = 0) -> Buffer {
   let initial = if size_hint < 1 { 1 } else { size_hint }
   let data = FixedArray::make(initial, Byte::default())
-  { data, len: 0, initial_data: data }
+  { data, len: 0 }
 }
 
-///| Create a buffer from a bytes.
-pub fn from_bytes(bytes : Bytes) -> T {
+///|
+/// Create a buffer from a bytes.
+pub fn from_bytes(bytes : Bytes) -> Buffer {
   let val_len = bytes.length()
   let buf = new(size_hint=val_len)
   // inline write_bytes, skip grow_if_necessary check
@@ -158,7 +164,7 @@ pub fn from_bytes(bytes : Bytes) -> T {
 
 ///|
 /// Create a buffer from an array.
-pub fn from_array(arr : Array[Byte]) -> T {
+pub fn from_array(arr : ArrayView[Byte]) -> Buffer {
   let buf = new(size_hint=arr.length())
   for byte in arr {
     // inline write_byte, skip grow_if_necessary check
@@ -171,7 +177,7 @@ pub fn from_array(arr : Array[Byte]) -> T {
 
 ///|
 /// Create a buffer from an iterator.
-pub fn from_iter(iter : Iter[Byte]) -> T {
+pub fn from_iter(iter : Iter[Byte]) -> Buffer {
   let buf = new()
   let mut capacity = buf.data.length()
   for byte in iter {
@@ -208,12 +214,14 @@ pub fn from_iter(iter : Iter[Byte]) -> T {
 ///   // 't' -> [0x74, 0x00]
 ///   inspect(
 ///     buf.contents(),
-///     content=
-///       #|b"\x54\x00\x65\x00\x73\x00\x74\x00"
-///     ,
+///     content=(
+///       
+///   #|b"T\x00e\x00s\x00t\x00"
+/// 
+///     ),
 ///   )
 /// ```
-pub impl Logger for T with write_string(self, value) {
+pub impl Logger for Buffer with write_string(self, value) {
   self.grow_if_necessary(self.len + value.length() * 2)
   self.data.blit_from_string(self.len, value, 0, value.length())
   self.len += value.length() * 2
@@ -236,20 +244,25 @@ pub impl Logger for T with write_string(self, value) {
 ///   // Bytes are written in big-endian order
 ///   inspect(
 ///     buf.contents(),
-///     content=
-///       #|b"\xaa\xbb\xcc\xdd\x11\x22\x33\x44"
-///     ,
+///     content=(
+///       
+///   #|b"\xaa\xbb\xcc\xdd\x11\x223D"
+/// 
+///     ),
 ///   )
 /// ```
-pub fn write_uint64_be(self : T, value : UInt64) -> Unit {
-  self.write_byte((value >> 56).to_byte())
-  self.write_byte((value >> 48).to_byte())
-  self.write_byte((value >> 40).to_byte())
-  self.write_byte((value >> 32).to_byte())
-  self.write_byte((value >> 24).to_byte())
-  self.write_byte((value >> 16).to_byte())
-  self.write_byte((value >> 8).to_byte())
-  self.write_byte(value.to_byte())
+pub fn Buffer::write_uint64_be(self : Buffer, value : UInt64) -> Unit {
+  self.grow_if_necessary(self.len + 8)
+  let offset = self.len
+  self.data[offset] = (value >> 56).to_byte()
+  self.data[offset + 1] = (value >> 48).to_byte()
+  self.data[offset + 2] = (value >> 40).to_byte()
+  self.data[offset + 3] = (value >> 32).to_byte()
+  self.data[offset + 4] = (value >> 24).to_byte()
+  self.data[offset + 5] = (value >> 16).to_byte()
+  self.data[offset + 6] = (value >> 8).to_byte()
+  self.data[offset + 7] = value.to_byte()
+  self.len += 8
 }
 
 ///|
@@ -268,20 +281,25 @@ pub fn write_uint64_be(self : T, value : UInt64) -> Unit {
 ///   buf.write_uint64_le(0x0123456789ABCDEF)
 ///   inspect(
 ///     buf.contents(),
-///     content=
-///       #|b"\xef\xcd\xab\x89\x67\x45\x23\x01"
-///     ,
+///     content=(
+///       
+///   #|b"\xef\xcd\xab\x89gE#\x01"
+/// 
+///     ),
 ///   )
 /// ```
-pub fn write_uint64_le(self : T, value : UInt64) -> Unit {
-  self.write_byte(value.to_byte())
-  self.write_byte((value >> 8).to_byte())
-  self.write_byte((value >> 16).to_byte())
-  self.write_byte((value >> 24).to_byte())
-  self.write_byte((value >> 32).to_byte())
-  self.write_byte((value >> 40).to_byte())
-  self.write_byte((value >> 48).to_byte())
-  self.write_byte((value >> 56).to_byte())
+pub fn Buffer::write_uint64_le(self : Buffer, value : UInt64) -> Unit {
+  self.grow_if_necessary(self.len + 8)
+  let offset = self.len
+  self.data[offset] = value.to_byte()
+  self.data[offset + 1] = (value >> 8).to_byte()
+  self.data[offset + 2] = (value >> 16).to_byte()
+  self.data[offset + 3] = (value >> 24).to_byte()
+  self.data[offset + 4] = (value >> 32).to_byte()
+  self.data[offset + 5] = (value >> 40).to_byte()
+  self.data[offset + 6] = (value >> 48).to_byte()
+  self.data[offset + 7] = (value >> 56).to_byte()
+  self.len += 8
 }
 
 ///|
@@ -300,12 +318,12 @@ pub fn write_uint64_le(self : T, value : UInt64) -> Unit {
 ///   buf.write_int64_be(0x0102030405060708L)
 ///   inspect(
 ///     buf.contents(),
-///     content=
+///     content=(
 ///       #|b"\x01\x02\x03\x04\x05\x06\x07\x08"
-///     ,
+///     ),
 ///   )
 /// ```
-pub fn write_int64_be(self : T, value : Int64) -> Unit {
+pub fn Buffer::write_int64_be(self : Buffer, value : Int64) -> Unit {
   self.write_uint64_be(value.reinterpret_as_uint64())
 }
 
@@ -322,11 +340,14 @@ pub fn write_int64_be(self : T, value : Int64) -> Unit {
 /// ```moonbit
 ///   let buf = @buffer.new()
 ///   buf.write_int64_le(-1L)
-///   inspect(buf.contents(), content=
-///   #|b"\xff\xff\xff\xff\xff\xff\xff\xff"
-/// )
+///   inspect(
+///     buf.contents(), 
+///     content=(
+///       #|b"\xff\xff\xff\xff\xff\xff\xff\xff"
+///     ),
+///   )
 /// ```
-pub fn write_int64_le(self : T, value : Int64) -> Unit {
+pub fn Buffer::write_int64_le(self : Buffer, value : Int64) -> Unit {
   self.write_uint64_le(value.reinterpret_as_uint64())
 }
 
@@ -344,13 +365,18 @@ pub fn write_int64_le(self : T, value : Int64) -> Unit {
 /// ```moonbit
 ///   let buf = @buffer.new()
 ///   buf.write_uint_be(0x12345678)
-///   inspect(buf.contents(), content="b\"\\x12\\x34\\x56\\x78\"")
+///   inspect(buf.contents(), content=(
+///   #|b"\x124Vx"
+/// ))
 /// ```
-pub fn write_uint_be(self : T, value : UInt) -> Unit {
-  self.write_byte((value >> 24).to_byte())
-  self.write_byte((value >> 16).to_byte())
-  self.write_byte((value >> 8).to_byte())
-  self.write_byte(value.to_byte())
+pub fn Buffer::write_uint_be(self : Buffer, value : UInt) -> Unit {
+  self.grow_if_necessary(self.len + 4)
+  let offset = self.len
+  self.data[offset] = (value >> 24).to_byte()
+  self.data[offset + 1] = (value >> 16).to_byte()
+  self.data[offset + 2] = (value >> 8).to_byte()
+  self.data[offset + 3] = value.to_byte()
+  self.len += 4
 }
 
 ///|
@@ -368,13 +394,18 @@ pub fn write_uint_be(self : T, value : UInt) -> Unit {
 /// ```moonbit
 ///   let buf = @buffer.new()
 ///   buf.write_uint_le(0x12345678)
-///   inspect(buf.contents(), content="b\"\\x78\\x56\\x34\\x12\"")
+///   inspect(buf.contents(), content=(
+///   #|b"xV4\x12"
+/// ))
 /// ```
-pub fn write_uint_le(self : T, value : UInt) -> Unit {
-  self.write_byte(value.to_byte())
-  self.write_byte((value >> 8).to_byte())
-  self.write_byte((value >> 16).to_byte())
-  self.write_byte((value >> 24).to_byte())
+pub fn Buffer::write_uint_le(self : Buffer, value : UInt) -> Unit {
+  self.grow_if_necessary(self.len + 4)
+  let offset = self.len
+  self.data[offset] = value.to_byte()
+  self.data[offset + 1] = (value >> 8).to_byte()
+  self.data[offset + 2] = (value >> 16).to_byte()
+  self.data[offset + 3] = (value >> 24).to_byte()
+  self.len += 4
 }
 
 ///|
@@ -391,9 +422,11 @@ pub fn write_uint_le(self : T, value : UInt) -> Unit {
 /// ```moonbit
 ///   let buf = @buffer.new()
 ///   buf.write_int_be(0x12345678)
-///   inspect(buf.contents(), content="b\"\\x12\\x34\\x56\\x78\"")
+///   inspect(buf.contents(), content=(
+///   #|b"\x124Vx"
+/// ))
 /// ```
-pub fn write_int_be(self : T, value : Int) -> Unit {
+pub fn Buffer::write_int_be(self : Buffer, value : Int) -> Unit {
   self.write_uint_be(value.reinterpret_as_uint())
 }
 
@@ -414,8 +447,119 @@ pub fn write_int_be(self : T, value : Int) -> Unit {
 ///   buf.write_int_le(-1)
 ///   inspect(buf.contents(), content="b\"\\xff\\xff\\xff\\xff\"")
 /// ```
-pub fn write_int_le(self : T, value : Int) -> Unit {
+pub fn Buffer::write_int_le(self : Buffer, value : Int) -> Unit {
   self.write_uint_le(value.reinterpret_as_uint())
+}
+
+///|
+/// Writes a 16-bit unsigned integer into the buffer in big-endian format (most
+/// significant byte first).
+///
+/// Parameters:
+///
+/// * `buffer` : The buffer to write to.
+/// * `value` : The unsigned 16-bit integer value to write.
+///
+/// Example:
+///
+/// ```moonbit
+///   let buf = @buffer.new()
+///   buf.write_uint16_be(0x1234)
+///   inspect(buf.contents(), content=(
+///   
+///   #|b"\x124"
+/// 
+/// ))
+/// ```
+pub fn Buffer::write_uint16_be(self : Buffer, value : UInt16) -> Unit {
+  self.grow_if_necessary(self.len + 2)
+  let offset = self.len
+  self.data[offset] = (value.to_int() >> 8).to_byte()
+  self.data[offset + 1] = value.to_byte()
+  self.len += 2
+}
+
+///|
+/// Writes a 16-bit unsigned integer into the buffer in little-endian format. The
+/// integer is split into 2 bytes and written in order from least significant to
+/// most significant byte.
+///
+/// Parameters:
+///
+/// * `buffer` : The buffer to write to.
+/// * `value` : A 16-bit unsigned integer to be written.
+///
+/// Example:
+///
+/// ```moonbit
+///   let buf = @buffer.new()
+///   buf.write_uint16_le(0x1234)
+///   inspect(buf.contents(), content=(
+///   
+///   #|b"4\x12"
+/// 
+/// ))
+/// ```
+pub fn Buffer::write_uint16_le(self : Buffer, value : UInt16) -> Unit {
+  self.grow_if_necessary(self.len + 2)
+  let offset = self.len
+  self.data[offset] = value.to_byte()
+  self.data[offset + 1] = (value.to_int() >> 8).to_byte()
+  self.len += 2
+}
+
+///|
+/// Writes a 16-bit integer to the buffer in big-endian format. Big-endian means
+/// the most significant byte is written first.
+///
+/// Parameters:
+///
+/// * `buffer` : The buffer to write to.
+/// * `value` : The 16-bit integer to be written.
+///
+/// Example:
+///
+/// ```moonbit
+///   let buf = @buffer.new()
+///   buf.write_int16_be(0x1234)
+///   inspect(buf.contents(), content=(
+///   
+///   #|b"\x124"
+/// 
+/// ))
+/// ```
+pub fn Buffer::write_int16_be(self : Buffer, value : Int16) -> Unit {
+  self.grow_if_necessary(self.len + 2)
+  let offset = self.len
+  self.data[offset] = (value.to_int() >> 8).to_byte()
+  self.data[offset + 1] = value.to_byte()
+  self.len += 2
+}
+
+///|
+/// Writes a 16-bit integer into the buffer in little-endian format. The integer
+/// is written as 2 bytes where the least significant byte is written first.
+///
+/// Parameters:
+///
+/// * `buffer` : The buffer to write into.
+/// * `value` : The 16-bit integer value to be written.
+///
+/// Example:
+///
+/// ```moonbit
+///   let buf = @buffer.new()
+///   buf.write_int16_le(-1)
+///   inspect(buf.contents(), content=(
+///   #|b"\xff\xff"
+/// ))
+/// ```
+pub fn Buffer::write_int16_le(self : Buffer, value : Int16) -> Unit {
+  self.grow_if_necessary(self.len + 2)
+  let offset = self.len
+  self.data[offset] = value.to_byte()
+  self.data[offset + 1] = (value.to_int() >> 8).to_byte()
+  self.len += 2
 }
 
 ///|
@@ -432,9 +576,11 @@ pub fn write_int_le(self : T, value : Int) -> Unit {
 /// ```moonbit
 ///   let buf = @buffer.new()
 ///   buf.write_double_be(1.0)
-///   inspect(buf.contents(), content="b\"\\x3f\\xf0\\x00\\x00\\x00\\x00\\x00\\x00\"")
+///   inspect(buf.contents(), content=(
+///   #|b"?\xf0\x00\x00\x00\x00\x00\x00"
+/// ))
 /// ```
-pub fn write_double_be(self : T, value : Double) -> Unit {
+pub fn Buffer::write_double_be(self : Buffer, value : Double) -> Unit {
   self.write_uint64_be(value.reinterpret_as_uint64())
 }
 
@@ -454,10 +600,12 @@ pub fn write_double_be(self : T, value : Double) -> Unit {
 ///   buf.write_double_le(3.14)
 ///   inspect(
 ///     buf.contents(),
-///     content="b\"\\x1f\\x85\\xeb\\x51\\xb8\\x1e\\x09\\x40\"",
+///     content=(
+///   #|b"\x1f\x85\xebQ\xb8\x1e\x09@"
+/// ),
 ///   )
 /// ```
-pub fn write_double_le(self : T, value : Double) -> Unit {
+pub fn Buffer::write_double_le(self : Buffer, value : Double) -> Unit {
   self.write_uint64_le(value.reinterpret_as_uint64())
 }
 
@@ -477,9 +625,11 @@ pub fn write_double_le(self : T, value : Double) -> Unit {
 ///   let buf = @buffer.new()
 ///   buf.write_float_be(3.14)
 ///   // In big-endian format, 3.14 is represented as [0x40, 0x48, 0xF5, 0xC3]
-///   inspect(buf.contents(), content="b\"\\x40\\x48\\xf5\\xc3\"")
+///   inspect(buf.contents(), content=(
+///   #|b"@H\xf5\xc3"
+/// ))
 /// ```
-pub fn write_float_be(self : T, value : Float) -> Unit {
+pub fn Buffer::write_float_be(self : Buffer, value : Float) -> Unit {
   self.write_uint_be(value.reinterpret_as_uint())
 }
 
@@ -498,9 +648,11 @@ pub fn write_float_be(self : T, value : Float) -> Unit {
 ///   let buf = @buffer.new()
 ///   buf.write_float_le(3.14)
 ///   // The bytes are written in little-endian format
-///   inspect(buf.contents(), content="b\"\\xc3\\xf5\\x48\\x40\"")
+///   inspect(buf.contents(), content=(
+///   #|b"\xc3\xf5H@"
+/// ))
 /// ```
-pub fn write_float_le(self : T, value : Float) -> Unit {
+pub fn Buffer::write_float_le(self : Buffer, value : Float) -> Unit {
   self.write_uint_le(value.reinterpret_as_uint())
 }
 
@@ -522,7 +674,7 @@ pub fn write_float_le(self : T, value : Float) -> Unit {
 ///   buf.write_object(42)
 ///   inspect(buf.contents().to_unchecked_string(), content="42")
 /// ```
-pub fn write_object(self : T, value : &Show) -> Unit {
+pub fn Buffer::write_object(self : Buffer, value : &Show) -> Unit {
   self.write_string(value.to_string())
 }
 
@@ -541,12 +693,14 @@ pub fn write_object(self : T, value : &Show) -> Unit {
 ///   buf.write_bytes(b"Test")
 ///   inspect(
 ///     buf.contents(),
-///     content=
-///       #|b"\x54\x65\x73\x74"
-///     ,
+///     content=(
+///       
+///   #|b"Test"
+/// 
+///     ),
 ///   )
 /// ```
-pub fn write_bytes(self : T, value : Bytes) -> Unit {
+pub fn Buffer::write_bytes(self : Buffer, value : Bytes) -> Unit {
   let val_len = value.length()
   self.grow_if_necessary(self.len + val_len)
   self.data.blit_from_bytes(self.len, value, 0, val_len)
@@ -554,7 +708,7 @@ pub fn write_bytes(self : T, value : Bytes) -> Unit {
 }
 
 ///|
-/// Writes a sequence of bytes from a @bytes.View into the buffer.
+/// Writes a sequence of bytes from a BytesView into the buffer.
 ///
 /// Parameters:
 ///
@@ -569,12 +723,14 @@ pub fn write_bytes(self : T, value : Bytes) -> Unit {
 ///   buf.write_bytesview(view)
 ///   inspect(
 ///     buf.contents(),
-///     content=
-///       #|b"\x65\x73"
-///     ,
+///     content=(
+///       
+///   #|b"es"
+/// 
+///     ),
 ///   )
 /// ```
-pub fn write_bytesview(self : T, value : @bytes.View) -> Unit {
+pub fn Buffer::write_bytesview(self : Buffer, value : BytesView) -> Unit {
   let val_len = value.length()
   self.grow_if_necessary(self.len + val_len)
   self.data.blit_from_bytes(
@@ -587,8 +743,121 @@ pub fn write_bytesview(self : T, value : @bytes.View) -> Unit {
 }
 
 ///|
-/// Writes a portion of a string into the buffer in UTF-16LE encoding.
-///
+/// Write a char into buffer as UTF8.
+pub fn Buffer::write_char_utf8(buf : Self, value : Char) -> Unit {
+  let code = value.to_uint()
+  match code {
+    _..<0x80 => {
+      buf.grow_if_necessary(buf.len + 1)
+      buf.data[buf.len] = ((code & 0x7F) | 0x00).to_byte()
+      buf.len += 1
+    }
+    _..<0x0800 => {
+      buf.grow_if_necessary(buf.len + 2)
+      buf.data[buf.len] = (((code >> 6) & 0x1F) | 0xC0).to_byte()
+      buf.data[buf.len + 1] = ((code & 0x3F) | 0x80).to_byte()
+      buf.len += 2
+    }
+    _..<0x010000 => {
+      buf.grow_if_necessary(buf.len + 3)
+      buf.data[buf.len] = (((code >> 12) & 0x0F) | 0xE0).to_byte()
+      buf.data[buf.len + 1] = (((code >> 6) & 0x3F) | 0x80).to_byte()
+      buf.data[buf.len + 2] = ((code & 0x3F) | 0x80).to_byte()
+      buf.len += 3
+    }
+    _..<0x110000 => {
+      buf.grow_if_necessary(buf.len + 4)
+      buf.data[buf.len] = (((code >> 18) & 0x07) | 0xF0).to_byte()
+      buf.data[buf.len + 1] = (((code >> 12) & 0x3F) | 0x80).to_byte()
+      buf.data[buf.len + 2] = (((code >> 6) & 0x3F) | 0x80).to_byte()
+      buf.data[buf.len + 3] = ((code & 0x3F) | 0x80).to_byte()
+      buf.len += 4
+    }
+    _ => abort("Char out of range")
+  }
+}
+
+///|
+/// Write a char into buffer as UTF16LE.
+pub fn Buffer::write_char_utf16le(buf : Self, value : Char) -> Unit {
+  let code = value.to_uint()
+  if code < 0x10000 {
+    buf.grow_if_necessary(buf.len + 2)
+    buf.data[buf.len + 0] = (code & 0xFF).to_byte()
+    buf.data[buf.len + 1] = (code >> 8).to_byte()
+    buf.len += 2
+  } else if code < 0x110000 {
+    let cp = code - 0x10000
+    let high = (cp >> 10) | 0xD800
+    let low = (cp & 0x3FF) | 0xDC00
+    buf.grow_if_necessary(buf.len + 4)
+    buf.data[buf.len + 0] = (high & 0xFF).to_byte()
+    buf.data[buf.len + 1] = (high >> 8).to_byte()
+    buf.data[buf.len + 2] = (low & 0xFF).to_byte()
+    buf.data[buf.len + 3] = (low >> 8).to_byte()
+    buf.len += 4
+  } else {
+    abort("Char out of range")
+  }
+}
+
+///|
+/// Write a char into buffer as UTF16BE.
+pub fn Buffer::write_char_utf16be(buf : Self, value : Char) -> Unit {
+  let code = value.to_uint()
+  if code < 0x10000 {
+    buf.grow_if_necessary(buf.len + 2)
+    buf.data[buf.len + 0] = (code >> 8).to_byte()
+    buf.data[buf.len + 1] = (code & 0xFF).to_byte()
+    buf.len += 2
+  } else if code < 0x110000 {
+    buf.grow_if_necessary(buf.len + 4)
+    let cp = code - 0x10000
+    let high = (cp >> 10) | 0xD800
+    let low = (cp & 0x3FF) | 0xDC00
+    buf.data[buf.len + 0] = (high >> 8).to_byte()
+    buf.data[buf.len + 1] = (high & 0xFF).to_byte()
+    buf.data[buf.len + 2] = (low >> 8).to_byte()
+    buf.data[buf.len + 3] = (low & 0xFF).to_byte()
+    buf.len += 4
+  } else {
+    abort("Char out of range")
+  }
+}
+
+///|
+pub fn Buffer::write_string_utf8(buf : Self, string : StringView) -> Unit {
+  for ch in string {
+    buf.write_char_utf8(ch)
+  }
+}
+
+///|
+#alias(write_stringview, deprecated="use write_string_utf16le instead")
+pub fn Buffer::write_string_utf16le(buf : Self, string : StringView) -> Unit {
+  let len = string.length()
+  buf.grow_if_necessary(buf.len + len * 2)
+  for i = 0, j = buf.len; i < len; i = i + 1, j = j + 2 {
+    let c = string.unsafe_charcode_at(i).reinterpret_as_uint()
+    buf.data[j] = (c & 0xff).to_byte()
+    buf.data[j + 1] = (c >> 8).to_byte()
+  }
+  buf.len += len * 2
+}
+
+///|
+pub fn Buffer::write_string_utf16be(buf : Self, string : StringView) -> Unit {
+  let len = string.length()
+  buf.grow_if_necessary(buf.len + len * 2)
+  for i = 0, j = buf.len; i < len; i = i + 1, j = j + 2 {
+    let c = string.unsafe_charcode_at(i).reinterpret_as_uint()
+    buf.data[j + 1] = (c & 0xff).to_byte()
+    buf.data[j] = (c >> 8).to_byte()
+  }
+  buf.len += len * 2
+}
+
+///|
 /// Parameters:
 ///
 /// * `self` : The buffer to write to.
@@ -605,32 +874,22 @@ pub fn write_bytesview(self : T, value : @bytes.View) -> Unit {
 ///   buf.write_substring("Hello, World!", 0, 5)
 ///   inspect(
 ///     buf.contents(),
-///     content=
-///       #|b"\x48\x00\x65\x00\x6c\x00\x6c\x00\x6f\x00"
-///     ,
+///     content=(
+///       
+///   #|b"H\x00e\x00l\x00l\x00o\x00"
+/// 
+///     ),
 ///   )
 /// ```
-pub impl Logger for T with write_substring(
-  self : T,
+pub impl Logger for Buffer with write_substring(
+  self : Buffer,
   value : String,
   start : Int,
-  len : Int
+  len : Int,
 ) -> Unit {
   guard start >= 0 && len >= 0 && start + len <= value.length()
   self.grow_if_necessary(self.len + len * 2)
   self.data.blit_from_string(self.len, value, start, len)
-  self.len += len * 2
-}
-
-///|
-pub fn write_stringview(self : T, value : @string.View) -> Unit {
-  let len = value.length()
-  self.grow_if_necessary(self.len + len * 2)
-  for i = 0, j = self.len; i < len; i = i + 1, j = j + 2 {
-    let c = value.unsafe_charcode_at(i).reinterpret_as_uint()
-    self.data[j] = (c & 0xff).to_byte()
-    self.data[j + 1] = (c >> 8).to_byte()
-  }
   self.len += len * 2
 }
 
@@ -648,11 +907,16 @@ pub fn write_stringview(self : T, value : @string.View) -> Unit {
 /// ```moonbit
 ///   let buf = @buffer.new()
 ///   buf.write_char('A')
-///   inspect(buf.contents(), content=
-///   #|b"\x41\x00"
-/// )
+///   inspect(
+///     buf.contents(), 
+///     content=(
+///       
+///   #|b"A\x00"
+/// 
+///     ),
+///   )
 /// ```
-pub impl Logger for T with write_char(self : T, value : Char) -> Unit {
+pub impl Logger for Buffer with write_char(self : Buffer, value : Char) -> Unit {
   self.grow_if_necessary(self.len + 4)
   let inc = self.data.set_utf16le_char(self.len, value)
   self.len += inc
@@ -672,9 +936,11 @@ pub impl Logger for T with write_char(self : T, value : Char) -> Unit {
 /// ```moonbit
 ///   let buf = @buffer.new()
 ///   buf.write_byte(b'\x41')
-///   inspect(buf.contents(), content="b\"\\x41\"")
+///   inspect(buf.contents(), content=(
+///   #|b"A"
+/// ))
 /// ```
-pub fn write_byte(self : T, value : Byte) -> Unit {
+pub fn Buffer::write_byte(self : Buffer, value : Byte) -> Unit {
   self.grow_if_necessary(self.len + 1)
   self.data[self.len] = value
   self.len += 1
@@ -694,19 +960,24 @@ pub fn write_byte(self : T, value : Byte) -> Unit {
 ///   let buf = @buffer.new()
 ///   let bytes = b"Hello"
 ///   buf.write_iter(bytes.iter())
-///   inspect(buf.contents(), content=
-///   #|b"\x48\x65\x6c\x6c\x6f"
-/// )
+///   inspect(
+///     buf.contents(), 
+///     content=(
+///       
+///   #|b"Hello"
+/// 
+///     ),
+///   )
 /// ```
-pub fn write_iter(self : T, iter : Iter[Byte]) -> Unit {
+pub fn Buffer::write_iter(self : Buffer, iter : Iter[Byte]) -> Unit {
   for byte in iter {
     self.write_byte(byte)
   }
 }
 
 ///|
-/// Resets the buffer to its initial state by restoring its initial capacity and
-/// clearing its contents.
+/// Resets the buffer to an empty state by setting the internal offset to 0.
+/// This makes the buffer appear empty without actually clearing the underlying data.
 ///
 /// Parameters:
 ///
@@ -715,14 +986,15 @@ pub fn write_iter(self : T, iter : Iter[Byte]) -> Unit {
 /// Example:
 ///
 /// ```moonbit
-///   let buf = @buffer.new(size_hint=4)
-///   buf.write_string("Test")
-///   buf.reset()
-///   inspect(buf.length(), content="0")
-///   inspect(buf.is_empty(), content="true")
+/// let buf = @buffer.new()
+/// buf.write_string("Hello")
+/// inspect(buf.length(), content="10")
+/// buf.reset()
+/// inspect(buf.length(), content="0")
+/// inspect(buf.is_empty(), content="true")
 /// ```
-pub fn reset(self : T) -> Unit {
-  self.data = self.initial_data
+///
+pub fn Buffer::reset(self : Buffer) -> Unit {
   self.len = 0
 }
 
@@ -744,11 +1016,11 @@ pub fn reset(self : T) -> Unit {
 ///   let bytes = buf.to_bytes()
 ///   inspect(bytes.length(), content="8")
 /// ```
-pub fn to_bytes(self : T) -> Bytes {
-  @bytes.from_fixedarray(self.data, len=self.len)
+pub fn Buffer::to_bytes(self : Buffer) -> Bytes {
+  Bytes::from_array(self.data[0:self.len])
 }
 
 ///|
-pub impl Show for T with output(self, logger) {
+pub impl Show for Buffer with output(self, logger) {
   logger.write_string(self.contents().to_unchecked_string())
 }

@@ -22,7 +22,8 @@ priv struct Node[K, V] {
 }
 
 ///|
-struct T[K, V] {
+#alias(T, deprecated)
+struct SortedMap[K, V] {
   mut root : Node[K, V]?
   mut size : Int
 }

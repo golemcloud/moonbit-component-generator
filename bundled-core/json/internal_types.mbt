@@ -15,17 +15,26 @@
 ///|
 priv struct ParseContext {
   mut offset : Int
-  input : String
+  input : StringView
   end_offset : Int
+  mut remaining_available_depth : Int
 }
 
 ///|
-fn ParseContext::make(input : String) -> ParseContext {
-  { offset: 0, input, end_offset: input.length() }
+fn ParseContext::make(
+  input : StringView,
+  max_nesting_depth : Int,
+) -> ParseContext {
+  {
+    offset: 0,
+    input,
+    end_offset: input.length(),
+    remaining_available_depth: max_nesting_depth,
+  }
 }
 
 ///|
-priv type CharClass Array[(Char, Char)]
+priv struct CharClass(Array[(Char, Char)])
 
 ///|
 fn CharClass::of(array : Array[(Char, Char)]) -> CharClass {
@@ -33,7 +42,7 @@ fn CharClass::of(array : Array[(Char, Char)]) -> CharClass {
 }
 
 ///|
-fn contains(self : CharClass, c : Char) -> Bool {
+fn CharClass::contains(self : CharClass, c : Char) -> Bool {
   let CharClass(self) = self
   for left = 0, right = self.length(); left < right; {
     let middle = (left + right) / 2
@@ -55,7 +64,7 @@ priv enum Token {
   Null
   True
   False
-  Number(Double)
+  Number(Double, String?)
   String(String)
   LBrace
   RBrace

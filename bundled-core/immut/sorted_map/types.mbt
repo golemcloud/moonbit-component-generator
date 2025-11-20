@@ -24,7 +24,7 @@
 /// # Example
 ///
 /// ```mbt
-///   let map1 = @sorted_map.of([(3, "three"), (8, "eight"), (1, "one")])
+///   let map1 = @sorted_map.from_array([(3, "three"), (8, "eight"), (1, "one")])
 ///   let map2 = map1.add(2, "two").remove(3)
 ///   assert_eq(map2.get(2), Some("two"))
 ///   let map3 = map2.add(2, "updated")
@@ -32,7 +32,8 @@
 ///   assert_eq(map3.get(3), None)
 ///   assert_eq(map3.get(2), Some("updated"))
 /// ```
-enum T[K, V] {
+#alias(T, deprecated)
+enum SortedMap[K, V] {
   Empty
-  Tree(K, value~ : V, size~ : Int, T[K, V], T[K, V])
+  Tree(K, value~ : V, size~ : Int, SortedMap[K, V], SortedMap[K, V])
 }

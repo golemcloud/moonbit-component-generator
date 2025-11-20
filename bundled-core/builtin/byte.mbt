@@ -33,7 +33,7 @@
 ///   let c = b'\xFF'
 ///   inspect(c * c, content="b'\\x01'") // 255 * 255 = 65025, truncated to 1
 /// ```
-pub impl Mul for Byte with op_mul(self : Byte, that : Byte) -> Byte {
+pub impl Mul for Byte with mul(self : Byte, that : Byte) -> Byte {
   (self.to_int() * that.to_int()).to_byte()
 }
 
@@ -55,12 +55,12 @@ pub impl Mul for Byte with op_mul(self : Byte, that : Byte) -> Byte {
 ///   let b = b'\x03' // 3
 ///   inspect(a / b, content="b'\\x55'") // 255 / 3 = 85 (0x55)
 /// ```
-pub impl Div for Byte with op_div(self : Byte, that : Byte) -> Byte {
+pub impl Div for Byte with div(self : Byte, that : Byte) -> Byte {
   (self.to_int() / that.to_int()).to_byte()
 }
 
 ///|
-pub impl Mod for Byte with op_mod(self : Byte, that : Byte) -> Byte {
+pub impl Mod for Byte with mod(self : Byte, that : Byte) -> Byte {
   (self.to_int() % that.to_int()).to_byte()
 }
 
@@ -73,7 +73,7 @@ pub impl Mod for Byte with op_mod(self : Byte, that : Byte) -> Byte {
 /// - `that` : The second `Byte` value to compare.
 ///
 /// Returns `true` if the two `Byte` values are equal, otherwise `false`.
-pub impl Eq for Byte with op_equal(self : Byte, that : Byte) -> Bool {
+pub impl Eq for Byte with equal(self : Byte, that : Byte) -> Bool {
   self.to_int() == that.to_int()
 }
 
@@ -86,7 +86,7 @@ pub impl Eq for Byte with op_equal(self : Byte, that : Byte) -> Bool {
 /// - `byte2` : The second `Byte` value to be added.
 ///
 /// Returns the sum of `byte1` and `byte2` as a `Byte`.
-pub impl Add for Byte with op_add(self : Byte, that : Byte) -> Byte {
+pub impl Add for Byte with add(self : Byte, that : Byte) -> Byte {
   (self.to_int() + that.to_int()).to_byte()
 }
 
@@ -100,7 +100,7 @@ pub impl Add for Byte with op_add(self : Byte, that : Byte) -> Byte {
 /// - `that` : The byte to subtract from the first byte.
 ///
 /// Returns the result of the subtraction as a byte.
-pub impl Sub for Byte with op_sub(self : Byte, that : Byte) -> Byte {
+pub impl Sub for Byte with sub(self : Byte, that : Byte) -> Byte {
   (self.to_int() - that.to_int()).to_byte()
 }
 
@@ -119,6 +119,26 @@ pub impl Sub for Byte with op_sub(self : Byte, that : Byte) -> Byte {
 /// - A value greater than 0 indicates that `byte1` is greater than `byte2`.
 pub impl Compare for Byte with compare(self : Byte, that : Byte) -> Int {
   self.to_int().compare(that.to_int())
+}
+
+///|
+pub impl Compare for Byte with op_lt(x, y) {
+  x.to_int() < y.to_int()
+}
+
+///|
+pub impl Compare for Byte with op_le(x, y) {
+  x.to_int() <= y.to_int()
+}
+
+///|
+pub impl Compare for Byte with op_gt(x, y) {
+  x.to_int() > y.to_int()
+}
+
+///|
+pub impl Compare for Byte with op_ge(x, y) {
+  x.to_int() >= y.to_int()
 }
 
 ///|
@@ -161,26 +181,6 @@ pub fn Byte::to_string(self : Byte) -> String {
 }
 
 ///|
-/// Implements the `Hash` trait for `Byte` type by converting the byte to an
-/// integer and using it as the hash value.
-///
-/// Parameters:
-///
-/// * `self` : The byte value to be hashed.
-///
-/// Returns an integer representing the hash value of the byte.
-///
-/// Example:
-///
-/// ```moonbit
-///   let b = b'\x42'
-///   inspect(Hash::hash(b), content="66") // ASCII value of 'B'
-/// ```
-pub impl Hash for Byte with hash(self) {
-  self.to_int()
-}
-
-///|
 /// Implements the `Hash` trait for `Byte` type by providing a `hash_combine`
 /// method that combines a byte value with a hasher.
 ///
@@ -193,7 +193,7 @@ pub impl Hash for Byte with hash(self) {
 /// Example:
 ///
 /// ```moonbit
-///   let hasher = Hasher::new()
+///   let hasher = Hasher::new(seed=0)
 ///   hasher.combine_byte(b'\xFF')
 ///   inspect(hasher.finalize(), content="1955036104")
 /// ```
@@ -288,7 +288,7 @@ pub fn Byte::to_uint(self : Byte) -> UInt {
 ///   the left.
 ///
 /// Returns the resulting `Byte` value after the shift operation.
-pub impl Shl for Byte with op_shl(self : Byte, count : Int) -> Byte {
+pub impl Shl for Byte with shl(self : Byte, count : Int) -> Byte {
   (self.to_int() << count).to_byte()
 }
 
@@ -303,6 +303,6 @@ pub impl Shl for Byte with op_shl(self : Byte, count : Int) -> Byte {
 ///   right.
 ///
 /// Returns the resulting `Byte` value after the bitwise right shift operation.
-pub impl Shr for Byte with op_shr(self : Byte, count : Int) -> Byte {
+pub impl Shr for Byte with shr(self : Byte, count : Int) -> Byte {
   (self.to_uint() >> count).reinterpret_as_int().to_byte()
 }

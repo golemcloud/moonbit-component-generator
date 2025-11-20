@@ -295,12 +295,40 @@ fn[A] Tree::iter(self : Tree[A]) -> Iter[A] {
 }
 
 ///|
+fn[A] Tree::iterator(self : Tree[A]) -> Iterator[A] {
+  let mut curr_tree = self
+  let mut curr_index = 0
+  let parents = []
+  Iterator::new(fn() {
+    loop curr_tree {
+      Node(children, _) as t if curr_index < children.length() => {
+        let child = children.unsafe_get(curr_index)
+        parents.push((t, curr_index + 1))
+        curr_index = 0
+        continue child
+      }
+      Leaf(elems) if curr_index < elems.length() => {
+        let elem = elems.unsafe_get(curr_index)
+        curr_index += 1
+        Some(elem)
+      }
+      _ if parents.pop() is Some((parent_tree, parent_index)) => {
+        curr_tree = parent_tree
+        curr_index = parent_index
+        continue parent_tree
+      }
+      _ => None
+    }
+  })
+}
+
+///|
 /// For each element in the tree, apply the function `f` with the index of the element.
 fn[A] Tree::eachi(
   self : Tree[A],
   f : (Int, A) -> Unit raise?,
   shift : Int,
-  start : Int
+  start : Int,
 ) -> Unit raise? {
   match self {
     Empty => ()
@@ -332,7 +360,7 @@ fn[A] Tree::eachi(
 fn[A, B] Tree::fold(
   self : Tree[A],
   acc : B,
-  f : (B, A) -> B raise?
+  f : (B, A) -> B raise?,
 ) -> B raise? {
   match self {
     Empty => acc
@@ -346,7 +374,7 @@ fn[A, B] Tree::fold(
 fn[A, B] Tree::rev_fold(
   self : Tree[A],
   acc : B,
-  f : (B, A) -> B raise?
+  f : (B, A) -> B raise?,
 ) -> B raise? {
   match self {
     Empty => acc
@@ -382,7 +410,7 @@ fn[A] Tree::concat(
   left_shift : Int,
   right : Tree[A],
   right_shift : Int,
-  top : Bool
+  top : Bool,
 ) -> (Tree[A], Int) {
   if left_shift > right_shift {
     let (c, c_shift) = Tree::concat(
@@ -455,7 +483,7 @@ fn[A] rebalance(
   center : Tree[A],
   right : Tree[A],
   shift : Int,
-  top : Bool
+  top : Bool,
 ) -> (Tree[A], Int) {
   // Suppose H = shift / num_bits
   let t = tri_merge(left, center, right) // t is a list of trees of (H-1) height
@@ -465,7 +493,7 @@ fn[A] rebalance(
   if nc_len <= branching_factor {
     // All nodes can be accommodated in a single node
     let node = Node(new_t, compute_sizes(new_t, shift - num_bits)) // node of H height
-    if not(top) {
+    if !top {
       return (Node(FixedArray::from_array([node]), None), shift + num_bits)
       // return (H+1) height node, add another layer to align with the case at the end of the thisfunction
     } else {
@@ -504,14 +532,14 @@ fn[A] rebalance(
 /// - `center` is `Node`.
 /// 
 /// Postconditions:
-/// - The resulting array is of length `left.size() + center.size() + right.size()`.
+/// - The resulting array is of length `left.length() + center.length() + right.length()`.
 /// - The height of a `Tree` in the resulting array is one less than the height of the input `Tree`s.
 fn[A] tri_merge(
   left : Tree[A],
   center : Tree[A],
-  right : Tree[A]
+  right : Tree[A],
 ) -> FixedArray[Tree[A]] {
-  if left.is_leaf() || not(center.is_node()) || right.is_leaf() {
+  if left.is_leaf() || !center.is_node() || right.is_leaf() {
     abort("Unreachable: input to merge is invalid")
   }
   fn get_children(self : Tree[A]) -> FixedArray[Tree[A]] {
@@ -588,7 +616,7 @@ fn[A] redis(
   old_t : FixedArray[Tree[A]],
   node_counts : FixedArray[Int],
   node_nums : Int,
-  shift : Int
+  shift : Int,
 ) -> FixedArray[Tree[A]] {
   let old_len = old_t.length()
   let new_t = FixedArray::make(node_nums, Empty)
@@ -683,7 +711,7 @@ fn[A] redis(
 /// Given a list of trees as `children` with heights of (`shift` / `num_bits`), compute the sizes array of the subtrees.
 fn[A] compute_sizes(
   children : FixedArray[Tree[A]],
-  shift : Int
+  shift : Int,
 ) -> FixedArray[Int]? {
   let len = children.length()
   let sizes = FixedArray::make(len, 0)
@@ -746,20 +774,20 @@ test "Show for Tree" {
   inspect((Empty : Tree[Int]), content="Empty")
   inspect(
     Node([Leaf([4, 2])], Some([2])),
-    content=
+    content=(
       #|Node(
       #|  Leaf(4, 2)
       #|)
       #|
-    ,
+    ),
   )
   inspect(
     Node([Empty, Leaf([42])], Some([0, 1])),
-    content=
+    content=(
       #|Node(
       #|  Empty  Leaf(42)
       #|)
       #|
-    ,
+    ),
   )
 }

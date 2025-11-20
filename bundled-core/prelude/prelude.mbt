@@ -13,53 +13,13 @@
 // limitations under the License.
 
 ///|
-pub typealias @builtin.(
-  ArgsLoc,
-  Array,
-  UninitializedArray,
-  Failure,
-  Hasher,
-  Iter,
-  Iter2,
-  IterResult,
-  Json,
-  Map,
-  InspectError,
-  SnapshotError,
-  SourceLoc,
-  StringBuilder
-)
+pub using @set {type Set}
 
 ///|
-pub typealias @set.Set
+pub using @bigint {type BigInt}
 
 ///|
-pub typealias @bigint.BigInt
-
-///|
-pub traitalias @builtin.(
-  Eq,
-  Compare,
-  Hash,
-  Logger,
-  Show,
-  ToJson,
-  Default,
-  Add,
-  Sub,
-  Mul,
-  Div,
-  Mod,
-  Neg,
-  Shl,
-  Shr,
-  BitAnd,
-  BitOr,
-  BitXOr
-)
-
-///|
-pub fnalias @builtin.(
+pub using @builtin {
   abort,
   assert_eq,
   assert_not_eq,
@@ -73,10 +33,45 @@ pub fnalias @builtin.(
   println,
   not,
   repr,
-  dump
-)
+  dump,
+  trait Eq,
+  trait Compare,
+  trait Hash,
+  trait Logger,
+  trait Show,
+  trait ToJson,
+  trait Default,
+  trait Add,
+  trait Sub,
+  trait Mul,
+  trait Div,
+  trait Mod,
+  trait Neg,
+  trait Shl,
+  trait Shr,
+  trait BitAnd,
+  trait BitOr,
+  trait BitXOr,
+  type ArgsLoc,
+  type Array,
+  type ArrayView,
+  type UninitializedArray,
+  type Failure,
+  type Hasher,
+  type Iter,
+  type Iterator,
+  type Iter2,
+  type Iterator2,
+  type IterResult,
+  type Json,
+  type Map,
+  type InspectError,
+  type SnapshotError,
+  type SourceLoc,
+  type StringBuilder,
+}
 
-///| 
+///|
 /// Applies a function to a value and returns the original value.
 ///
 /// # Parameters
@@ -90,7 +85,7 @@ pub fnalias @builtin.(
 /// ```mbt
 /// let val : Ref[Int] = { val : 1 }
 /// let x : Int = 5
-/// assert_eq(x |> tap((n) => { val.val += n }), 5)
+/// assert_eq(x |> tap(n => val.val += n), 5)
 /// // This is not allowed
 /// // x |> (val.val += _)
 /// assert_eq(val.val, 6)
@@ -100,7 +95,7 @@ pub fn[T] tap(value : T, f : (T) -> Unit) -> T {
   value
 }
 
-///| 
+///|
 /// Applies a function to a value and returns the result of the function.
 ///
 /// # Parameters
@@ -113,7 +108,7 @@ pub fn[T] tap(value : T, f : (T) -> Unit) -> T {
 /// # Examples
 /// ```moonbit
 /// let x = 5
-/// let result = x |> then((n) => { n * 2 })
+/// let result = x |> then(n => n * 2)
 /// // This is not allowed
 /// // x |> (_ * 2)
 /// assert_eq(result, 10)
@@ -121,3 +116,6 @@ pub fn[T] tap(value : T, f : (T) -> Unit) -> T {
 pub fn[T, R] then(value : T, f : (T) -> R) -> R {
   f(value)
 }
+
+///|
+pub let null : Json = @builtin.null

@@ -13,42 +13,42 @@
 // limitations under the License.
 
 ///|
-pub impl[K, V] Default for T[K, V] with default() {
+pub impl[K, V] Default for SortedMap[K, V] with default() {
   new()
 }
 
 ///|
-pub impl[K : Eq, V : Eq] Eq for T[K, V] with op_equal(self, other) -> Bool {
-  let iter = InorderIterator::new(self)
-  let iter1 = InorderIterator::new(other)
-  loop (iter.next(), iter1.next()) {
-    (None, None) => true
-    (Some(a), Some(b)) => {
-      guard a == b else { break false }
-      continue (iter.next(), iter1.next())
-    }
-    (_, _) => false
+pub impl[K : Eq, V : Eq] Eq for SortedMap[K, V] with equal(self, other) -> Bool {
+  guard self.length() == other.length() else { return false }
+  let iter = self.iterator()
+  let iter1 = other.iterator()
+  while iter.next() is Some(a) && iter1.next() is Some(b) {
+    guard a == b else { break false }
+  } else {
+    true
   }
 }
 
 ///|
-pub impl[K : Compare, V : Compare] Compare for T[K, V] with compare(self, other) -> Int {
-  let iter = InorderIterator::new(self)
-  let iter1 = InorderIterator::new(other)
-  loop (iter.next(), iter1.next()) {
-    (None, None) => 0
-    (Some(a), Some(b)) => {
-      let cmp = a.compare(b)
-      guard cmp == 0 else { break cmp }
-      continue (iter.next(), iter1.next())
-    }
-    (Some(_), None) => 1
-    (None, Some(_)) => -1
+pub impl[K : Compare, V : Compare] Compare for SortedMap[K, V] with compare(
+  self,
+  other,
+) -> Int {
+  guard self.length() == other.length() else {
+    return self.length() - other.length()
+  }
+  let iter = self.iterator()
+  let iter1 = other.iterator()
+  while iter.next() is Some(a) && iter1.next() is Some(b) {
+    let cmp = a.compare(b)
+    guard cmp is 0 else { break cmp }
+  } else {
+    0
   }
 }
 
 ///|
-pub impl[K : @quickcheck.Arbitrary + Compare, V : @quickcheck.Arbitrary] @quickcheck.Arbitrary for T[
+pub impl[K : @quickcheck.Arbitrary + Compare, V : @quickcheck.Arbitrary] @quickcheck.Arbitrary for SortedMap[
   K,
   V,
 ] with arbitrary(size, rs) {
@@ -56,20 +56,27 @@ pub impl[K : @quickcheck.Arbitrary + Compare, V : @quickcheck.Arbitrary] @quickc
 }
 
 ///|
-pub impl[K : Hash, V : Hash] Hash for T[K, V] with hash_combine(self, hasher) {
+pub impl[K : Hash, V : Hash] Hash for SortedMap[K, V] with hash_combine(
+  self,
+  hasher,
+) {
   for e in self {
     hasher..combine(e.0)..combine(e.1)
   }
 }
 
 ///|
-pub impl[K : Show, V : Show] Show for T[K, V] with output(self, logger) {
-  logger.write_iter(self.iter(), prefix="@immut/sorted_map.of([", suffix="])")
+pub impl[K : Show, V : Show] Show for SortedMap[K, V] with output(self, logger) {
+  logger.write_iter(
+    self.iter(),
+    prefix="@immut/sorted_map.from_array([",
+    suffix="])",
+  )
 }
 
 ///|
-pub impl[K : Show, V : ToJson] ToJson for T[K, V] with to_json(self) {
-  let capacity = self.size()
+pub impl[K : Show, V : ToJson] ToJson for SortedMap[K, V] with to_json(self) {
+  let capacity = self.length()
   guard capacity != 0 else { return Json::object(Map::new()) }
   let jsons = Map::new(capacity~)
   self.each((k, v) => jsons[k.to_string()] = v.to_json())
@@ -77,9 +84,9 @@ pub impl[K : Show, V : ToJson] ToJson for T[K, V] with to_json(self) {
 }
 
 ///|
-pub impl[V : @json.FromJson] @json.FromJson for T[String, V] with from_json(
+pub impl[V : @json.FromJson] @json.FromJson for SortedMap[String, V] with from_json(
   json,
-  path
+  path,
 ) {
   guard json is Object(obj) else {
     raise @json.JsonDecodeError(
@@ -91,4 +98,12 @@ pub impl[V : @json.FromJson] @json.FromJson for T[String, V] with from_json(
     map = map.add(k, V::from_json(v, path.add_key(k)))
   }
   map
+}
+
+///|
+#as_free_fn
+pub fn[V : @json.FromJson] SortedMap::from_json(
+  json : Json,
+) -> SortedMap[String, V] raise @json.JsonDecodeError {
+  @json.from_json(json)
 }

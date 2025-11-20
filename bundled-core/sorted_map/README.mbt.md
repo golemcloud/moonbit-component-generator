@@ -22,8 +22,9 @@ SortedMap is an ordered map implementation that keeps entries sorted by keys. It
 You can create an empty SortedMap or a SortedMap from other containers.
 
 ```moonbit
+///|
 test {
-  let _map1 : @sorted_map.T[Int, String] = @sorted_map.new()
+  let _map1 : @sorted_map.SortedMap[Int, String] = @sorted_map.new()
   let _map2 = @sorted_map.from_array([(1, "one"), (2, "two"), (3, "three")])
 
 }
@@ -34,31 +35,34 @@ test {
 Add a key-value pair to the SortedMap in place.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(1, "one"), (2, "two")])
-  map.add(3, "three")
-  assert_eq(map.size(), 3)
+  map.set(3, "three")
+  assert_eq(map.length(), 3)
 }
 ```
 
 You can also use the convenient subscript syntax to add or update values:
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.new()
   map[1] = "one"
   map[2] = "two"
-  assert_eq(map.size(), 2)
+  assert_eq(map.length(), 2)
 }
 ```
 
 Remove a key-value pair from the SortedMap in place.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(1, "one"), (2, "two"), (3, "three")])
   map.remove(2)
-  assert_eq(map.size(), 2)
+  assert_eq(map.length(), 2)
   assert_eq(map.contains(2), false)
 }
 ```
@@ -66,6 +70,7 @@ test {
 Get a value by its key. The return type is `Option[V]`.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(1, "one"), (2, "two"), (3, "three")])
   assert_eq(map.get(2), Some("two"))
@@ -76,6 +81,7 @@ test {
 Safe access with error handling:
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(1, "one"), (2, "two")])
   let key = 3
@@ -86,6 +92,7 @@ test {
 Check if a key exists in the map.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(1, "one"), (2, "two"), (3, "three")])
   assert_eq(map.contains(2), true)
@@ -96,6 +103,7 @@ test {
 Iterate over all key-value pairs in the map in sorted key order.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(3, "three"), (1, "one"), (2, "two")])
   let keys = []
@@ -112,10 +120,11 @@ test {
 Iterate with index:
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(3, "three"), (1, "one"), (2, "two")])
   let result = []
-  map.eachi((i, k, v) => { result.push((i, k, v)) })
+  map.eachi((i, k, v) => result.push((i, k, v)))
   assert_eq(result, [(0, 1, "one"), (1, 2, "two"), (2, 3, "three")])
 }
 ```
@@ -123,17 +132,19 @@ test {
 Get the size of the map.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(1, "one"), (2, "two"), (3, "three")])
-  assert_eq(map.size(), 3)
+  assert_eq(map.length(), 3)
 }
 ```
 
 Check if the map is empty.
 
 ```moonbit
+///|
 test {
-  let map : @sorted_map.T[Int, String] = @sorted_map.new()
+  let map : @sorted_map.SortedMap[Int, String] = @sorted_map.new()
   assert_eq(map.is_empty(), true)
 }
 ```
@@ -141,6 +152,7 @@ test {
 Clear the map.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(1, "one"), (2, "two"), (3, "three")])
   map.clear()
@@ -153,16 +165,18 @@ test {
 Get all keys or values from the map.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(3, "three"), (1, "one"), (2, "two")])
-  assert_eq(map.keys(), [1, 2, 3])
-  assert_eq(map.values(), ["one", "two", "three"])
+  assert_eq(map.keys_as_iter().collect(), [1, 2, 3])
+  assert_eq(map.values_as_iter().collect(), ["one", "two", "three"])
 }
 ```
 
 Convert the map to an array of key-value pairs.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(3, "three"), (1, "one"), (2, "two")])
   assert_eq(map.to_array(), [(1, "one"), (2, "two"), (3, "three")])
@@ -174,6 +188,7 @@ test {
 Get a subset of the map within a specified range of keys. The range is inclusive for both bounds `[low, high]`.
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([
     (1, "one"),
@@ -183,7 +198,7 @@ test {
     (5, "five"),
   ])
   let range_items = []
-  map.range(2, 4).each((k, v) => { range_items.push((k, v)) })
+  map.range(2, 4).each((k, v) => range_items.push((k, v)))
   assert_eq(range_items, [(2, "two"), (3, "three"), (4, "four")])
 }
 ```
@@ -194,16 +209,17 @@ Edge cases for range operations:
 - The returned iterator preserves the sorted order of keys
 
 ```moonbit
-// Example with out-of-bounds range
+///|
+///  Example with out-of-bounds range
 test {
   let map = @sorted_map.from_array([(1, "one"), (2, "two"), (3, "three")])
   let range_items = []
-  map.range(0, 10).each((k, v) => { range_items.push((k, v)) })
+  map.range(0, 10).each((k, v) => range_items.push((k, v)))
   assert_eq(range_items, [(1, "one"), (2, "two"), (3, "three")])
 
   // Example with invalid range
   let empty_range : Array[(Int, String)] = []
-  map.range(10, 5).each((k, v) => { empty_range.push((k, v)) })
+  map.range(10, 5).each((k, v) => empty_range.push((k, v)))
   assert_eq(empty_range, [])
 }
 ```
@@ -213,16 +229,18 @@ test {
 The SortedMap supports several iterator patterns. Create a map from an iterator:
 
 ```moonbit
+///|
 test {
   let pairs = [(1, "one"), (2, "two"), (3, "three")].iter()
   let map = @sorted_map.from_iter(pairs)
-  assert_eq(map.size(), 3)
+  assert_eq(map.length(), 3)
 }
 ```
 
 Use the `iter` method to get an iterator over key-value pairs:
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(3, "three"), (1, "one"), (2, "two")])
   let pairs = map.iter().to_array()
@@ -233,10 +251,11 @@ test {
 Use the `iter2` method for a more convenient key-value iteration:
 
 ```moonbit
+///|
 test {
   let map = @sorted_map.from_array([(3, "three"), (1, "one"), (2, "two")])
   let transformed = []
-  map.iter2().each((k, v) => { transformed.push(k.to_string() + ": " + v) })
+  map.iter2().each((k, v) => transformed.push(k.to_string() + ": " + v))
   assert_eq(transformed, ["1: one", "2: two", "3: three"])
 }
 ```
@@ -246,6 +265,7 @@ test {
 Maps with the same key-value pairs are considered equal, regardless of the order in which elements were added.
 
 ```moonbit
+///|
 test {
   let map1 = @sorted_map.from_array([(1, "one"), (2, "two")])
   let map2 = @sorted_map.from_array([(2, "two"), (1, "one")])
@@ -258,7 +278,8 @@ test {
 When working with keys that might not exist, prefer using pattern matching for safety:
 
 ```moonbit
-fn get_score(scores : @sorted_map.T[Int, Int], student_id : Int) -> Int {
+///|
+fn get_score(scores : @sorted_map.SortedMap[Int, Int], student_id : Int) -> Int {
   match scores.get(student_id) {
     Some(score) => score
     None =>
@@ -271,6 +292,7 @@ fn get_score(scores : @sorted_map.T[Int, Int], student_id : Int) -> Int {
   }
 }
 
+///|
 test "safe_key_access" {
   // Create a mapping storing student IDs and their scores
   let scores = @sorted_map.from_array([(1001, 85), (1002, 92), (1003, 78)])
@@ -296,7 +318,7 @@ Key properties of the AVL tree implementation:
 
 - **@hashmap.T**: Provides O(1) average case lookups but doesn't maintain order; use when order doesn't matter
 - **@indexmap.T**: Maintains insertion order but not sorted order; use when insertion order matters
-- **@sorted_map.T**: Maintains keys in sorted order; use when you need keys to be sorted
+- **@sorted_map.SortedMap**: Maintains keys in sorted order; use when you need keys to be sorted
 
 Choose SortedMap when you need:
 - Key-value pairs sorted by key

@@ -24,19 +24,19 @@
 /// Example:
 ///
 /// ```moonbit
-///   let arr = [b'h', b'i']
-///   let bytes = @bytes.from_array(arr)
-///   inspect(bytes, content=
-///     #|b"\x68\x69"
-///   )
+/// let arr = [b'h', b'i']
+/// let bytes = Bytes::from_array(arr)
+/// inspect(
+///   bytes,
+///   content=(
+///     #|b"hi"
+///   ),
+/// )
 /// ```
-pub fn Bytes::from_array(arr : Array[Byte]) -> Bytes {
-  Bytes::makei(arr.length(), i => arr[i])
-}
-
-///|
-/// same as `Bytes::from_array`
-pub fn from_array(arr : Array[Byte]) -> Bytes {
+#as_free_fn(deprecated)
+#alias(of, deprecated="Use from_array instead")
+#as_free_fn(of, deprecated="Use from_array instead")
+pub fn Bytes::from_array(arr : ArrayView[Byte]) -> Bytes {
   Bytes::makei(arr.length(), i => arr[i])
 }
 
@@ -58,23 +58,31 @@ pub fn from_array(arr : Array[Byte]) -> Bytes {
 ///
 /// ```moonbit
 ///   let arr : FixedArray[Byte] = [b'h', b'e', b'l', b'l', b'o']
-///   let bytes = @bytes.from_fixedarray(arr, len=3)
-///   inspect(bytes, content=
-///     #|b"\x68\x65\x6c"
+///   let bytes = Bytes::from_array(arr[0:3])
+///   inspect(
+///     bytes, 
+///     content=(
+///       
+///   #|b"hel"
+/// 
+///     ),
 ///   )
 /// ```
+/// 
+/// Panics if the length is invalid
+#as_free_fn(deprecated)
+#deprecated("Use Bytes::from_array instead")
 pub fn Bytes::from_fixedarray(arr : FixedArray[Byte], len? : Int) -> Bytes {
   let len = match len {
     None => arr.length()
-    Some(x) => x
+    Some(x) => {
+      guard 0 <= x && x <= arr.length()
+      x
+    }
   }
-  Bytes::makei(len, i => arr[i])
-}
-
-///|
-/// same as `Bytes::from_fixedarray`
-pub fn from_fixedarray(arr : FixedArray[Byte], len? : Int) -> Bytes {
-  Bytes::from_fixedarray(arr, len?)
+  let result = unsafe_to_fixedarray(UninitializedArray::make(len))
+  arr.blit_to(result, len~)
+  result.unsafe_reinterpret_as_bytes()
 }
 
 ///|
@@ -97,18 +105,30 @@ pub fn from_fixedarray(arr : FixedArray[Byte], len? : Int) -> Bytes {
 ///   let bytes = b"hello"
 ///   let arr = bytes.to_fixedarray()
 ///   inspect(arr, content="[b'\\x68', b'\\x65', b'\\x6C', b'\\x6C', b'\\x6F']")
-///   let arr2 = bytes.to_fixedarray(len=3)
+///   let arr2 = bytes[:3].to_fixedarray()
 ///   inspect(arr2, content="[b'\\x68', b'\\x65', b'\\x6C']")
 /// ```
-pub fn to_fixedarray(self : Bytes, len? : Int) -> FixedArray[Byte] {
+/// 
+/// Panics if the length is invalid
+#label_migration(len, fill=false)
+pub fn Bytes::to_fixedarray(self : Bytes, len? : Int) -> FixedArray[Byte] {
   let len = match len {
     None => self.length()
-    Some(x) => x
+    Some(x) => {
+      guard 0 <= x && x <= self.length()
+      x
+    }
   }
-  let arr = FixedArray::make(len, Byte::default())
-  for i in 0..<len {
-    arr[i] = self[i]
-  }
+  let arr = unsafe_to_fixedarray(UninitializedArray::make(len))
+  arr.blit_from_bytes(0, self, 0, len)
+  arr
+}
+
+///|
+pub fn BytesView::to_fixedarray(self : BytesView) -> FixedArray[Byte] {
+  let len = self.length()
+  let arr = unsafe_to_fixedarray(UninitializedArray::make(len))
+  arr.blit_from_bytes(0, self.data(), self.start_offset(), len)
   arr
 }
 
@@ -125,19 +145,45 @@ pub fn to_fixedarray(self : Bytes, len? : Int) -> FixedArray[Byte] {
 ///
 /// ```moonbit
 ///   let iter = Iter::singleton(b'h')
-///   let bytes = @bytes.from_iter(iter)
-///   inspect(bytes, content=
-///     #|b"\x68"
+///   let bytes = Bytes::from_iter(iter)
+///   inspect(
+///     bytes, 
+///     content=(
+///       
+///   #|b"h"
+/// 
+///     ),
 ///   )
 /// ```
+#as_free_fn(deprecated)
 pub fn Bytes::from_iter(iter : Iter[Byte]) -> Bytes {
-  from_array(iter.collect())
+  Bytes::from_array(iter.collect())
 }
 
 ///|
-/// same as `Bytes::from_iter`
-pub fn from_iter(iter : Iter[Byte]) -> Bytes {
-  from_array(iter.collect())
+/// Creates a new bytes sequence from an iterator of bytes.
+///
+/// Parameters:
+///
+/// * `iterator` : An iterator that yields bytes.
+///
+/// Returns a new bytes sequence containing all the bytes from the iterator.
+///
+/// Example:
+///
+/// ```moonbit
+///   let iter = Iterator::singleton(b'h')
+///   let bytes = Bytes::from_iterator(iter)
+///   inspect(
+///     bytes, 
+///     content=(
+///       #|b"h"
+///     ),
+///   )
+/// ```
+#as_free_fn(deprecated)
+pub fn Bytes::from_iterator(iter : Iterator[Byte]) -> Bytes {
+  Bytes::from_array(iter.collect())
 }
 
 ///|
@@ -154,21 +200,17 @@ pub fn from_iter(iter : Iter[Byte]) -> Bytes {
 ///
 /// ```moonbit
 ///   let arr : FixedArray[Byte] = [b'h', b'e', b'l', b'l', b'o']
-///   let bytes = @bytes.of(arr)
-///   inspect(bytes, content=
-///     #|b"\x68\x65\x6c\x6c\x6f"
+///   let bytes = Bytes::of(arr)
+///   inspect(
+///     bytes, 
+///     content=(
+///       
+///   #|b"hello"
+/// 
+///     ),
 ///   )
 /// ```
 /// TODO: marked as intrinsic, inline if it is constant
-pub fn Bytes::of(arr : FixedArray[Byte]) -> Bytes {
-  Bytes::makei(arr.length(), i => arr[i])
-}
-
-///|
-/// same as `Bytes::of`
-pub fn of(arr : FixedArray[Byte]) -> Bytes {
-  Bytes::makei(arr.length(), i => arr[i])
-}
 
 ///|
 /// Converts a bytes sequence into an array of bytes.
@@ -186,7 +228,17 @@ pub fn of(arr : FixedArray[Byte]) -> Bytes {
 ///   let arr = bytes.to_array()
 ///   inspect(arr, content="[b'\\x68', b'\\x65', b'\\x6C', b'\\x6C', b'\\x6F']")
 /// ```
-pub fn to_array(self : Bytes) -> Array[Byte] {
+pub fn Bytes::to_array(self : Bytes) -> Array[Byte] {
+  let len = self.length()
+  let rv = Array::make(len, b'0')
+  for i in 0..<len {
+    rv[i] = self[i]
+  }
+  rv
+}
+
+///|
+pub fn BytesView::to_array(self : BytesView) -> Array[Byte] {
   let len = self.length()
   let rv = Array::make(len, b'0')
   for i in 0..<len {
@@ -212,13 +264,41 @@ pub fn to_array(self : Bytes) -> Array[Byte] {
 ///   bytes.iter().each((b) => { sum = sum + b.to_int() })
 ///   inspect(sum, content="209") // ASCII values: 'h'(104) + 'i'(105) = 209
 /// ```
-pub fn iter(self : Bytes) -> Iter[Byte] {
+pub fn Bytes::iter(self : Bytes) -> Iter[Byte] {
   Iter::new(yield_ => for i in 0..<self.length() {
-    if yield_(self[i]) == IterEnd {
+    if yield_(self[i]) is IterEnd {
       break IterEnd
     }
   } else {
     IterContinue
+  })
+}
+
+///|
+/// Creates an iterator over the bytes in the sequence.
+///
+/// Parameters:
+///
+/// * `bytes` : A byte sequence to iterate over.
+///
+/// Returns an iterator that yields each byte in the sequence in order.
+///
+/// Example:
+///
+/// ```moonbit
+///   let bytes = Bytes::from_array([b'h', b'i'])
+///   let mut sum = 0
+///   bytes.iterator().each((b) => { sum = sum + b.to_int() })
+///   inspect(sum, content="209") // ASCII values: 'h'(104) + 'i'(105) = 209
+/// ```
+pub fn Bytes::iterator(self : Bytes) -> Iterator[Byte] {
+  let mut i = 0
+  let len = self.length()
+  Iterator::new(fn() {
+    guard i < len else { None }
+    let c = self.unsafe_get(i)
+    i += 1
+    Some(c)
   })
 }
 
@@ -235,13 +315,41 @@ pub fn iter(self : Bytes) -> Iter[Byte] {
 ///   })
 ///   inspect(buf, content="b'\\x61'b'\\x62'b'\\x63'b'\\x64'b'\\x65'")
 ///   inspect(keys, content="[0, 1, 2, 3, 4]")
-pub fn iter2(self : Bytes) -> Iter2[Int, Byte] {
+pub fn Bytes::iter2(self : Bytes) -> Iter2[Int, Byte] {
   Iter2::new(yield_ => for i in 0..<self.length() {
-    if yield_(i, self[i]) == IterEnd {
+    if yield_(i, self[i]) is IterEnd {
       break IterEnd
     }
   } else {
     IterContinue
+  })
+}
+
+///|
+/// Creates an iterator that yields tuples of index and byte,
+/// indices start from 0.
+/// 
+/// Example:
+///
+/// ```moonbit
+///   let buf = StringBuilder::new(size_hint=5)
+///   let keys = []
+///   let it = b"abcde".iterator2()
+///   while it.next() is Some((i, x)) {
+///     buf.write_string(x.to_string())
+///     keys.push( i )
+///   }
+///   inspect(buf, content="b'\\x61'b'\\x62'b'\\x63'b'\\x64'b'\\x65'")
+///   inspect(keys, content="[0, 1, 2, 3, 4]")
+/// ```
+pub fn Bytes::iterator2(self : Bytes) -> Iterator2[Int, Byte] {
+  let mut i = 0
+  let len = self.length()
+  Iterator::new(fn() {
+    guard i < len else { None }
+    let result = (i, self.unsafe_get(i))
+    i += 1
+    Some(result)
   })
 }
 
@@ -253,11 +361,17 @@ pub fn iter2(self : Bytes) -> Iter2[Int, Byte] {
 /// Example:
 ///
 /// ```moonbit
-///   let bytes = @bytes.default()
+///   let bytes = Bytes::default()
 ///   inspect(bytes, content="b\"\"")
 ///   inspect(bytes.length(), content="0")
 /// ```
 pub impl Default for Bytes with default() {
+  b""
+}
+
+///|
+/// same as `Bytes::default`
+pub fn default() -> Bytes {
   b""
 }
 
@@ -281,20 +395,17 @@ pub impl Default for Bytes with default() {
 ///   let byte = bytes.get(3)
 ///   inspect(byte, content="None")
 /// ```
-pub fn get(self : Bytes, index : Int) -> Byte? {
+pub fn Bytes::get(self : Bytes, index : Int) -> Byte? {
   guard index >= 0 && index < self.length() else { None }
   Some(self[index])
 }
 
 ///|
-/// same as `Bytes::default`
-pub fn default() -> Bytes {
-  b""
-}
-
-///|
 /// Reinterpret the byte sequence as Bytes.
 fn unsafe_to_bytes(array : FixedArray[Byte]) -> Bytes = "%identity"
+
+///|
+fn unsafe_to_fixedarray(array : UninitializedArray[Byte]) -> FixedArray[Byte] = "%identity"
 
 ///|
 /// Concatenates two bytes sequences.
@@ -304,7 +415,7 @@ fn unsafe_to_bytes(array : FixedArray[Byte]) -> Bytes = "%identity"
 /// * `self` : The first bytes sequence.
 /// * `other` : The second bytes sequence.
 /// TODO: marked as intrinsic, inline if it is constant
-pub impl Add for Bytes with op_add(self : Bytes, other : Bytes) -> Bytes {
+pub impl Add for Bytes with add(self : Bytes, other : Bytes) -> Bytes {
   let len_self = self.length()
   let len_other = other.length()
   let rv : FixedArray[Byte] = FixedArray::make(len_self + len_other, 0)
@@ -315,4 +426,53 @@ pub impl Add for Bytes with op_add(self : Bytes, other : Bytes) -> Bytes {
     rv[len_self + i] = other[i]
   }
   unsafe_to_bytes(rv)
+}
+
+///|
+pub impl Hash for Bytes with hash_combine(self, hasher) {
+  hasher.combine(self[:])
+}
+
+///|
+/// Returns a new `Bytes` consisting of `self` repeated `count` times.
+///
+/// If `count <= 0` or `self` is empty, an empty `Bytes` is returned. When
+/// `count == 1`, `self` is returned directly without allocation.
+///
+/// This implementation performs a single allocation sized exactly to the
+/// result and fills it using an exponential copy (doubling) strategy so the
+/// number of blit operations is O(log count).
+///
+/// Example:
+///
+/// ```moonbit
+///   inspect(b"ab".repeat(3), content=(
+///     #|b"ababab"
+///   ))
+///   inspect(b"xyz".repeat(0), content=(
+///     #|b""
+///   ))
+/// ```
+pub fn Bytes::repeat(self : Self, count : Int) -> Bytes {
+  if count <= 0 || self.length() == 0 {
+    return []
+  }
+  if count == 1 {
+    return self
+  }
+  let len = self.length()
+  let total = len * count
+  // (Optional) detect overflow: if multiplication wrapped (best-effort)
+  guard total / count == len
+  let arr = FixedArray::make(total, (0 : Byte))
+  arr.blit_from_bytes(0, self, 0, len)
+  let mut filled = len
+  while filled < total {
+    let remaining = total - filled
+    let copy_len = if filled < remaining { filled } else { remaining }
+    let src = unsafe_to_bytes(arr)
+    arr.blit_from_bytes(filled, src, 0, copy_len)
+    filled = filled + copy_len
+  }
+  unsafe_to_bytes(arr)
 }

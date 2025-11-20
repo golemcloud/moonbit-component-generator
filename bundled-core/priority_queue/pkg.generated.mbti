@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/core/priority_queue"
+
+import(
+  "moonbitlang/core/quickcheck"
+  "moonbitlang/core/quickcheck/splitmix"
+)
+
+// Values
+
+// Errors
+
+// Types and methods
+type T[A]
+fn[A] T::clear(Self[A]) -> Unit
+fn[A] T::copy(Self[A]) -> Self[A]
+#alias(of, deprecated)
+#as_free_fn(of, deprecated)
+#as_free_fn
+fn[A : Compare] T::from_array(ArrayView[A]) -> Self[A]
+#as_free_fn
+fn[K : Compare] T::from_iter(Iter[K]) -> Self[K]
+#as_free_fn
+fn[K : Compare] T::from_iterator(Iterator[K]) -> Self[K]
+fn[A] T::is_empty(Self[A]) -> Bool
+fn[A : Compare] T::iter(Self[A]) -> Iter[A]
+fn[A : Compare] T::iterator(Self[A]) -> Iterator[A]
+fn[A] T::length(Self[A]) -> Int
+#as_free_fn
+fn[A] T::new() -> Self[A]
+fn[A] T::peek(Self[A]) -> A?
+fn[A : Compare] T::pop(Self[A]) -> A?
+fn[A : Compare] T::push(Self[A], A) -> Unit
+fn[A : Compare] T::to_array(Self[A]) -> Array[A]
+impl[K] Default for T[K]
+impl[A : Show + Compare] Show for T[A]
+impl[A : ToJson + Compare] ToJson for T[A]
+impl[X : @quickcheck.Arbitrary + Compare] @quickcheck.Arbitrary for T[X]
+
+// Type aliases
+
+// Traits
+

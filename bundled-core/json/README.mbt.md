@@ -7,6 +7,7 @@ The `json` package provides comprehensive JSON handling capabilities, including 
 ### Parsing and Validating JSON
 
 ```moonbit
+///|
 test "parse and validate jsons" {
   // Check if a string is valid JSON
   assert_true(@json.valid("{\"key\": 42}"))
@@ -16,7 +17,7 @@ test "parse and validate jsons" {
 
   // Parse JSON string into Json value
   let json = @json.parse("{\"key\": 42}") catch {
-    (_ : ParseError) => panic()
+    (_ : @json.ParseError) => panic()
     // _ => panic() // redundant, the type checker won't refine further
   }
 
@@ -37,6 +38,7 @@ test "parse and validate jsons" {
 ### Object Navigation
 
 ```moonbit
+///|
 test "json object navigation" {
   let json = @json.parse(
     "{\"string\":\"hello\",\"number\":42,\"array\":[1,2,3]}",
@@ -46,9 +48,9 @@ test "json object navigation" {
   let string_opt = json.value("string").unwrap().as_string()
   inspect(
     string_opt,
-    content=
+    content=(
       #|Some("hello")
-    ,
+    ),
   )
 
   // Access number
@@ -67,6 +69,7 @@ test "json object navigation" {
 ### Array Navigation
 
 ```moonbit
+///|
 test "json array navigation" {
   let array = @json.parse("[1,2,3,4,5]")
 
@@ -92,6 +95,7 @@ test "json array navigation" {
 ### From JSON to Native Types
 
 ```moonbit
+///|
 test "json decode" {
   // Decode basic types
   let json_number = (42 : Json)
@@ -108,9 +112,9 @@ test "json decode" {
   let map : Map[String, Int] = @json.from_json(json_map)
   inspect(
     map,
-    content=
+    content=(
       #|{"a": 1, "b": 2}
-    ,
+    ),
   )
 }
 ```
@@ -118,6 +122,7 @@ test "json decode" {
 ### Error Handling with JSON Path
 
 ```moonbit
+///|
 test "json path" {
   // Handle decode errors
   try {
@@ -125,7 +130,7 @@ test "json path" {
     panic()
   } catch {
     @json.JsonDecodeError((path, msg)) => {
-      inspect(path, content="$[1]")
+      inspect(path, content="/1")
       inspect(msg, content="Int::from_json: expected number")
     }
   }
@@ -138,8 +143,9 @@ test "json path" {
 This is particularly true for deeply-nested data structures.
 
 ```moonbit
+///|
 test "json inspection" {
-  let null = Json::null() 
+  let null = null
 
   // Simple json values
   let json_value : Json = { "key": "value", "numbers": [1, 2, 3] }

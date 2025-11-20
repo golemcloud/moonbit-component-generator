@@ -18,7 +18,7 @@ fn[K, V] new_node(key : K, value : V) -> Node[K, V] {
 }
 
 ///|
-impl[K : Eq, V] Eq for Node[K, V] with op_equal(self, other) {
+impl[K : Eq, V] Eq for Node[K, V] with equal(self, other) {
   self.key == other.key
 }
 
@@ -40,7 +40,7 @@ fn[K, V] height(node : Node[K, V]?) -> Int {
 }
 
 ///|
-fn[K : Show, V : Show] debug_node(self : Node[K, V]) -> String {
+fn[K : Show, V : Show] Node::debug_node(self : Node[K, V]) -> String {
   let l = match self.left {
     Some(left) => left.debug_node()
     None => "_"
@@ -53,7 +53,7 @@ fn[K : Show, V : Show] debug_node(self : Node[K, V]) -> String {
 }
 
 ///|
-fn[K : Show, V : Show] debug_tree(self : T[K, V]) -> String {
+fn[K : Show, V : Show] SortedMap::debug_tree(self : SortedMap[K, V]) -> String {
   match self.root {
     Some(root) => root.debug_node()
     None => "_"
@@ -61,6 +61,32 @@ fn[K : Show, V : Show] debug_tree(self : T[K, V]) -> String {
 }
 
 ///|
-pub impl[K : Show, V : Show] Show for T[K, V] with output(self, logger) {
-  logger.write_iter(self.iter(), prefix="@sorted_map.of([", suffix="])")
+pub impl[K : Show, V : Show] Show for SortedMap[K, V] with output(self, logger) {
+  logger.write_iter(self.iter(), prefix="@sorted_map.from_array([", suffix="])")
+}
+
+///|
+pub impl[K : Show, V : ToJson] ToJson for SortedMap[K, V] with to_json(self) {
+  let capacity = self.length()
+  guard capacity != 0 else { return Json::object(Map::new()) }
+  let jsons = Map::new(capacity~)
+  self.each((k, v) => jsons[k.to_string()] = v.to_json())
+  Json::object(jsons)
+}
+
+///|
+pub impl[V : @json.FromJson] @json.FromJson for SortedMap[String, V] with from_json(
+  json,
+  path,
+) {
+  guard json is Object(obj) else {
+    raise @json.JsonDecodeError(
+      (path, "@sorted_map.from_json: expected object"),
+    )
+  }
+  let map = new()
+  for k, v in obj {
+    map.set(k, V::from_json(v, path.add_key(k)))
+  }
+  map
 }

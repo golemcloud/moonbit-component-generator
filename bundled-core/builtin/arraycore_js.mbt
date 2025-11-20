@@ -52,7 +52,7 @@ extern "js" fn JSArray::pop(self : JSArray) -> JSValue =
 extern "js" fn JSArray::splice(
   self : JSArray,
   index : Int,
-  count : Int
+  count : Int,
 ) -> JSArray =
   #| (arr, idx, cnt) => arr.splice(idx, cnt)
 
@@ -61,9 +61,18 @@ extern "js" fn JSArray::splice1(
   self : JSArray,
   index : Int,
   count : Int,
-  value : JSValue
+  value : JSValue,
 ) -> JSArray =
   #| (arr, idx, cnt, val) => arr.splice(idx, cnt, val)
+
+///|
+extern "js" fn JSArray::fill(
+  self : JSArray,
+  value : JSValue,
+  start : Int,
+  end : Int,
+) -> Unit =
+  #| (arr, val, start, end) => arr.fill(val, start, end)
 
 //#endregion
 
@@ -78,7 +87,7 @@ fn[T] Array::make_uninit(len : Int) -> Array[T] = "%fixedarray.make_uninit"
 
 ///|
 /// Creates a new array.
-pub fn[T] Array::new(capacity~ : Int = 0) -> Array[T] {
+pub fn[T] Array::new(capacity? : Int = 0) -> Array[T] {
   ignore(capacity)
   []
 }
@@ -97,19 +106,6 @@ fn[T] Array::buffer(self : Array[T]) -> UninitializedArray[T] = "%identity"
 
 ///|
 test "array_unsafe_blit_fixed" {
-  let src = FixedArray::make(5, 0)
-  let dst = UninitializedArray::make(5)
-  for i in 0..<5 {
-    src[i] = i + 1
-  }
-  UninitializedArray::unsafe_blit_fixed(dst, 0, src, 0, 5)
-  for i in 0..<5 {
-    assert_eq(dst[i], src[i])
-  }
-}
-
-///|
-test "UninitializedArray::unsafe_blit_fixed" {
   let src = FixedArray::make(5, 0)
   let dst = UninitializedArray::make(5)
   for i in 0..<5 {
@@ -203,12 +199,15 @@ pub fn[T] Array::pop(self : Array[T]) -> T? {
   }
 }
 
-///| Removes the last element from a array and returns it.
+///|
+/// Removes the last element from a array and returns it.
 ///
 /// **NOTE** This method will not cause a panic, but it may result in undefined
 /// behavior on the JavaScript platform. Use with caution.
 ///
 #internal(unsafe, "Panic if the array is empty.")
+#doc(hidden)
+#alias(pop_exn, deprecated)
 pub fn[T] Array::unsafe_pop(self : Array[T]) -> T {
   JSArray::ofAnyArray(self).pop().toAny()
 }
@@ -290,4 +289,60 @@ pub fn[T] Array::insert(self : Array[T], index : Int, value : T) -> Unit {
 fn[T] Array::unsafe_grow_to_length(self : Array[T], new_len : Int) -> Unit {
   guard new_len >= self.length()
   JSArray::ofAnyArray(self).set_length(new_len)
+}
+
+///|
+/// Fills an Array with a specified value.
+/// 
+/// This method fills all or part of an Array with the given value.
+/// 
+/// # Parameters
+/// - `value`: The value to fill the array with
+/// - `start`: The starting index (inclusive, default: 0)
+/// - `end`: The ending index (exclusive, optional)
+/// 
+/// If `end` is not provided, fills from `start` to the end of the array.
+/// If `start` equals `end`, no elements are modified.
+/// 
+/// # Panics
+/// - Panics if `start` is negative or greater than or equal to the array length
+/// - Panics if `end` is provided and is less than `start` or greater than array length
+/// - Does nothing if the array is empty
+/// 
+/// # Example
+/// ```moonbit
+/// // Fill entire array
+/// let arr = [1, 2, 3, 4, 5]
+/// arr.fill(0)
+/// inspect(arr, content="[0, 0, 0, 0, 0]")
+/// 
+/// // Fill from index 1 to 3 (exclusive)
+/// let arr2 = [1, 2, 3, 4, 5]
+/// arr2.fill(99, start=1, end=3)
+/// inspect(arr2, content="[1, 99, 99, 4, 5]")
+/// 
+/// // Fill from index 2 to end
+/// let arr3 = ["a", "b", "c", "d"]
+/// arr3.fill("x", start=2)
+/// inspect(arr3, content=(
+///   #|["a", "b", "x", "x"]
+/// ))
+/// ```
+pub fn[A] Array::fill(
+  self : Array[A],
+  value : A,
+  start? : Int = 0,
+  end? : Int,
+) -> Unit {
+  let array_length = self.length()
+  guard array_length > 0 else { return }
+  guard start >= 0 && start < array_length
+  let end = match end {
+    None => array_length
+    Some(e) => {
+      guard e >= 0 && e <= array_length
+      e
+    }
+  }
+  JSArray::ofAnyArray(self).fill(JSValue::ofAny(value), start, end)
 }

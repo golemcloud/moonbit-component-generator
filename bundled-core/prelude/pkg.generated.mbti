@@ -1,0 +1,133 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/core/prelude"
+
+import(
+  "moonbitlang/core/bigint"
+  "moonbitlang/core/builtin"
+  "moonbitlang/core/set"
+)
+
+// Values
+fn[T] abort(String) -> T
+
+#callsite(autofill(loc))
+fn[T : @builtin.Eq + @builtin.Show] assert_eq(T, T, msg? : String, loc~ : @builtin.SourceLoc) -> Unit raise
+
+#callsite(autofill(loc))
+fn assert_false(Bool, msg? : String, loc~ : @builtin.SourceLoc) -> Unit raise
+
+#callsite(autofill(loc))
+fn[T : @builtin.Eq + @builtin.Show] assert_not_eq(T, T, msg? : String, loc~ : @builtin.SourceLoc) -> Unit raise
+
+#callsite(autofill(loc))
+fn assert_true(Bool, msg? : String, loc~ : @builtin.SourceLoc) -> Unit raise
+
+#deprecated
+#callsite(autofill(loc))
+fn[T] dump(T, name? : String, loc~ : @builtin.SourceLoc) -> T
+
+#callsite(autofill(loc))
+fn[T] fail(String, loc~ : @builtin.SourceLoc) -> T raise @builtin.Failure
+
+fn[T] ignore(T) -> Unit
+
+#callsite(autofill(args_loc, loc))
+fn inspect(&@builtin.Show, content? : String, loc~ : @builtin.SourceLoc, args_loc~ : @builtin.ArgsLoc) -> Unit raise @builtin.InspectError
+
+fn not(Bool) -> Bool
+
+let null : @builtin.Json
+
+fn[T] panic() -> T
+
+fn[T] physical_equal(T, T) -> Bool
+
+fn[T : @builtin.Show] println(T) -> Unit
+
+fn[T : @builtin.Show] repr(T) -> String
+
+fn[T] tap(T, (T) -> Unit) -> T
+
+fn[T, R] then(T, (T) -> R) -> R
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+pub using @builtin {type ArgsLoc}
+
+pub using @builtin {type Array}
+
+pub using @builtin {type ArrayView}
+
+pub using @bigint {type BigInt}
+
+pub using @builtin {type Failure}
+
+pub using @builtin {type Hasher}
+
+pub using @builtin {type InspectError}
+
+pub using @builtin {type Iter}
+
+pub using @builtin {type Iter2}
+
+pub using @builtin {type IterResult}
+
+pub using @builtin {type Iterator}
+
+pub using @builtin {type Iterator2}
+
+pub using @builtin {type Json}
+
+pub using @builtin {type Map}
+
+pub using @set {type Set}
+
+pub using @builtin {type SnapshotError}
+
+pub using @builtin {type SourceLoc}
+
+pub using @builtin {type StringBuilder}
+
+pub using @builtin {type UninitializedArray}
+
+using @builtin {trait Add}
+
+using @builtin {trait BitAnd}
+
+using @builtin {trait BitOr}
+
+using @builtin {trait BitXOr}
+
+using @builtin {trait Compare}
+
+using @builtin {trait Default}
+
+using @builtin {trait Div}
+
+using @builtin {trait Eq}
+
+using @builtin {trait Hash}
+
+using @builtin {trait Logger}
+
+using @builtin {trait Mod}
+
+using @builtin {trait Mul}
+
+using @builtin {trait Neg}
+
+using @builtin {trait Shl}
+
+using @builtin {trait Show}
+
+using @builtin {trait Shr}
+
+using @builtin {trait Sub}
+
+using @builtin {trait ToJson}
+
+// Traits
+

@@ -18,16 +18,17 @@ trait FromString {
 }
 
 ///|
-type MyInt Int derive(Show)
+struct MyInt(Int) derive(Show)
+
+// _ allow in names
 
 ///|
-// _ allow in names
 impl FromString for MyInt with from_string(_s) {
   0
 }
 
 ///|
-type MyString String derive(Show)
+struct MyString(String) derive(Show)
 
 ///|
 impl FromString for MyString with from_string(_s) {
@@ -50,9 +51,9 @@ test {
   let u1 : MyInt = FromString::from_string("")
   inspect(
     (u0, u1),
-    content=
+    content=(
       #|(MyString(""), MyInt(0))
-    ,
+    ),
   )
   need_int(FromString::from_string(""))
   need_string(FromString::from_string(""))

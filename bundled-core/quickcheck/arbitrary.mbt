@@ -113,7 +113,7 @@ pub impl Arbitrary for String with arbitrary(size, rs) {
 pub impl[X : Arbitrary] Arbitrary for Iter[X] with arbitrary(size, rs) {
   let len = if size == 0 { 0 } else { rs.next_positive_int() % size }
   Iter::new(yield_ => for i in 0..<len {
-    if yield_(X::arbitrary(i, rs)) == IterEnd {
+    if yield_(X::arbitrary(i, rs)) is IterEnd {
       break IterEnd
     }
   } else {
@@ -132,4 +132,32 @@ pub fn[T : Arbitrary] gen(size? : Int, state? : @splitmix.RandomState) -> T {
     Some(x) => x
   }
   Arbitrary::arbitrary(size, state)
+}
+
+///|
+pub impl[X : Arbitrary] Arbitrary for X? with arbitrary(i, rs) {
+  if rs.next_double() < 0.3 {
+    None
+  } else {
+    Some(Arbitrary::arbitrary(i, rs))
+  }
+}
+
+///|
+pub impl[X : Arbitrary] Arbitrary for FixedArray[X] with arbitrary(size, rs) {
+  let len = if size == 0 { 0 } else { rs.next_positive_int() % size }
+  FixedArray::makei(len, i => X::arbitrary(i, rs))
+}
+
+///|
+pub impl[A : Arbitrary] Arbitrary for ArrayView[A] with arbitrary(size, rs) {
+  let arr : Array[A] = Arbitrary::arbitrary(size, rs)
+  // Note can not use Array::arbitrary
+  arr[:]
+}
+
+///|
+pub impl[X : Arbitrary] Arbitrary for Array[X] with arbitrary(size, rs) {
+  let len = if size == 0 { 0 } else { rs.next_positive_int() % size }
+  Array::makei(len, x => X::arbitrary(x, rs))
 }

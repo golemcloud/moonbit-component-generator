@@ -23,25 +23,9 @@ test "view_as_view" {
 }
 
 ///|
-test "op_get" {
+test "get" {
   inspect([1, 2, 3][:][1], content="2")
   inspect([1, 2, 3][:][2], content="3")
-}
-
-///|
-test "op_set" {
-  let v = [1, 2, 3][:]
-  inspect(v[1], content="2")
-  v[1] = 4
-  inspect(v[1], content="4")
-}
-
-///|
-test "swap" {
-  let v = [1, 2, 3][:]
-  inspect(v[1], content="2")
-  v.swap(1, 2)
-  inspect(v[1], content="3")
 }
 
 ///|
@@ -160,4 +144,63 @@ test "panic negative index8" {
   let arr = [1, 2, 3][:]
   let _ = arr[-1:-3]
 
+}
+
+///|
+test "fixedarray_sub" {
+  // scalar case
+  let arr = FixedArray::makei(10, i => i)
+  inspect(arr[:], content="[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]")
+  inspect(arr[1:], content="[1, 2, 3, 4, 5, 6, 7, 8, 9]")
+  inspect(arr[:-2], content="[0, 1, 2, 3, 4, 5, 6, 7]")
+  inspect(arr[3:-4], content="[3, 4, 5]")
+  inspect(arr[-5:], content="[5, 6, 7, 8, 9]")
+  arr[5] = 100
+  inspect(arr[:], content="[0, 1, 2, 3, 4, 100, 6, 7, 8, 9]")
+  inspect(arr[1:], content="[1, 2, 3, 4, 100, 6, 7, 8, 9]")
+  inspect(arr[:-2], content="[0, 1, 2, 3, 4, 100, 6, 7]")
+  inspect(arr[3:-4], content="[3, 4, 100]")
+  inspect(arr[-5:], content="[100, 6, 7, 8, 9]")
+  // reference case
+  let arr = FixedArray::makei(10, i => (i, i))
+  inspect(
+    arr[:],
+    content="[(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8), (9, 9)]",
+  )
+  inspect(
+    arr[1:],
+    content="[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8), (9, 9)]",
+  )
+  inspect(
+    arr[:-2],
+    content="[(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7)]",
+  )
+  inspect(arr[3:-4], content="[(3, 3), (4, 4), (5, 5)]")
+  inspect(arr[-5:], content="[(5, 5), (6, 6), (7, 7), (8, 8), (9, 9)]")
+  arr[5] = (100, 100)
+  inspect(
+    arr[:],
+    content="[(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (100, 100), (6, 6), (7, 7), (8, 8), (9, 9)]",
+  )
+  inspect(
+    arr[1:],
+    content="[(1, 1), (2, 2), (3, 3), (4, 4), (100, 100), (6, 6), (7, 7), (8, 8), (9, 9)]",
+  )
+  inspect(
+    arr[:-2],
+    content="[(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (100, 100), (6, 6), (7, 7)]",
+  )
+  inspect(arr[3:-4], content="[(3, 3), (4, 4), (100, 100)]")
+  inspect(arr[-5:], content="[(100, 100), (6, 6), (7, 7), (8, 8), (9, 9)]")
+}
+
+///|
+test "ArrayView::suffixes" {
+  let arr = [1, 2, 3]
+  let suffixes = arr[:].suffixes().collect()
+  @json.inspect(suffixes, content=[[1, 2, 3], [2, 3], [3]])
+  let suffixes_with_empty = arr[:].suffixes(include_empty=true).collect()
+  @json.inspect(suffixes_with_empty, content=[[1, 2, 3], [2, 3], [3], []])
+  let suffixes_no_empty = arr[:].suffixes(include_empty=false).collect()
+  @json.inspect(suffixes_no_empty, content=[[1, 2, 3], [2, 3], [3]])
 }

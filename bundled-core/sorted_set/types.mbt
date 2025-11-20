@@ -17,7 +17,8 @@
 // All operations over sets are purely applicative (no side-effects).
 
 ///|
-struct T[V] {
+#alias(T, deprecated)
+struct SortedSet[V] {
   mut root : Node[V]?
   mut size : Int
 }

@@ -14,9 +14,9 @@
 
 ///|
 test "new" {
-  let m : @hashmap.T[Int, Int] = @hashmap.new()
+  let m : @hashmap.HashMap[Int, Int] = @hashmap.new()
   inspect(m.capacity(), content="8")
-  assert_eq(m.size(), 0)
+  inspect(m.length(), content="0")
 }
 
 ///|
@@ -29,6 +29,18 @@ test "get" {
   inspect(m.get("b"), content="Some(2)")
   inspect(m.get("c"), content="Some(3)")
   inspect(m.get("d"), content="None")
+
+  // pattern
+  guard m is { "a": 1, "b": 2, "c": 3, "d"? : None, .. }
+}
+
+///|
+test "_[_]" {
+  let m = @hashmap.new()
+  m.set("a", 1)
+  m.set("b", 2)
+  assert_eq(m["a"], 1)
+  assert_eq(m["b"], 2)
 }
 
 ///|
@@ -37,14 +49,34 @@ test "get_or_default" {
   m.set("a", 1)
   m.set("b", 2)
   m.set("c", 3)
-  assert_eq(m.get_or_default("a", 42), 1)
-  assert_eq(m.get_or_default("b", 42), 2)
-  assert_eq(m.get_or_default("c", 42), 3)
-  assert_eq(m.get_or_default("d", 42), 42)
+  inspect(m.get_or_default("a", 42), content="1")
+  inspect(m.get_or_default("b", 42), content="2")
+  inspect(m.get_or_default("c", 42), content="3")
+  inspect(m.get_or_default("d", 42), content="42")
 }
 
 ///|
-test "op_set" {
+test "get_or_init" {
+  let m : @hashmap.HashMap[String, Array[Int]] = @hashmap.new()
+  m.get_or_init("a", () => Array::new()).push(1)
+  m.get_or_init("b", () => Array::new()).push(2)
+  m.get_or_init("a", () => Array::new()).push(3)
+  assert_eq(m.get("a"), Some([1, 3]))
+  assert_eq(m.get("b"), Some([2]))
+  assert_eq(m.length(), 2)
+}
+
+///|
+test "get_or_init full" {
+  let m = @hashmap.new(capacity=2)
+  m.get_or_init("a", () => 0) |> ignore
+  m.get_or_init("b", () => 0) |> ignore
+  m.get_or_init("c", () => 0) |> ignore
+  assert_eq(m.length(), 3)
+}
+
+///|
+test "_[_]=_" {
   let m = @hashmap.new()
   m["a"] = 1
   m["b"] = 2
@@ -53,13 +85,11 @@ test "op_set" {
 }
 
 ///|
-test "op_get" {
+test "panic get" {
   let m = @hashmap.new()
   m.set("a", 1)
   m.set("b", 2)
-  assert_eq(m.get("a"), Some(1))
-  assert_eq(m.get("b"), Some(2))
-  assert_eq(m.get("c"), None)
+  m["c"] |> ignore
 }
 
 ///|
@@ -76,13 +106,13 @@ test "set_update" {
 test "contains" {
   let m = @hashmap.new()
   m.set("a", 1)
-  assert_eq(m.contains("a"), true)
-  assert_eq(m.contains("b"), false)
+  inspect(m.contains("a"), content="true")
+  inspect(m.contains("b"), content="false")
 }
 
 ///|
 test "from_array" {
-  let m = @hashmap.of([("a", 1), ("b", 2), ("c", 3)])
+  let m = @hashmap.from_array([("a", 1), ("b", 2), ("c", 3)])
   assert_eq(m.get("a"), Some(1))
   assert_eq(m.get("b"), Some(2))
   assert_eq(m.get("c"), Some(3))
@@ -91,82 +121,91 @@ test "from_array" {
 ///|
 test "size" {
   let m = @hashmap.new()
-  assert_eq(m.size(), 0)
+  inspect(m.length(), content="0")
   m.set("a", 1)
-  assert_eq(m.size(), 1)
+  inspect(m.length(), content="1")
 }
 
 ///|
 test "is_empty" {
   let m = @hashmap.new()
-  assert_eq(m.is_empty(), true)
+  inspect(m.is_empty(), content="true")
   m.set("a", 1)
-  assert_eq(m.is_empty(), false)
+  inspect(m.is_empty(), content="false")
   m.remove("a")
-  assert_eq(m.is_empty(), true)
+  inspect(m.is_empty(), content="true")
 }
 
 ///|
-test "iter" {
-  let m = @hashmap.of([("a", 1), ("b", 2), ("c", 3)])
+test "each" {
+  let m = @hashmap.from_array([("a", 1), ("b", 2), ("c", 3)])
   let mut sum = 0
   m.each((_k, v) => sum += v)
-  assert_eq(sum, 6)
+  inspect(sum, content="6")
+}
+
+///|
+test "iter_collect" {
+  let map = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
+  let array = map.iter().collect()
+  array.sort()
+  inspect(
+    array,
+    content=(
+      #|[(1, "one"), (2, "two"), (3, "three")]
+    ),
+  )
 }
 
 ///|
 test "iteri" {
-  let m = @hashmap.of([("a", 1), ("b", 2), ("c", 3)])
+  let m = @hashmap.from_array([("a", 1), ("b", 2), ("c", 3)])
   let mut sum = 0
   let mut s = ""
   m.eachi((i, _k, v) => {
     s += i.to_string()
     sum += v
   })
-  assert_eq(s, "012")
-  assert_eq(sum, 6)
-}
-
-///|
-test "iter" {
-  let buf = StringBuilder::new(size_hint=20)
-  let map = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
-  map
-  .iter()
-  .each(e => {
-    let (k, v) = e
-    buf.write_string("[\{k}-\{v}]")
-  })
-  inspect(buf, content="[2-two][1-one][3-three]")
-  buf.reset()
-  map
-  .iter()
-  .take(2)
-  .each(e => {
-    let (k, v) = e
-    buf.write_string("[\{k}-\{v}]")
-  })
-  inspect(buf, content="[2-two][1-one]")
+  inspect(s, content="012")
+  inspect(sum, content="6")
 }
 
 ///|
 test "iter2" {
-  let buf = StringBuilder::new(size_hint=20)
-  let map = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
-  for k, v in map {
-    buf.write_string("[\{k}-\{v}]")
-  }
-  inspect(buf, content="[2-two][1-one][3-three]")
+  let map = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
+  let array = map.iter2().to_array()
+  array.sort()
+  inspect(
+    array,
+    content=(
+      #|[(1, "one"), (2, "two"), (3, "three")]
+    ),
+  )
+}
+
+///|
+test "iterator" {
+  let map = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
+  let array = map.iterator().collect()
+  array.sort()
+  inspect(
+    array,
+    content=(
+      #|[(1, "one"), (2, "two"), (3, "three")]
+    ),
+  )
 }
 
 ///|
 test "to_array" {
-  let map = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
+  let map = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
+  let array = map.to_array()
+  array.sort()
   inspect(
-    map.to_array(),
-    content=
-      #|[(2, "two"), (1, "one"), (3, "three")]
-    ,
+    array,
+    content=(
+      #|[(1, "one"), (2, "two"), (3, "three")]
+    ),
   )
 }
 
@@ -184,58 +223,7 @@ test "remove_nonexistent_key" {
   m.set("a", 1)
   m.set("b", 2)
   m.remove("c")
-  assert_eq(m.size(), 2)
-}
-
-///|
-test "get_nonexistent_key" {
-  let m = @hashmap.new()
-  m.set("a", 1)
-  m.set("b", 2)
-  inspect(m.get("c"), content="None")
-}
-
-///|
-test "remove_nonexistent_key" {
-  let m = @hashmap.new()
-  m.set("a", 1)
-  m.set("b", 2)
-  m.remove("c")
-  assert_eq(m.size(), 2)
-}
-
-///|
-test "get_nonexistent_key" {
-  let m = @hashmap.new()
-  m.set("a", 1)
-  m.set("b", 2)
-  inspect(m.get("c"), content="None")
-}
-
-///|
-test "remove_nonexistent_key" {
-  let m = @hashmap.new()
-  m.set("a", 1)
-  m.set("b", 2)
-  m.remove("c")
-  assert_eq(m.size(), 2)
-}
-
-///|
-test "get_nonexistent_key" {
-  let m = @hashmap.new()
-  m.set("a", 1)
-  m.set("b", 2)
-  inspect(m.get("c"), content="None")
-}
-
-///|
-test "remove_nonexistent_key" {
-  let m = @hashmap.new()
-  m.set("a", 1)
-  m.set("b", 2)
-  m.remove("c")
-  assert_eq(m.size(), 2)
+  inspect(m.length(), content="2")
 }
 
 ///|
@@ -297,39 +285,68 @@ test "get_nonexistent_key_with_psl" {
 
 ///|
 test "from_iter multiple elements iter" {
-  inspect(
-    @hashmap.from_iter([(1, 1), (2, 2), (3, 3)].iter()),
-    content="HashMap::of([(2, 2), (1, 1), (3, 3)])",
-  )
+  let map = @hashmap.from_iter([(1, 1), (2, 2), (3, 3)].iter())
+  guard map is { 1: 1, 2: 2, 3: 3, .. } else {
+    fail("Map is not expected: \{map}")
+  }
+  inspect(map.length(), content="3")
 }
 
 ///|
 test "from_iter single element iter" {
-  inspect(@hashmap.from_iter([(1, 1)].iter()), content="HashMap::of([(1, 1)])")
+  inspect(
+    @hashmap.from_iter([(1, 1)].iter()),
+    content="HashMap::from_array([(1, 1)])",
+  )
 }
 
 ///|
 test "from_iter empty iter" {
-  let map : @hashmap.T[Int, Int] = @hashmap.from_iter(Iter::empty())
-  inspect(map, content="HashMap::of([])")
+  let map : @hashmap.HashMap[Int, Int] = @hashmap.from_iter(Iter::empty())
+  inspect(map, content="HashMap::from_array([])")
+}
+
+///|
+test "from_iterator multiple elements iter" {
+  let map = @hashmap.from_iterator([(1, 1), (2, 2), (3, 3)].iterator())
+  guard map is { 1: 1, 2: 2, 3: 3, .. } else {
+    fail("Map is not expected: \{map}")
+  }
+  inspect(map.length(), content="3")
+}
+
+///|
+test "from_iterator single element iter" {
+  inspect(
+    @hashmap.from_iterator([(1, 1)].iterator()),
+    content="HashMap::from_array([(1, 1)])",
+  )
+}
+
+///|
+test "from_iterator empty iter" {
+  let map : @hashmap.HashMap[Int, Int] = @hashmap.from_iterator(
+    Iterator::empty(),
+  )
+  inspect(map, content="HashMap::from_array([])")
 }
 
 ///|
 test "@hashmap.contains/empty" {
-  let map : @hashmap.T[Int, String] = @hashmap.new()
+  let map : @hashmap.HashMap[Int, String] = @hashmap.new()
   inspect(map.contains(42), content="false")
 }
 
 ///|
 test "@hashmap.contains/basic" {
-  let map = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
+  let map = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
   inspect(map.contains(2), content="true")
   inspect(map.contains(4), content="false")
 }
 
 ///|
 test "@hashmap.contains/after_operations" {
-  let map = @hashmap.of([(1, "one"), (2, "two")])
+  let map = @hashmap.from_array([(1, "one"), (2, "two")])
   map.remove(1)
   inspect(map.contains(1), content="false")
   map.set(1, "ONE")
@@ -340,19 +357,27 @@ test "@hashmap.contains/after_operations" {
 
 ///|
 test "@hashmap.from_array" {
-  let map = @hashmap.from_array([("a", 1), ("b", 2), ("c", 3)])
-  @json.inspect(map, content={ "a": 1, "c": 3, "b": 2 })
+  let array = [("a", 1), ("b", 2), ("c", 3)]
+  let map = @hashmap.from_array(array)
+  for k, v in map {
+    assert_eq(map.get(k), Some(v))
+  }
+  assert_eq(map.length(), array.length())
 }
 
 ///|
 test "@hashmap.from_array with int key" {
-  let map = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
-  @json.inspect(map, content={ "2": "two", "1": "one", "3": "three" })
+  let array = [(1, "one"), (2, "two"), (3, "three")]
+  let map = @hashmap.from_array(array)
+  for k, v in map {
+    assert_eq(map.get(k), Some(v))
+  }
+  assert_eq(map.length(), array.length())
 }
 
 ///|
 test "@hashmap.contains_kv" {
-  let map = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
+  let map = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
   inspect(map.contains_kv(1, "one"), content="true")
   inspect(map.contains_kv(1, "two"), content="false")
   inspect(map.contains_kv(4, "four"), content="false")
@@ -360,7 +385,106 @@ test "@hashmap.contains_kv" {
 
 ///|
 test "@hashmap.eq" {
-  let map1 = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
-  let map2 = @hashmap.of([(1, "one"), (2, "two"), (3, "three")])
+  let map1 = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
+  let map2 = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
   inspect(map1 == map2, content="true")
+}
+
+///|
+test "@hashmap.map" {
+  let map = @hashmap.from_array([("a", 1), ("b", 2), ("c", 3)])
+  let v = map.map((k, v) => k + v.to_string())
+  verify_content(v, [("a", "a1"), ("b", "b2"), ("c", "c3")])
+  map["d"] = 10
+  map["e"] = 20
+  map.remove("c")
+  let v = map.map((k, v) => k + v.to_string())
+  verify_content(v, [("a", "a1"), ("b", "b2"), ("d", "d10"), ("e", "e20")])
+  let v : @hashmap.HashMap[String, String] = @hashmap.new().map((k, v) => k + v)
+  inspect(v, content="HashMap::from_array([])")
+}
+
+///|
+test "@hashmap.copy" {
+  let map = @hashmap.from_array([("a", 1), ("b", 2), ("c", 3)])
+  let copy = map.copy()
+  verify_content(copy, [("a", 1), ("b", 2), ("c", 3)])
+  map["d"] = 10
+  map["e"] = 20
+  map.remove("c")
+  let copy = map.copy()
+  verify_content(copy, [("e", 20), ("a", 1), ("b", 2), ("d", 10)])
+  let copy : @hashmap.HashMap[String, String] = @hashmap.new().copy()
+  inspect(copy, content="HashMap::from_array([])")
+}
+
+///|
+fn[K : Hash + Eq + Show, V : Eq + Show] verify_content(
+  map : @hashmap.HashMap[K, V],
+  expected : Array[(K, V)],
+) -> Unit raise {
+  for entry in expected {
+    let (k, v) = entry
+    assert_true(
+      map.contains_kv(k, v),
+      msg="Key \{k} with value \{v} not found in map \{map}",
+    )
+  }
+  assert_eq(map.length(), expected.length())
+}
+
+///|
+test "hashmap.to_json" {
+  let map = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
+  let json : Json = { "1": "one", "2": "two", "3": "three" }
+  assert_eq(map.to_json(), json)
+}
+
+///|
+test "@hashmap.merge" {
+  let map1 = @hashmap.from_array([("a", 1), ("b", 2)])
+  let map2 = @hashmap.from_array([("b", 3), ("c", 4)])
+  let merged = map1.merge(map2)
+  inspect(merged.get("a"), content="Some(1)")
+  inspect(merged.get("b"), content="Some(3)")
+  inspect(merged.get("c"), content="Some(4)")
+  inspect(merged.length(), content="3")
+  // Verify original maps are unchanged
+  inspect(map1.get("b"), content="Some(2)")
+  inspect(map1.length(), content="2")
+}
+
+///|
+test "@hashmap.merge empty maps" {
+  let map1 : @hashmap.HashMap[String, Int] = @hashmap.new()
+  let map2 = @hashmap.from_array([("a", 1), ("b", 2)])
+  let merged1 = map1.merge(map2)
+  verify_content(merged1, [("a", 1), ("b", 2)])
+  let merged2 = map2.merge(map1)
+  verify_content(merged2, [("a", 1), ("b", 2)])
+  let merged3 = map1.merge(map1)
+  inspect(merged3.length(), content="0")
+}
+
+///|
+test "@hashmap.merge_in_place" {
+  let map1 = @hashmap.from_array([("a", 1), ("b", 2)])
+  let map2 = @hashmap.from_array([("b", 3), ("c", 4)])
+  map1.merge_in_place(map2)
+  inspect(map1.get("a"), content="Some(1)")
+  inspect(map1.get("b"), content="Some(3)")
+  inspect(map1.get("c"), content="Some(4)")
+  inspect(map1.length(), content="3")
+  // Verify second map is unchanged
+  inspect(map2.length(), content="2")
+}
+
+///|
+test "@hashmap.merge_in_place empty maps" {
+  let map1 : @hashmap.HashMap[String, Int] = @hashmap.new()
+  let map2 = @hashmap.from_array([("a", 1), ("b", 2)])
+  map1.merge_in_place(map2)
+  verify_content(map1, [("a", 1), ("b", 2)])
+  map1.merge_in_place(map1)
+  verify_content(map1, [("a", 1), ("b", 2)])
 }

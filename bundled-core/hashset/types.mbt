@@ -31,13 +31,15 @@ priv struct Entry[K] {
 /// # Example
 ///
 /// ```mbt
-///   let set = @hashset.of([(3, "three"), (8, "eight"), (1, "one")])
+///   let set = @hashset.from_array([(3, "three"), (8, "eight"), (1, "one")])
 ///   set.add((4, "four"))
 ///   assert_eq(set.contains((4, "four")), true)
 /// ```
-struct T[K] {
+#alias(T, deprecated)
+struct HashSet[K] {
   mut entries : FixedArray[Entry[K]?]
   mut size : Int // active key count
   mut capacity : Int // current capacity
+  mut capacity_mask : Int // capacity_mask = capacity - 1, used to find idx
   mut grow_at : Int // threshold that triggers grow
 }

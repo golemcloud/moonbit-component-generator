@@ -16,16 +16,14 @@
 /// The `CoverageCounter` structure is used for keeping track of the number of
 /// times each chunk of code is executed. It's not very useful outside of
 /// generated code.
-struct CoverageCounter {
-  counter : FixedArray[UInt]
-}
+struct CoverageCounter(FixedArray[UInt])
 
 ///|
 /// Create a new coverage counter with the given size.
 ///
 #coverage.skip
 pub fn CoverageCounter::new(size : Int) -> CoverageCounter {
-  { counter: FixedArray::make(size, 0) }
+  CoverageCounter(FixedArray::make(size, 0))
 }
 
 ///|
@@ -33,17 +31,19 @@ pub fn CoverageCounter::new(size : Int) -> CoverageCounter {
 ///
 #coverage.skip
 pub fn CoverageCounter::incr(self : CoverageCounter, idx : Int) -> Unit {
-  self.counter.unsafe_set(idx, self.counter.unsafe_get(idx) + 1)
+  let CoverageCounter(self) = self
+  self.unsafe_set(idx, self.unsafe_get(idx) + 1)
 }
 
 ///|
 pub impl Show for CoverageCounter with output(self, logger) {
+  let CoverageCounter(self) = self
   logger.write_char('[')
-  for i in 0..<self.counter.length() {
+  for i in 0..<self.length() {
     if i != 0 {
       logger.write_string(", ")
     }
-    Show::output(self.counter[i], logger)
+    Show::output(self[i], logger)
   }
   logger.write_char(']')
 }
@@ -72,7 +72,7 @@ priv trait Output {
 }
 
 ///|
-priv type StringBuffer Array[String]
+priv struct StringBuffer(Array[String])
 
 ///|
 impl Output for StringBuffer with output(self : StringBuffer, content : String) -> Unit {
@@ -106,8 +106,8 @@ pub fn end() -> Unit {
   let sbuf = StringBuffer::StringBuffer([])
   coverage_log(counters.val, sbuf)
   let line_buf = StringBuilder::new()
-  for i in 0..<sbuf.inner().length() {
-    let str = sbuf.inner()[i]
+  for i in 0..<sbuf.0.length() {
+    let str = sbuf.0[i]
     let mut start = 0
     for j in 0..<str.length() {
       if str.unsafe_charcode_at(j) == '\n' {
@@ -132,9 +132,9 @@ pub fn end() -> Unit {
 ///|
 fn coverage_reset(counters : MList[(String, CoverageCounter)]) -> Unit {
   loop counters {
-    MCons((_, counter), xs) => {
-      for i in 0..<counter.counter.length() {
-        counter.counter[i] = 0
+    MCons((_, CoverageCounter(counter)), xs) => {
+      for i in 0..<counter.length() {
+        counter[i] = 0
       }
       continue xs
     }
@@ -145,7 +145,7 @@ fn coverage_reset(counters : MList[(String, CoverageCounter)]) -> Unit {
 ///|
 fn coverage_log(
   counters : MList[(String, CoverageCounter)],
-  io : &Output
+  io : &Output,
 ) -> Unit {
   let print = x => io.output(x)
   let println = x => {
@@ -197,11 +197,11 @@ test "log" {
   coverage_log(counters, buf)
   inspect(
     buf,
-    content=
+    content=(
       #|{ "foo/foo": [1, 0]
       #|, "foo/bar": [0, 1]
       #|}
-    ,
+    ),
   )
 }
 
@@ -225,22 +225,22 @@ test "reset" {
   coverage_log(counters, buf)
   inspect(
     buf,
-    content=
+    content=(
       #|{ "foo/foo": [1, 0]
       #|, "foo/bar": [0, 1]
       #|}
-    ,
+    ),
   )
   coverage_reset(counters)
   let buf = StringBuilder::new(size_hint=1024)
   coverage_log(counters, buf)
   inspect(
     buf,
-    content=
+    content=(
       #|{ "foo/foo": [0, 0]
       #|, "foo/bar": [0, 0]
       #|}
-    ,
+    ),
   )
 }
 

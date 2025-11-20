@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-#deprecated("inline instead for such tiny function")
+#deprecated("Use `if condition { Some(value()) } else { None }` instead", skip_current_package=false)
 pub fn[T] when(condition : Bool, value : () -> T) -> T? {
   if condition {
     Some(value())
@@ -23,46 +23,23 @@ pub fn[T] when(condition : Bool, value : () -> T) -> T? {
 }
 
 ///|
-#deprecated("inline instead for such tiny function")
+#deprecated("Use `if !condition { Some(value()) } else { None }` instead", skip_current_package=false)
 pub fn[T] unless(condition : Bool, value : () -> T) -> T? {
-  when(not(condition), value)
+  if !condition {
+    Some(value())
+  } else {
+    None
+  }
 }
 
 ///|
-#deprecated("inline instead for such tiny function")
+#deprecated("Use `None` instead", skip_current_package=false)
 pub fn[T] empty() -> T? {
   None
 }
 
 ///|
-#deprecated("inline instead for such tiny function")
+#deprecated("Use `Some(value)` instead", skip_current_package=false)
 pub fn[T] some(value : T) -> T? {
   Some(value)
-}
-
-///|
-#deprecated("use unwrap_or instead")
-pub fn[T] Option::or(self : T?, default : T) -> T {
-  match self {
-    None => default
-    Some(t) => t
-  }
-}
-
-///|
-#deprecated("use unwrap_or_else instead")
-pub fn[T] Option::or_else(self : T?, default : () -> T) -> T {
-  match self {
-    None => default()
-    Some(t) => t
-  }
-}
-
-///|
-#deprecated("use unwrap_or_default instead")
-pub fn[T : Default] Option::or_default(self : T?) -> T {
-  match self {
-    None => T::default()
-    Some(t) => t
-  }
 }

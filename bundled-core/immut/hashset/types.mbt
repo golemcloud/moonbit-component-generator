@@ -13,16 +13,17 @@
 // limitations under the License.
 
 ///|
-typealias @path.Path
+using @path {type Path}
 
 ///|
 /// An non-empty immutable hash set data structure
 priv enum Node[A] {
   Flat(A, Path)
-  Leaf(A, @list.T[A]) // use a list of buckets to resolve collision
+  Leaf(A, @list.List[A]) // use a list of buckets to resolve collision
   /// number of all its leaf > 1. If equals 1, it should be represented as `Flat`
   Branch(@sparse_array.SparseArray[Node[A]])
 }
 
 ///|
-type T[A] Node[A]? derive(Eq)
+#alias(T, deprecated)
+struct HashSet[A](Node[A]?) derive(Eq)

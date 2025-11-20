@@ -17,10 +17,11 @@
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.new()
+///   let queue : @queue.Queue[Int] = @queue.new()
 ///   assert_eq(queue.length(), 0)
 /// ```
-pub fn[A] new() -> T[A] {
+#as_free_fn
+pub fn[A] Queue::new() -> Queue[A] {
   { length: 0, first: None, last: None }
 }
 
@@ -30,10 +31,13 @@ pub fn[A] new() -> T[A] {
 /// # Example
 /// ```mbt
 ///   let array = Array::makei(3, (idx) => { idx + 1 })
-///   let queue : @queue.T[Int] = @queue.from_array(array)
+///   let queue : @queue.Queue[Int] = @queue.from_array(array)
 ///   assert_eq(queue.length(), 3)
 /// ```
-pub fn[A] from_array(arr : Array[A]) -> T[A] {
+#as_free_fn
+#alias(of, deprecated="Use from_array instead")
+#as_free_fn(of, deprecated="Use from_array instead")
+pub fn[A] Queue::from_array(arr : ArrayView[A]) -> Queue[A] {
   guard arr.length() > 0 else { return new() }
   let length = arr.length()
   let last = { content: arr[length - 1], next: None }
@@ -46,13 +50,13 @@ pub fn[A] from_array(arr : Array[A]) -> T[A] {
 }
 
 ///|
-pub impl[A : Show] Show for T[A] with output(self, logger) {
-  logger.write_iter(self.iter(), prefix="@queue.of([", suffix="])")
+pub impl[A : Show] Show for Queue[A] with output(self, logger) {
+  logger.write_iter(self.iter(), prefix="@queue.from_array([", suffix="])")
 }
 
 ///|
 /// Tests if two queues are equal.
-impl[A : Eq] Eq for T[A] with op_equal(self, other) {
+impl[A : Eq] Eq for Queue[A] with equal(self, other) {
   self.length == other.length && self.first == other.first
 }
 
@@ -61,10 +65,10 @@ impl[A : Eq] Eq for T[A] with op_equal(self, other) {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([1, 2, 3, 4])
+///   let queue : @queue.Queue[Int] = @queue.from_array([1, 2, 3, 4])
 ///   queue.clear()
 /// ```
-pub fn[A] clear(self : T[A]) -> Unit {
+pub fn[A] Queue::clear(self : Queue[A]) -> Unit {
   self.length = 0
   self.first = None
   self.last = None
@@ -75,10 +79,10 @@ pub fn[A] clear(self : T[A]) -> Unit {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.new()
+///   let queue : @queue.Queue[Int] = @queue.new()
 ///   assert_eq(queue.length(), 0)
 /// ```
-pub fn[A] length(self : T[A]) -> Int {
+pub fn[A] Queue::length(self : Queue[A]) -> Int {
   self.length
 }
 
@@ -87,10 +91,10 @@ pub fn[A] length(self : T[A]) -> Int {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.new()
+///   let queue : @queue.Queue[Int] = @queue.new()
 ///   assert_true(queue.is_empty())
 /// ```
-pub fn[A] is_empty(self : T[A]) -> Bool {
+pub fn[A] Queue::is_empty(self : Queue[A]) -> Bool {
   self.length == 0
 }
 
@@ -99,10 +103,10 @@ pub fn[A] is_empty(self : T[A]) -> Bool {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.new()
+///   let queue : @queue.Queue[Int] = @queue.new()
 ///   queue.push(1)
 /// ```
-pub fn[A] push(self : T[A], x : A) -> Unit {
+pub fn[A] Queue::push(self : Queue[A], x : A) -> Unit {
   let cell = Some({ content: x, next: None })
   match self.last {
     None => {
@@ -123,11 +127,13 @@ pub fn[A] push(self : T[A], x : A) -> Unit {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([1, 2, 3, 4])
+///   let queue : @queue.Queue[Int] = @queue.from_array([1, 2, 3, 4])
 ///   assert_eq(queue.unsafe_peek(), 1)
 /// ```
 #internal(unsafe, "Panics if the queue is empty.")
-pub fn[A] unsafe_peek(self : T[A]) -> A {
+#doc(hidden)
+#alias(peek_exn, deprecated)
+pub fn[A] Queue::unsafe_peek(self : Queue[A]) -> A {
   match self.first {
     None => abort("Queue is empty")
     Some(first) => first.content
@@ -139,10 +145,10 @@ pub fn[A] unsafe_peek(self : T[A]) -> A {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([1, 2, 3, 4])
+///   let queue : @queue.Queue[Int] = @queue.from_array([1, 2, 3, 4])
 ///   assert_eq(queue.peek(), Some(1))
 /// ```
-pub fn[A] peek(self : T[A]) -> A? {
+pub fn[A] Queue::peek(self : Queue[A]) -> A? {
   match self.first {
     None => None
     Some(first) => Some(first.content)
@@ -154,11 +160,13 @@ pub fn[A] peek(self : T[A]) -> A? {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([1, 2, 3, 4])
+///   let queue : @queue.Queue[Int] = @queue.from_array([1, 2, 3, 4])
 ///   assert_eq(queue.unsafe_pop(), 1)
 /// ```
 #internal(unsafe, "Panics if the queue is empty.")
-pub fn[A] unsafe_pop(self : T[A]) -> A {
+#doc(hidden)
+#alias(pop_exn, deprecated)
+pub fn[A] Queue::unsafe_pop(self : Queue[A]) -> A {
   match self.first {
     None => abort("Queue is empty")
     Some({ content, next: None }) => {
@@ -178,10 +186,10 @@ pub fn[A] unsafe_pop(self : T[A]) -> A {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([1, 2, 3, 4])
+///   let queue : @queue.Queue[Int] = @queue.from_array([1, 2, 3, 4])
 ///   assert_eq(queue.pop(), Some(1))
 /// ```
-pub fn[A] pop(self : T[A]) -> A? {
+pub fn[A] Queue::pop(self : Queue[A]) -> A? {
   match self.first {
     None => None
     Some({ content, next: None }) => {
@@ -201,11 +209,11 @@ pub fn[A] pop(self : T[A]) -> A? {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([1, 2, 3, 4])
+///   let queue : @queue.Queue[Int] = @queue.from_array([1, 2, 3, 4])
 ///   let mut sum = 0
 ///   queue.each((x) => { sum = sum + x })
 /// ```
-pub fn[A] each(self : T[A], f : (A) -> Unit) -> Unit {
+pub fn[A] Queue::each(self : Queue[A], f : (A) -> Unit) -> Unit {
   loop self.first {
     Some({ content, next }) => {
       f(content)
@@ -220,11 +228,11 @@ pub fn[A] each(self : T[A], f : (A) -> Unit) -> Unit {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([1, 2, 3, 4])
+///   let queue : @queue.Queue[Int] = @queue.from_array([1, 2, 3, 4])
 ///   let mut sum = 0
 ///   queue.eachi((x, i) => { sum = sum + x * i })
 /// ```
-pub fn[A] eachi(self : T[A], f : (Int, A) -> Unit) -> Unit {
+pub fn[A] Queue::eachi(self : Queue[A], f : (Int, A) -> Unit) -> Unit {
   loop (self.first, 0) {
     (Some({ content, next }), index) => {
       f(index, content)
@@ -239,11 +247,11 @@ pub fn[A] eachi(self : T[A], f : (Int, A) -> Unit) -> Unit {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.new()
+///   let queue : @queue.Queue[Int] = @queue.new()
 ///   let sum = queue.fold(init=0, (acc, x) => { acc + x })
 ///   assert_eq(sum, 0)
 /// ```
-pub fn[A, B] fold(self : T[A], init~ : B, f : (B, A) -> B) -> B {
+pub fn[A, B] Queue::fold(self : Queue[A], init~ : B, f : (B, A) -> B) -> B {
   loop (self.first, init) {
     (None, acc) => acc
     (Some({ content, next }), acc) => continue (next, f(acc, content))
@@ -255,11 +263,11 @@ pub fn[A, B] fold(self : T[A], init~ : B, f : (B, A) -> B) -> B {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([1, 2, 3, 4])
-///   let queue2 : @queue.T[Int] = queue.copy()
+///   let queue : @queue.Queue[Int] = @queue.from_array([1, 2, 3, 4])
+///   let queue2 : @queue.Queue[Int] = queue.copy()
 ///   assert_eq(queue2.length(), 4)
 /// ```
-pub fn[A] copy(self : T[A]) -> T[A] {
+pub fn[A] Queue::copy(self : Queue[A]) -> Queue[A] {
   guard self.first is Some({ content, next }) else { return new() }
   let first = { content, next: None }
   let last = loop (first, next) {
@@ -280,11 +288,11 @@ pub fn[A] copy(self : T[A]) -> T[A] {
 ///
 /// # Example
 /// ```mbt
-///   let dst : @queue.T[Int] = @queue.new()
-///   let src : @queue.T[Int] = @queue.of([5, 6, 7, 8])
+///   let dst : @queue.Queue[Int] = @queue.new()
+///   let src : @queue.Queue[Int] = @queue.from_array([5, 6, 7, 8])
 ///   src.transfer(dst)
 /// ```
-pub fn[A] transfer(self : T[A], dst : T[A]) -> Unit {
+pub fn[A] Queue::transfer(self : Queue[A], dst : Queue[A]) -> Unit {
   if self.length > 0 {
     match dst.last {
       None => {
@@ -308,14 +316,14 @@ pub fn[A] transfer(self : T[A], dst : T[A]) -> Unit {
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([5, 6, 7, 8])
+///   let queue : @queue.Queue[Int] = @queue.from_array([5, 6, 7, 8])
 ///   let sum = queue.iter().fold((x, y) => { x + y }, init=0)
 ///   assert_eq(sum, 26)
 /// ```
-pub fn[A] iter(self : T[A]) -> Iter[A] {
+pub fn[A] Queue::iter(self : Queue[A]) -> Iter[A] {
   Iter::new(yield_ => loop self.first {
     Some({ content, next }) => {
-      if yield_(content) == IterEnd {
+      if yield_(content) is IterEnd {
         break IterEnd
       }
       continue next
@@ -325,109 +333,129 @@ pub fn[A] iter(self : T[A]) -> Iter[A] {
 }
 
 ///|
+/// Creates an iter from the queue.
+///
+/// # Example
+/// ```mbt
+///   let queue : @queue.Queue[Int] = @queue.from_array([5, 6, 7, 8])
+///   let sum = queue.iterator().fold((x, y) => { x + y }, init=0)
+///   assert_eq(sum, 26)
+/// ```
+pub fn[A] Queue::iterator(self : Queue[A]) -> Iterator[A] {
+  let mut next_node = self.first
+  Iterator::new(fn() {
+    match next_node {
+      None => None
+      Some({ content, next }) => {
+        next_node = next
+        Some(content)
+      }
+    }
+  })
+}
+
+///|
 /// Creates a new queue from an iter.
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.from_iter(Iter::empty())
+///   let queue : @queue.Queue[Int] = @queue.from_iter(Iter::empty())
 ///   assert_eq(queue.length(), 0)
 /// ```
-pub fn[A] from_iter(iter : Iter[A]) -> T[A] {
+#as_free_fn
+pub fn[A] Queue::from_iter(iter : Iter[A]) -> Queue[A] {
   let q = new()
   iter.each(e => q.push(e))
   q
 }
 
 ///|
-/// Creates a new queue from a FixedArray.
+/// Creates a new queue from an iter.
 ///
 /// # Example
 /// ```mbt
-///   let queue : @queue.T[Int] = @queue.of([1, 2, 3, 4])
-///   assert_eq(queue.length(), 4)
+///   let queue : @queue.Queue[Int] = @queue.from_iterator(Iterator::empty())
+///   assert_eq(queue.length(), 0)
 /// ```
-pub fn[A] of(arr : FixedArray[A]) -> T[A] {
-  guard arr.length() > 0 else { return new() }
-  let length = arr.length()
-  let last = { content: arr[length - 1], next: None }
-  let first = for i = length - 2, x = last; i >= 0; {
-    continue i - 1, { content: arr[i], next: Some(x) }
-  } else {
-    Some(x)
+#as_free_fn
+pub fn[A] Queue::from_iterator(iter : Iterator[A]) -> Queue[A] {
+  let q = new()
+  while iter.next() is Some(e) {
+    q.push(e)
   }
-  { length, first, last: Some(last) }
+  q
 }
 
 ///|
 test "from_fixed_array_2" {
-  let q = of([1, 2, 3, 4])
+  let q = from_array([1, 2, 3, 4])
   q.push(11)
-  assert_eq(q, of([1, 2, 3, 4, 11]))
+  assert_eq(q, from_array([1, 2, 3, 4, 11]))
   q.unsafe_pop() |> ignore
-  assert_eq(q, of([2, 3, 4, 11]))
+  assert_eq(q, from_array([2, 3, 4, 11]))
 }
 
 ///|
 test "from_array_2" {
-  let q = of([1, 2, 3, 4])
+  let q = from_array([1, 2, 3, 4])
   q.push(11)
-  assert_eq(q, of([1, 2, 3, 4, 11]))
+  assert_eq(q, from_array([1, 2, 3, 4, 11]))
   q.unsafe_pop() |> ignore
-  assert_eq(q, of([2, 3, 4, 11]))
+  assert_eq(q, from_array([2, 3, 4, 11]))
 }
 
 ///|
-test "op_equal" {
-  let queue = of([1, 2, 3, 4])
-  let queue2 = of([1, 2, 3, 4])
-  let queue3 = of([1, 2, 3, 5])
+test "equal" {
+  let queue = from_array([1, 2, 3, 4])
+  let queue2 = from_array([1, 2, 3, 4])
+  let queue3 = from_array([1, 2, 3, 5])
   assert_true(queue == queue2)
   assert_false(queue == queue3)
   queue.unsafe_pop() |> ignore
   assert_false(queue == queue2)
-  assert_eq(queue, of([2, 3, 4]))
+  assert_eq(queue, from_array([2, 3, 4]))
 }
 
 ///|
 test "push" {
-  let queue : T[Int] = new()
+  let queue : Queue[Int] = new()
   queue.push(1)
   queue.push(2)
   queue.push(3)
   queue.push(1)
   assert_eq(queue.length(), 4)
-  assert_eq(queue, of([1, 2, 3, 1]))
+  assert_eq(queue, from_array([1, 2, 3, 1]))
 }
 
 ///|
 test "copy" {
-  let queue : T[Int] = of([1, 2, 3, 4])
-  let queue2 : T[Int] = queue.copy()
+  let queue : Queue[Int] = from_array([1, 2, 3, 4])
+  let queue2 : Queue[Int] = queue.copy()
   assert_eq(queue2.length(), 4)
-  assert_eq(queue2, of([1, 2, 3, 4]))
+  assert_eq(queue2, from_array([1, 2, 3, 4]))
   assert_eq(queue.length(), 4)
-  assert_eq(queue, of([1, 2, 3, 4]))
+  assert_eq(queue, from_array([1, 2, 3, 4]))
 }
 
 ///|
 test "transfer" {
-  let queue : T[Int] = of([1, 2, 3, 4])
-  let queue2 : T[Int] = of([5, 6, 7, 8])
+  let queue : Queue[Int] = from_array([1, 2, 3, 4])
+  let queue2 : Queue[Int] = from_array([5, 6, 7, 8])
   queue.transfer(queue2)
   assert_eq(queue.length(), 0)
   assert_eq(queue2.length(), 8)
-  assert_eq(queue2, of([5, 6, 7, 8, 1, 2, 3, 4]))
+  assert_eq(queue2, from_array([5, 6, 7, 8, 1, 2, 3, 4]))
 }
 
 ///|
 test "cell_equal" {
-  assert_false(of([]).first == of([1]).first)
+  assert_false(from_array([]).first == from_array([1]).first)
 }
 
 ///|
-pub impl[X : @quickcheck.Arbitrary] @quickcheck.Arbitrary for T[X] with arbitrary(
+pub impl[X : @quickcheck.Arbitrary] @quickcheck.Arbitrary for Queue[X] with arbitrary(
   size,
-  rs
+  rs,
 ) {
   @quickcheck.Arbitrary::arbitrary(size, rs) |> from_iter
 }

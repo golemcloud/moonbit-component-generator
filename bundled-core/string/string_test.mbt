@@ -14,17 +14,25 @@
 
 ///|
 test "String::from_array" {
-  inspect(@string.from_array(['1', '2', '3', '4', '5']), content="12345")
+  inspect(String::from_array(['1', '2', '3', '4', '5']), content="12345")
 }
 
 ///|
 test "String::from_iter" {
-  inspect(@string.from_iter(['1', '2', '3', '4', '5'].iter()), content="12345")
+  inspect(String::from_iter(['1', '2', '3', '4', '5'].iter()), content="12345")
+}
+
+///|
+test "String::from_iterator" {
+  inspect(
+    String::from_iterator(['1', '2', '3', '4', '5'].iterator()),
+    content="12345",
+  )
 }
 
 ///|
 test "default" {
-  inspect(@string.default())
+  inspect(String::default())
 }
 
 ///|
@@ -39,11 +47,64 @@ test "compare" {
 }
 
 ///|
-test "to_bytes" {
-  assert_eq("中文".to_bytes().to_unchecked_string(), "中文")
-  assert_eq("asdf".to_bytes().to_unchecked_string(), "asdf")
-  assert_eq("🤣🤣".to_bytes().to_unchecked_string(), "🤣🤣")
-  assert_eq("🤔".to_bytes().to_unchecked_string(), "🤔")
+test "lexical_compare" {
+  // Test equal strings
+  inspect("abc".lexical_compare("abc"), content="0")
+  inspect("".lexical_compare(""), content="0")
+
+  // Test lexicographically less than
+  inspect("abc".lexical_compare("abd"), content="-1")
+  inspect("ab".lexical_compare("abc"), content="-1")
+  inspect("".lexical_compare("a"), content="-1")
+
+  // Test lexicographically greater than
+  inspect("abd".lexical_compare("abc"), content="1")
+  inspect("abc".lexical_compare("ab"), content="1")
+  inspect("a".lexical_compare(""), content="1")
+
+  // Test different lengths with same prefix - Java behavior
+  // In lexicographical comparison, "ab" < "abc" (shorter string is less when it's a prefix)
+  inspect("ab".lexical_compare("abc"), content="-1")
+  inspect("abc".lexical_compare("ab"), content="1")
+
+  // Test case sensitivity
+  inspect("ABC".lexical_compare("abc"), content="-1") // uppercase letters have lower code points
+  inspect("abc".lexical_compare("ABC"), content="1")
+
+  // Test with numbers
+  inspect("123".lexical_compare("124"), content="-1")
+  inspect("124".lexical_compare("123"), content="1")
+  inspect("9".lexical_compare("10"), content="1") // '9' > '1' in lexicographical order
+
+  // Test with surrogate pairs (emoji)
+  inspect("🤣".lexical_compare("😭"), content="1")
+  inspect("😭".lexical_compare("🤣"), content="-1")
+  inspect("🤣".lexical_compare("🤣"), content="0")
+
+  // Test mixed ASCII and emoji
+  inspect("a🤣".lexical_compare("a😭"), content="1")
+  inspect("abc🤣".lexical_compare("abc"), content="1")
+  inspect("abc".lexical_compare("abc🤣"), content="-1")
+
+  // Test comparing common prefixes with different suffixes
+  inspect("testing".lexical_compare("tested"), content="1")
+  inspect("tested".lexical_compare("testing"), content="-1")
+
+  // Test comparison with special characters
+  inspect("hello!".lexical_compare("hello?"), content="-1") // '!' < '?'
+  inspect("hello world".lexical_compare("hello-world"), content="-1") // ' ' < '-'
+
+  // Test with whitespace
+  inspect(" abc".lexical_compare("abc"), content="-1") // space < 'a'
+  inspect("abc ".lexical_compare("abc"), content="1")
+
+  // Test longer strings
+  inspect("abcdefghijklm".lexical_compare("abcdefghijkln"), content="-1")
+  inspect("abcdefghijkln".lexical_compare("abcdefghijklm"), content="1")
+
+  // Test strings that differ only at the end
+  inspect("prefix_a".lexical_compare("prefix_b"), content="-1")
+  inspect("prefix_b".lexical_compare("prefix_a"), content="1")
 }
 
 ///|
@@ -62,7 +123,18 @@ test "Show::output" {
   assert_eq(repr("\r"), "\"\\r\"")
   assert_eq(repr("\b"), "\"\\b\"")
   assert_eq(repr("\t"), "\"\\t\"")
-  assert_eq(repr("\u{00}"), "\"\\u{00}\"")
+  inspect(
+    repr("\u{00}"),
+    content=(
+      #|"\u{00}"
+    ),
+  )
+  inspect(
+    repr("\u0000"),
+    content=(
+      #|"\u{00}"
+    ),
+  )
   assert_eq(repr("abc'\"def\\"), "\"abc'\\\"def\\\\\"")
 }
 
@@ -86,7 +158,7 @@ test "chars" {
   .each(c => str = str + c.to_int().to_string() + "\n")
   inspect(
     str,
-    content=
+    content=(
       #|65
       #|128522
       #|134071
@@ -96,7 +168,7 @@ test "chars" {
       #|134071
       #|66
       #|
-    ,
+    ),
   )
   inspect(
     "A😊𠮷BA😊𠮷B".iter().take(2).collect(),
@@ -109,6 +181,36 @@ test "chars" {
 }
 
 ///|
+test "iterator" {
+  let mut str = ""
+  "A😊𠮷BA😊𠮷B"
+  .iterator()
+  .each(c => str = str + c.to_int().to_string() + "\n")
+  inspect(
+    str,
+    content=(
+      #|65
+      #|128522
+      #|134071
+      #|66
+      #|65
+      #|128522
+      #|134071
+      #|66
+      #|
+    ),
+  )
+  inspect(
+    "A😊𠮷BA😊𠮷B".iterator().take(2).collect(),
+    content="['A', '😊']",
+  )
+  inspect(
+    "A😊𠮷BA😊𠮷B".iterator().take(4).collect(),
+    content="['A', '😊', '𠮷', 'B']",
+  )
+}
+
+///|
 test "rev_iter" {
   let mut str = ""
   "A😊𠮷BA😊𠮷B"
@@ -116,7 +218,7 @@ test "rev_iter" {
   .each(c => str = str + c.to_int().to_string() + "\n")
   inspect(
     str,
-    content=
+    content=(
       #|66
       #|134071
       #|128522
@@ -126,7 +228,7 @@ test "rev_iter" {
       #|128522
       #|65
       #|
-    ,
+    ),
   )
   inspect(
     "A😊𠮷BA😊𠮷B".rev_iter().take(2).collect(),
@@ -139,6 +241,36 @@ test "rev_iter" {
 }
 
 ///|
+test "rev_iterator" {
+  let mut str = ""
+  "A😊𠮷BA😊𠮷B"
+  .rev_iterator()
+  .each(c => str = str + c.to_int().to_string() + "\n")
+  inspect(
+    str,
+    content=(
+      #|66
+      #|134071
+      #|128522
+      #|65
+      #|66
+      #|134071
+      #|128522
+      #|65
+      #|
+    ),
+  )
+  inspect(
+    "A😊𠮷BA😊𠮷B".rev_iterator().take(2).collect(),
+    content="['B', '𠮷']",
+  )
+  inspect(
+    "A😊𠮷BA😊𠮷B".rev_iterator().take(4).collect(),
+    content="['B', '𠮷', '😊', 'A']",
+  )
+}
+
+///|
 test "iter2" {
   let mut str = ""
   "A😊𠮷BA😊𠮷B"
@@ -146,7 +278,7 @@ test "iter2" {
   .each((i, c) => str = str + "\{i}: \{c.to_int()} \n")
   inspect(
     str,
-    content=
+    content=(
       #|0: 65 
       #|1: 128522 
       #|2: 134071 
@@ -156,7 +288,30 @@ test "iter2" {
       #|6: 134071 
       #|7: 66 
       #|
-    ,
+    ),
+  )
+}
+
+///|
+test "iterator2" {
+  let str = StringBuilder::new()
+  let it = "A😊𠮷BA😊𠮷B".iterator2()
+  while it.next() is Some((i, c)) {
+    str.write_string("\{i}: \{c.to_int()} \n")
+  }
+  inspect(
+    str,
+    content=(
+      #|0: 65 
+      #|1: 128522 
+      #|2: 134071 
+      #|3: 66 
+      #|4: 65 
+      #|5: 128522 
+      #|6: 134071 
+      #|7: 66 
+      #|
+    ),
   )
 }
 
@@ -171,15 +326,18 @@ test "Buffer::to_bytes" {
 
 ///|
 test "trim_start" {
-  inspect("aaabcd".trim_start("a"), content="bcd")
-  inspect("aaabcd".trim_start(" "), content="aaabcd")
-  inspect("aaabcd".trim_start(""), content="aaabcd")
-  inspect("  abc".trim_start(" "), content="abc")
+  inspect("aaabcd".trim_start(chars="a"), content="bcd")
+  inspect("aaabcd".trim_start(chars=" "), content="aaabcd")
+  inspect("aaabcd".trim_start(chars=""), content="aaabcd")
+  inspect("  abc".trim_start(chars=" "), content="abc")
   inspect(
-    "哇你好月兔你好哇".trim_start("你好哇"),
+    "哇你好月兔你好哇".trim_start(chars="你好哇"),
     content="月兔你好哇",
   )
-  inspect("😍😍😭😡😡".trim_start("😍"), content="😭😡😡")
+  inspect(
+    "😍😍😭😡😡".trim_start(chars="😍"),
+    content="😭😡😡",
+  )
 }
 
 ///|
@@ -192,25 +350,25 @@ test "contains" {
 
 ///|
 test "trim_end" {
-  inspect("abcddd".trim_end("d"), content="abc")
-  inspect("abcddd".trim_end(" "), content="abcddd")
-  inspect("abcddd".trim_end(""), content="abcddd")
-  inspect("abc  ".trim_end(" "), content="abc")
+  inspect("abcddd".trim_end(chars="d"), content="abc")
+  inspect("abcddd".trim_end(chars=" "), content="abcddd")
+  inspect("abcddd".trim_end(chars=""), content="abcddd")
+  inspect("abc  ".trim_end(chars=" "), content="abc")
   inspect(
-    "哇你好月兔你好哇".trim_end("你好哇"),
+    "哇你好月兔你好哇".trim_end(chars="你好哇"),
     content="哇你好月兔",
   )
-  inspect("😍😍😭😡😡".trim_end("😡"), content="😍😍😭")
+  inspect("😍😍😭😡😡".trim_end(chars="😡"), content="😍😍😭")
 }
 
 ///|
 test "trim" {
-  inspect("xxxabcxxx".trim("x"), content="abc")
-  inspect("xxxabcxxx".trim(""), content="xxxabcxxx")
-  inspect("哇你好月兔你好哇".trim("你好哇"), content="月兔")
-  inspect("\n\r\t abc \n\r\t".trim(" \n\r\t"), content="abc")
-  inspect("=-wow-=".trim("-="), content="wow")
-  inspect("😍😍😭😡😡".trim("😍😡"), content="😭")
+  inspect("xxxabcxxx".trim(chars="x"), content="abc")
+  inspect("xxxabcxxx".trim(chars=""), content="xxxabcxxx")
+  inspect("哇你好月兔你好哇".trim(chars="你好哇"), content="月兔")
+  inspect("\n\r\t abc \n\r\t".trim(chars=" \n\r\t"), content="abc")
+  inspect("=-wow-=".trim(chars="-="), content="wow")
+  inspect("😍😍😭😡😡".trim(chars="😍😡"), content="😭")
 }
 
 ///|
@@ -297,7 +455,7 @@ test "String::index_of basic matching" {
 test "String::index_of overlapping patterns" {
   // Testing overlapping patterns
   inspect("aaa".find("aa"), content="Some(0)")
-  inspect("aaa".view(start_offset=1).find("aa"), content="Some(0)")
+  inspect("aaa"[1:].find("aa"), content="Some(0)")
 }
 
 ///|
@@ -356,53 +514,6 @@ test "has_suffix" {
   inspect("😍😭😡".has_suffix("😡"), content="true")
   inspect("".has_suffix(""), content="true")
   inspect("".has_suffix("a"), content="false")
-}
-
-///|
-test "split" {
-  inspect(
-    "a,b,c,d,e".split(","),
-    content=
-      #|["a", "b", "c", "d", "e"]
-    ,
-  )
-  inspect(
-    "abcde".split(""),
-    content=
-      #|["a", "b", "c", "d", "e"]
-    ,
-  )
-  inspect(
-    "a b c d e".split(" "),
-    content=
-      #|["a", "b", "c", "d", "e"]
-    ,
-  )
-  inspect(
-    "abcde".split("x"),
-    content=
-      #|["abcde"]
-    ,
-  )
-  inspect("".split(""), content="[]")
-  inspect(
-    "".split("x"),
-    content=
-      #|[""]
-    ,
-  )
-  inspect(
-    "你 wow 好 wow 月 wow 兔".split(" wow "),
-    content=
-      #|["你", "好", "月", "兔"]
-    ,
-  )
-  inspect(
-    "👍😍😭👍😍😭👍😍😭👍".split("😍😭"),
-    content=
-      #|["👍", "👍", "👍", "👍"]
-    ,
-  )
 }
 
 ///|
@@ -467,65 +578,90 @@ test "to_upper" {
 test "split" {
   inspect(
     "a b c d e".split(" "),
-    content=
+    content=(
       #|["a", "b", "c", "d", "e"]
-    ,
+    ),
   )
   inspect(
     "abcde".split("x"),
-    content=
+    content=(
       #|["abcde"]
-    ,
+    ),
   )
   inspect("".split(""), content="[]")
   inspect(
     "".split("x"),
-    content=
+    content=(
       #|[""]
-    ,
+    ),
   )
   inspect(
     "你 wow 好 wow 月 wow 兔".split(" wow "),
-    content=
+    content=(
       #|["你", "好", "月", "兔"]
-    ,
+    ),
   )
   inspect(
     "👍😍😭👍😍😭👍😍😭👍".split("😍😭"),
-    content=
+    content=(
       #|["👍", "👍", "👍", "👍"]
-    ,
+    ),
   )
   // Additional test cases
   inspect(
     "a,b,c,d,e".split(","),
-    content=
+    content=(
       #|["a", "b", "c", "d", "e"]
-    ,
+    ),
   )
   inspect(
     "a,,b,,c".split(","),
-    content=
+    content=(
       #|["a", "", "b", "", "c"]
-    ,
+    ),
   )
   inspect(
     "a,,b,,c".split(",,"),
-    content=
+    content=(
       #|["a", "b", "c"]
-    ,
+    ),
   )
   inspect(
     "a b c d e".split(""),
-    content=
+    content=(
       #|["a", " ", "b", " ", "c", " ", "d", " ", "e"]
-    ,
+    ),
+  )
+  inspect(
+    "a,b,c,d,e".split(","),
+    content=(
+      #|["a", "b", "c", "d", "e"]
+    ),
+  )
+  inspect(
+    "abcde".split(""),
+    content=(
+      #|["a", "b", "c", "d", "e"]
+    ),
   )
   inspect(
     "a b c d e".split(" "),
-    content=
+    content=(
       #|["a", "b", "c", "d", "e"]
-    ,
+    ),
+  )
+  inspect(
+    "abcde".split("x"),
+    content=(
+      #|["abcde"]
+    ),
+  )
+  inspect("".split(""), content="[]")
+  inspect(
+    "".split("x"),
+    content=(
+      #|[""]
+    ),
   )
 }
 
@@ -535,11 +671,11 @@ test "String::fold" {
   inspect(s.fold(init=0, (acc, c) => acc + c.to_int()), content="1980")
   inspect(
     s.fold(init=@list.empty(), _.prepend(_)).rev(),
-    content="@list.of(['t', 'h', 'i', 's', ' ', 'i', 's', ' ', 'a', ' ', 'l', 'o', 'n', 'g', ' ', 's', 't', 'r', 'i', 'n', 'g'])",
+    content="@list.from_array(['t', 'h', 'i', 's', ' ', 'i', 's', ' ', 'a', ' ', 'l', 'o', 'n', 'g', ' ', 's', 't', 'r', 'i', 'n', 'g'])",
   )
   inspect(
     s.rev_fold(init=@list.empty(), _.prepend(_)),
-    content="@list.of(['t', 'h', 'i', 's', ' ', 'i', 's', ' ', 'a', ' ', 'l', 'o', 'n', 'g', ' ', 's', 't', 'r', 'i', 'n', 'g'])",
+    content="@list.from_array(['t', 'h', 'i', 's', ' ', 'i', 's', ' ', 'a', ' ', 'l', 'o', 'n', 'g', ' ', 's', 't', 'r', 'i', 'n', 'g'])",
   )
 }
 
@@ -682,7 +818,7 @@ test "offset_of_nth_char property" {
   let n = s.char_length()
   for i in 0..<n {
     let index = s.offset_of_nth_char(i).unwrap()
-    assert_eq(s.unsafe_char_at(index), s.iter().nth(i).unwrap())
+    assert_eq(s.get_char(index).unwrap(), s.iter().nth(i).unwrap())
   }
 }
 
@@ -692,24 +828,24 @@ test "offset_of_nth_char property negative" {
   let n = s.char_length()
   for i in 1..=n {
     let index = s.offset_of_nth_char(-i).unwrap()
-    assert_eq(s.unsafe_char_at(index), s.rev_iter().nth(i - 1).unwrap())
+    assert_eq(s.get_char(index).unwrap(), s.rev_iter().nth(i - 1).unwrap())
   }
 }
 
 ///|
 test "split and then join should be identity" {
   let string = ""
-  assert_eq(string, string.split("").map(View::to_string).join(""))
-  assert_eq(string, string.split("a").map(View::to_string).join("a"))
+  assert_eq(string, string.split("").map(StringView::to_string).join(""))
+  assert_eq(string, string.split("a").map(StringView::to_string).join("a"))
   let string = "a,b,c,"
-  assert_eq(string, string.split("").map(View::to_string).join(""))
-  assert_eq(string, string.split(",").map(View::to_string).join(","))
+  assert_eq(string, string.split("").map(StringView::to_string).join(""))
+  assert_eq(string, string.split(",").map(StringView::to_string).join(","))
   let string = "a b c"
-  assert_eq(string, string.split("").map(View::to_string).join(""))
-  assert_eq(string, string.split(" ").map(View::to_string).join(" "))
+  assert_eq(string, string.split("").map(StringView::to_string).join(""))
+  assert_eq(string, string.split(" ").map(StringView::to_string).join(" "))
   let string = "aaaaa"
-  assert_eq(string, string.split("").map(View::to_string).join(""))
-  assert_eq(string, string.split("a").map(View::to_string).join("a"))
+  assert_eq(string, string.split("").map(StringView::to_string).join(""))
+  assert_eq(string, string.split("a").map(StringView::to_string).join("a"))
 }
 
 ///|
@@ -718,4 +854,17 @@ test "string chars array" {
   assert_true(v0 is "ax")
   let v : String = ['a', 'b']
   assert_true(v is "ab")
+}
+
+///|
+test "gard tail position" {
+  let s = "abc"
+  guard s is [.., ch]
+  assert_eq(ch, 'c') // failed
+}
+
+///|
+test "guard const" {
+  let s = "hello.txt"
+  assert_true(s is [.., .. ".txt"])
 }

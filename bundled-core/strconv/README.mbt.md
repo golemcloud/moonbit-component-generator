@@ -9,6 +9,7 @@ This package implements conversions to and from string representations of basic 
 Use `parse_bool`, `parse_double`, `parse_int`, and `parse_int64` convert strings to values.
 
 ```moonbit
+///|
 test {
   let b = @strconv.parse_bool("true")
   assert_eq(b, true)
@@ -24,10 +25,11 @@ test {
 For types that implement the `FromStr` trait, you can also use helper function `parse` to convert a string to a value.
 
 ```moonbit
+///|
 test {
-  let a : Int = @strconv.parse("123")
+  let a : Int = @strconv.from_str("123")
   assert_eq(a, 123)
-  let b : Bool = @strconv.parse("true")
+  let b : Bool = @strconv.from_str("true")
   assert_eq(b, true)
 }
 ```

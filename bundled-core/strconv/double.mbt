@@ -57,61 +57,41 @@ let max_mantissa_fast_path : UInt64 = 2UL << mantissa_explicit_bits
 ///
 /// Examples:
 /// ```mbt
-///   inspect(parse_double("123"), content="123")
-///   inspect(parse_double("12.34"), content="12.34")
-///   inspect(parse_double(".123"), content="0.123")
-///   inspect(parse_double("1e5"), content="100000")
-///   inspect(parse_double("1.2e-3"), content="0.0012")
-///   inspect(parse_double("1_234.5"), content="1234.5")
+///   inspect(@strconv.parse_double("123"), content="123")
+///   inspect(@strconv.parse_double("12.34"), content="12.34")
+///   inspect(@strconv.parse_double(".123"), content="0.123")
+///   inspect(@strconv.parse_double("1e5"), content="100000")
+///   inspect(@strconv.parse_double("1.2e-3"), content="0.0012")
+///   inspect(@strconv.parse_double("1_234.5"), content="1234.5")
 /// ```
 ///
 /// An exponent value exp scales the mantissa (significand) by 10^exp.
 /// For example, "1.23e2" represents 1.23 × 10² = 123.
-pub fn parse_double(str : String) -> Double raise StrConvError {
-  if str.length() == 0 {
-    syntax_err()
-  }
-  if not(check_underscore(str)) {
-    syntax_err()
-  }
+pub fn parse_double(str : StringView) -> Double raise StrConvError {
+  guard str.length() > 0 else { syntax_err() }
+  guard check_underscore(str) else { syntax_err() }
   // validate its a number
-  let (num, consumed) = match parse_number(str) {
-    Some(r) => r
-    None =>
-      match parse_inf_nan(str) {
-        Some((num, consumed)) =>
-          if str.length() != consumed {
-            syntax_err()
-          } else {
-            return num
-          }
-        None => syntax_err()
+  match parse_number(str) {
+    None => parse_inf_nan(str)
+    Some(num) =>
+      // Clinger's fast path (How to read floating point numbers accurately)[https://doi.org/10.1145/989393.989430]
+      match num.try_fast_path() {
+        Some(value) => value
+        None => parse_decimal_priv(str).to_double_priv() // fallback to slow path
       }
-  }
-  if str.length() != consumed {
-    syntax_err()
-  }
-  // Clinger's fast path (How to read floating point numbers accurately)[https://doi.org/10.1145/989393.989430]
-  match num.try_fast_path() {
-    Some(value) => value
-    None => {
-      // fallback to slow path
-      let ret = parse_decimal_priv(str)
-      ret.to_double_priv()
-    }
   }
 }
 
 ///|
-fn is_fast_path(self : Number) -> Bool {
+fn Number::is_fast_path(self : Number) -> Bool {
   min_exponent_fast_path <= self.exponent &&
   self.exponent <= max_exponent_disguised_fast_path &&
   self.mantissa <= max_mantissa_fast_path &&
-  not(self.many_digits)
+  !self.many_digits
 }
 
 ///|
-let table = [
+let table : ReadOnlyArray[Double] = [
   1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0, 10000000.0, 100000000.0,
   1000000000.0, 10000000000.0, 100000000000.0, 1000000000000.0, 10000000000000.0,
   100000000000000.0, 1000000000000000.0, 10000000000000000.0, 100000000000000000.0,
@@ -125,14 +105,14 @@ fn pow10_fast_path(exponent : Int) -> Double {
 }
 
 ///|
-let int_pow10 : Array[UInt64] = [
+let int_pow10 : ReadOnlyArray[UInt64] = [
   1UL, 10UL, 100UL, 1000UL, 10000UL, 100000UL, 1000000UL, 10000000UL, 100000000UL,
   1000000000UL, 10000000000UL, 100000000000UL, 1000000000000UL, 10000000000000UL,
   100000000000000UL, 1000000000000000UL,
 ]
 
 ///|
-fn try_fast_path(self : Number) -> Double? {
+fn Number::try_fast_path(self : Number) -> Double? {
   if self.is_fast_path() {
     let mut value = if self.exponent <= max_exponent_fast_path {
       // normal fast path

@@ -16,6 +16,17 @@
 const HELLO_WORLD = b"H\x00e\x00l\x00l\x00o\x00,\x00 \x00W\x00o\x00r\x00l\x00d\x00!\x00"
 
 ///|
+test "json repr" {
+  @json.inspect(b"hello", content="hello")
+  @json.inspect(
+    b"\x00\x01\x02\x03",
+    content=(
+      #|\x00\x01\x02\x03
+    ),
+  )
+}
+
+///|
 test "to_string" {
   assert_eq(HELLO_WORLD.to_unchecked_string(), "Hello, World!")
 }
@@ -30,7 +41,7 @@ test "blit_from_string" {
   let bytes = FixedArray::make(10, Byte::default())
   let str = "Hello"
   bytes.blit_from_string(0, str, 0, str.length())
-  assert_eq(@bytes.from_fixedarray(bytes).to_unchecked_string(), str)
+  assert_eq(Bytes::from_array(bytes).to_unchecked_string(), str)
 }
 
 ///|
@@ -38,13 +49,13 @@ test "set_utf8_char (ASCII)" {
   let arr = FixedArray::makei(4, _ => b'\x00')
   let char = 'A'
   let len = arr.set_utf8_char(0, char)
-  let bytes = @bytes.from_fixedarray(arr)
+  let bytes = Bytes::from_array(arr)
   assert_eq(len, 1)
   inspect(
     bytes,
-    content=
-      #|b"\x41\x00\x00\x00"
-    ,
+    content=(
+      #|b"A\x00\x00\x00"
+    ),
   )
 }
 
@@ -53,13 +64,13 @@ test "set_utf8_char (CJK)" {
   let arr = FixedArray::makei(4, _ => b'\x00')
   let char = '拼'
   let len = arr.set_utf8_char(0, char)
-  let bytes = @bytes.from_fixedarray(arr)
+  let bytes = Bytes::from_array(arr)
   assert_eq(len, 3)
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\xe6\x8b\xbc\x00"
-    ,
+    ),
   )
 }
 
@@ -69,13 +80,13 @@ test "set_utf8_char (0x600)" {
   let char = '؀'
   inspect(char.to_int(), content="1536")
   let len = arr.set_utf8_char(0, char)
-  let bytes = @bytes.from_fixedarray(arr)
+  let bytes = Bytes::from_array(arr)
   assert_eq(len, 2)
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\xd8\x80\x00\x00"
-    ,
+    ),
   )
 }
 
@@ -84,13 +95,13 @@ test "set_utf8_char (Emoji)" {
   let arr = FixedArray::makei(4, _ => b'\x00')
   let char = '🙅'
   let len = arr.set_utf8_char(0, char)
-  let bytes = @bytes.from_fixedarray(arr)
+  let bytes = Bytes::from_array(arr)
   assert_eq(len, 4)
   inspect(
     bytes,
-    content=
+    content=(
       #|b"\xf0\x9f\x99\x85"
-    ,
+    ),
   )
 }
 
@@ -99,14 +110,14 @@ test "set_utf16le_char" {
   let arr = FixedArray::makei(4, _ => b'\x00')
   let char = 'A'
   let len = arr.set_utf16le_char(0, char)
-  let bytes = @bytes.from_fixedarray(arr)
+  let bytes = Bytes::from_array(arr)
   assert_eq(len, 2)
   assert_eq(bytes.to_unchecked_string(offset=0, length=2), "A")
   inspect(
     bytes,
-    content=
-      #|b"\x41\x00\x00\x00"
-    ,
+    content=(
+      #|b"A\x00\x00\x00"
+    ),
   )
 }
 
@@ -115,14 +126,14 @@ test "set_utf16le_char (surrogate pair)" {
   let arr = FixedArray::makei(4, _ => b'\x00')
   let char = '🉑'
   let len = arr.set_utf16le_char(0, char)
-  let bytes = @bytes.from_fixedarray(arr)
+  let bytes = Bytes::from_array(arr)
   assert_eq(len, 4)
   assert_eq(bytes.to_unchecked_string(offset=0, length=4), "🉑")
   inspect(
     bytes,
-    content=
-      #|b"\x3c\xd8\x51\xde"
-    ,
+    content=(
+      #|b"<\xd8Q\xde"
+    ),
   )
 }
 
@@ -131,21 +142,31 @@ test "set_utf16be_char" {
   let arr = FixedArray::makei(4, _ => b'\x00')
   let char = 'A'
   let len = arr.set_utf16be_char(0, char)
-  let bytes = @bytes.from_fixedarray(arr)
+  let bytes = Bytes::from_array(arr)
   assert_eq(len, 2)
   inspect(
     bytes,
-    content=
-      #|b"\x00\x41\x00\x00"
-    ,
+    content=(
+      #|b"\x00A\x00\x00"
+    ),
   )
+  let arr = FixedArray::make(2, b'\x00')
+  let _ = arr.set_utf16be_char(0, '中') // Unicode U+4E2D
+  inspect(arr[0], content="b'\\x4E'")
+  inspect(arr[1], content="b'\\x2D'")
+  let arr = FixedArray::make(4, b'\x00')
+  let _ = arr.set_utf16be_char(0, '😃') // Unicode U+1F603
+  inspect(arr[0], content="b'\\xD8'")
+  inspect(arr[1], content="b'\\x3D'")
+  inspect(arr[2], content="b'\\xDE'")
+  inspect(arr[3], content="b'\\x03'")
 }
 
 ///|
-test "op_equal" {
+test "equal" {
   let copy_bytes = FixedArray::make(HELLO_WORLD.length(), Byte::default())
   copy_bytes.blit_from_bytes(0, HELLO_WORLD, 0, HELLO_WORLD.length())
-  let copy_bytes = Bytes::from_fixedarray(copy_bytes)
+  let copy_bytes = Bytes::from_array(copy_bytes)
   assert_eq(HELLO_WORLD, copy_bytes)
   assert_not_eq(HELLO_WORLD, Bytes::new(10))
 }
@@ -170,7 +191,7 @@ test "fixedarray_byte_blit_from_bytes" {
 }
 
 ///|
-test "Bytes::op_equal with differing bytes" {
+test "Bytes::equal with differing bytes" {
   let bytes1 = b"\x01\x02\x03"
   let bytes2 = b"\x01\x02\xFF" // Same length as bytes1 but last byte differs
   inspect(bytes1 == bytes2, content="false")

@@ -19,6 +19,7 @@ get-script = []
 typed-config = []
 
 [dependencies]
+#moonc_wasm = "0.6.26" # inlined in the repo for now
 anyhow = "1"
 camino = "1.1.10"
 camino-tempfile = "1.4.1"
@@ -32,11 +33,20 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 topologic = "1.1.0"
 v8 = "0.106.0"
-wit-bindgen-core = "0.43.0"
-wit-bindgen-moonbit = "0.43.0"
-wit-component = "0.235.0"
-wit-parser = "0.235.0"
+wit-bindgen-core = "0.47.0"
+wit-bindgen-moonbit = "0.47.0"
+wit-component = "0.240.0"
+wit-parser = "0.240.0"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser", "winerror", "winbase", "handleapi", "processenv"] }
+
+[build-dependencies]
+anyhow = "1"
+reqwest = { version = "0.12", features = ["blocking"] }
+tar = "0.4"
+flate2 = "1.0"
 
 [dev-dependencies]
-test-r = { version = "2.2.2", default-features = false }
+test-r = { version = "2.3.1", default-features = false }
 pretty_env_logger = "0.5.0"

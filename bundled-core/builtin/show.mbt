@@ -28,22 +28,22 @@ pub impl Show for Bool with output(self, logger) {
 
 ///|
 pub impl Show for Int with output(self, logger) {
-  self.output(logger)
+  logger.write_string(self.to_string())
 }
 
 ///|
 pub impl Show for Int64 with output(self, logger) {
-  self.output(logger)
+  logger.write_string(self.to_string())
 }
 
 ///|
 pub impl Show for UInt with output(self, logger) {
-  self.output(logger)
+  logger.write_string(self.to_string())
 }
 
 ///|
 pub impl Show for UInt64 with output(self, logger) {
-  self.output(logger)
+  logger.write_string(self.to_string())
 }
 
 ///|
@@ -58,90 +58,92 @@ pub impl Show for Int16 with output(self, logger) {
 
 ///|
 pub impl Show for UInt16 with output(self, logger) {
-  self.to_int().output(logger)
+  logger.write_string(self.to_string())
 }
 
 ///|
-fn to_hex_digit(i : Int) -> Char {
-  if i < 10 {
-    (i + '0').unsafe_to_char()
-  } else {
-    (i + 'a' - 10).unsafe_to_char()
+pub fn Byte::to_hex(b : Byte) -> String {
+  fn to_hex_digit(i : Byte) -> Char {
+    if i < 10 {
+      (i + '0').to_char()
+    } else {
+      (i + 'a' - 10).to_char()
+    }
   }
+
+  [to_hex_digit(b / 16), to_hex_digit(b % 16)]
 }
 
 ///|
 test "to_hex_digit" {
-  for i in 0..<10 {
-    guard to_hex_digit(i) == ('0'.to_int() + i).unsafe_to_char() else {
-      fail("to_hex_digit(\{i}) does not match")
-    }
-  }
-  for i in 10..<16 {
-    guard to_hex_digit(i) == ('a'.to_int() + (i - 10)).unsafe_to_char() else {
-      fail("to_hex_digit(\{i}) does not match")
-    }
-  }
-}
-
-///|
-pub impl Show for Bytes with output(self, logger) {
-  logger.write_string("b\"")
-  for b in self {
-    let byte = b.to_int()
-    logger
-    ..write_string("\\x")
-    ..write_char(to_hex_digit(byte / 16))
-    ..write_char(to_hex_digit(byte % 16))
-  }
-  logger.write_string("\"")
+  inspect(Byte::to_hex(b'\xee'), content="ee")
+  inspect(Byte::to_hex(b'\xf3'), content="f3")
 }
 
 ///|
 pub impl Show for String with output(self, logger) {
   logger.write_char('"')
-  let mut segment_start = 0
-  fn flush_segment(i : Int) {
-    if i > segment_start {
-      logger.write_substring(self, segment_start, i - segment_start)
+  fn flush_segment(seg : Int, i : Int) {
+    if i > seg {
+      logger.write_substring(self, seg, i - seg)
     }
-    segment_start = i + 1
   }
-
-  for i in 0..<self.length() {
-    match self.unsafe_charcode_at(i) {
+  // The loop keeps two pieces of state:
+  //   i   : the current scanning position
+  //   seg : the beginning index of the current "plain" segment that has
+  //         no escaping requirements. Whenever we meet a character that
+  //         needs escaping, we flush the segment [seg, i) and reset seg.
+  let len = self.length()
+  for i = 0, seg = 0 {
+    if i >= len {
+      // If we reached the end of the string, flush any remaining segment
+      // and break out of the loop.
+      flush_segment(seg, i)
+      break
+    }
+    let code = self.unsafe_charcode_at(i)
+    match code {
       '"' | '\\' as c => {
-        flush_segment(i)
+        flush_segment(seg, i)
         logger..write_char('\\')..write_char(c.unsafe_to_char())
+        // Advance both pointers: continue with next index, new segment starts after current char
+        continue i + 1, i + 1
       }
       '\n' => {
-        flush_segment(i)
+        flush_segment(seg, i)
         logger.write_string("\\n")
+        continue i + 1, i + 1
       }
       '\r' => {
-        flush_segment(i)
+        flush_segment(seg, i)
         logger.write_string("\\r")
+        continue i + 1, i + 1
       }
       '\b' => {
-        flush_segment(i)
+        flush_segment(seg, i)
         logger.write_string("\\b")
+        continue i + 1, i + 1
       }
       '\t' => {
-        flush_segment(i)
+        flush_segment(seg, i)
         logger.write_string("\\t")
+        continue i + 1, i + 1
       }
       code =>
         if code < ' ' {
-          flush_segment(i)
+          // has to be ascii  
+          flush_segment(seg, i)
           logger
           ..write_string("\\u{")
-          ..write_char(to_hex_digit(code / 16))
-          ..write_char(to_hex_digit(code % 16))
+          ..write_string(code.to_byte().to_hex())
           ..write_char('}')
+          continue i + 1, i + 1
+        } else {
+          // Normal character, keep scanning; only advance index.
+          continue i + 1, seg
         }
     }
   }
-  flush_segment(self.length())
   logger.write_char('"')
 }
 
@@ -164,6 +166,13 @@ pub impl Show for String with to_string(self) {
 ///|
 /// Returns a valid MoonBit string literal representation of a string,
 /// add quotes and escape special characters.
+/// # Examples
+/// 
+/// ```mbt
+///   let str = "Hello \n"
+///   inspect(str.to_string(), content="Hello \n")
+///   inspect(str.escape(), content="\"Hello \\n\"")
+/// ```
 pub fn String::escape(self : String) -> String {
   let buf = StringBuilder::new()
   Show::output(self, buf)
@@ -185,11 +194,6 @@ pub impl[T : Show, E : Show] Show for Result[T, E] with output(self, logger) {
     Ok(x) => logger..write_string("Ok(")..write_object(x)..write_string(")")
     Err(e) => logger..write_string("Err(")..write_object(e)..write_string(")")
   }
-}
-
-///|
-pub impl[X : Show] Show for Ref[X] with output(self, logger) {
-  logger..write_string("{val: ")..write_object(self.val)..write_string("}")
 }
 
 ///|

@@ -24,6 +24,7 @@ pub(all) suberror ParseError {
   InvalidEof
   InvalidNumber(Position, String)
   InvalidIdentEscape(Position)
+  DepthLimitExceeded
 } derive(Eq, ToJson)
 
 ///|
@@ -52,18 +53,26 @@ pub impl Show for ParseError with output(self, logger) {
       ..write_object(line)
       ..write_string(", column ")
       ..write_object(column)
+    DepthLimitExceeded =>
+      logger.write_string(
+        "Depth limit exceeded, please increase the max_nesting_depth parameter",
+      )
   }
 }
 
 ///|
-pub impl Show for JsonValue with output(self, logger) {
+pub impl Show for Json with output(self, logger) {
   match self {
     Null => logger.write_string("Null")
     True => logger.write_string("True")
     False => logger.write_string("False")
-    Number(n) => {
+    Number(n, repr~) => {
       logger.write_string("Number(")
       Show::output(n, logger)
+      if repr is Some(_) {
+        logger.write_string(", repr=")
+        Show::output(repr, logger)
+      }
       logger.write_string(")")
     }
     String(s) => {

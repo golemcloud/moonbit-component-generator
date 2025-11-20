@@ -37,14 +37,14 @@ impl MoonC {
         self.ensure_initialized()?;
         debug!("Running the MoonBit compiler with args: {}", args.join(" "));
         args.insert(0, "moonc".to_string());
-        moonc_wasm::run_wasmoo(args).context("Running the MoonBit compiler")?;
+        moonc_wasm::run_moonc(args).context("Running the MoonBit compiler")?;
         Ok(())
     }
 
     fn ensure_initialized(&self) -> anyhow::Result<()> {
         if !self.initialized.load(Ordering::Acquire) {
             debug!("Initializing V8...");
-            moonc_wasm::initialize_v8()?;
+            // moonc_wasm::initialize_v8()?;
             self.initialized.store(true, Ordering::Release);
         }
         Ok(())
@@ -99,7 +99,7 @@ impl MoonBitComponent {
             .push_dir(component.wit_dir())
             .context("Resolving WIT packages")?;
         let world_id = resolve
-            .select_world(root_package_id, selected_world)
+            .select_world(&[root_package_id], selected_world)
             .context("Selecting the WIT world")?;
 
         info!("Generating MoonBit WIT bindings");
@@ -165,7 +165,7 @@ impl MoonBitComponent {
             .push_dir(component.wit_dir())
             .context("Resolving WIT package")?;
         let world_id = resolve
-            .select_world(root_package_id, selected_world)
+            .select_world(&[root_package_id], selected_world)
             .context("Selecting WIT world")?;
 
         component.resolve = Some(resolve);
