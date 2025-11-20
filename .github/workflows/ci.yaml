@@ -31,13 +31,6 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - name: Install moonbit
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
-          echo "$HOME/.moon/bin" >> $GITHUB_PATH
-      - name: Bundle core MoonBit library
-        run: moon bundle --target wasm
-        working-directory: core
       - name: Check formatting
         run: cargo fmt -- --check
       - name: Clippy
@@ -64,10 +57,6 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - name: Install wasmtime-cli
         run: cargo binstall --force --locked wasmtime-cli@33.0.0
-      - name: Install moonbit
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.32+6f48aae3f
-          echo "$HOME/.moon/bin" >> $GITHUB_PATH
       - name: Tests
         run: cargo test -p moonbit-component-generator -- --nocapture --report-time --format junit --logfile target/report.xml --test-threads=1
       - name: Publish Test Report
@@ -91,13 +80,6 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - name: Install moonbit
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- 0.6.19
-          echo "$HOME/.moon/bin" >> $GITHUB_PATH
-      - name: Bundle core MoonBit library
-        run: moon bundle --target wasm
-        working-directory: core
       - id: get_version
         uses: battila7/get-version-action@v2
       - name: Publish crates
