@@ -37,14 +37,14 @@ impl MoonC {
         self.ensure_initialized()?;
         debug!("Running the MoonBit compiler with args: {}", args.join(" "));
         args.insert(0, "moonc".to_string());
-        moonc_wasm::run_moonc(args).context("Running the MoonBit compiler")?;
+        moonc_wasm::run_wasmoo(args).context("Running the MoonBit compiler")?;
         Ok(())
     }
 
     fn ensure_initialized(&self) -> anyhow::Result<()> {
         if !self.initialized.load(Ordering::Acquire) {
             debug!("Initializing V8...");
-            // moonc_wasm::initialize_v8()?;
+            moonc_wasm::initialize_v8()?;
             self.initialized.store(true, Ordering::Release);
         }
         Ok(())
