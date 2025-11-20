@@ -17,7 +17,7 @@
 // All operations over sets are purely applicative (no side-effects).
 
 ///|
-pub fn[A] iter(self : T[A]) -> Iter[A] {
+pub fn[A] SortedSet::iter(self : SortedSet[A]) -> Iter[A] {
   Iter::new(yield_ => {
     fn go(t) {
       match t {
@@ -38,96 +38,149 @@ pub fn[A] iter(self : T[A]) -> Iter[A] {
 }
 
 ///|
-pub fn[A : Compare] from_iter(iter : Iter[A]) -> T[A] {
+pub fn[A] SortedSet::iterator(self : SortedSet[A]) -> Iterator[A] {
+  let mut curr_node = self
+  let parents = []
+  Iterator::new(fn() {
+    loop curr_node {
+      Node(left=Empty, right~, value~, size=_) => {
+        curr_node = right
+        Some(value)
+      }
+      Node(left~, right~, value~, size=_) => {
+        parents.push((value, right))
+        continue left
+      }
+      Empty if parents.pop() is Some((value, right)) => {
+        curr_node = right
+        Some(value)
+      }
+      Empty => None
+    }
+  })
+}
+
+///|
+#as_free_fn
+pub fn[A : Compare] SortedSet::from_iter(iter : Iter[A]) -> SortedSet[A] {
   iter.fold(init=new(), (s, e) => s.add(e))
 }
 
 ///|
-#deprecated("use `@immut/sorted_set.from_iter` instead")
-pub fn[A : Compare] T::from_iter(iter : Iter[A]) -> T[A] {
-  from_iter(iter)
+#as_free_fn
+pub fn[A : Compare] SortedSet::from_iterator(
+  iter : Iterator[A],
+) -> SortedSet[A] {
+  iter.fold(init=new(), (s, e) => s.add(e))
 }
 
 ///|
 test {
-  @json.inspect(of([2, 7, 1, 2, 3, 4, 5]), content=[1, 2, 3, 4, 5, 7])
+  @json.inspect(from_array([2, 7, 1, 2, 3, 4, 5]), content=[1, 2, 3, 4, 5, 7])
 }
 
 ///|
-pub impl[A : Eq] Eq for T[A] with op_equal(self, other) -> Bool {
+pub impl[A : Eq] Eq for SortedSet[A] with equal(self, other) -> Bool {
   // There's no `Iter::zip` (https://github.com/moonbitlang/core/issues/994#issuecomment-2350935193),
   // so we have to use the manual implementation below:
-  let iter = InorderIterator::new(self)
-  let iter1 = InorderIterator::new(other)
-  loop (iter.next(), iter1.next()) {
-    (None, None) => true
-    (Some(a), Some(b)) => {
-      guard a == b else { break false }
-      continue (iter.next(), iter1.next())
-    }
-    (_, _) => false
+  guard self.length() == other.length() else { return false }
+  let iter = self.iterator()
+  let iter1 = other.iterator()
+  while iter.next() is Some(a) && iter1.next() is Some(b) {
+    guard a == b else { break false }
+  } else {
+    true
   }
 }
 
 ///|
-pub impl[A : Compare] Compare for T[A] with compare(self, other) -> Int {
-  let iter = InorderIterator::new(self)
-  let iter1 = InorderIterator::new(other)
-  loop (iter.next(), iter1.next()) {
-    (None, None) => 0
-    (Some(a), Some(b)) => {
-      let cmp = a.compare(b)
-      guard cmp == 0 else { break cmp }
-      continue (iter.next(), iter1.next())
-    }
-    (Some(_), None) => 1
-    (None, Some(_)) => -1
+pub impl[A : Compare] Compare for SortedSet[A] with compare(self, other) -> Int {
+  let my_size = self.length()
+  let other_size = other.length()
+  guard my_size == other_size else { return my_size - other_size }
+  let iter = self.iterator()
+  let iter1 = other.iterator()
+  while iter.next() is Some(a) && iter1.next() is Some(b) {
+    let cmp = a.compare(b)
+    guard cmp is 0 else { break cmp }
+  } else {
+    0
   }
 }
 
 ///|
-priv type InorderIterator[A] Array[T[A]]
-
-///|
-fn[A] InorderIterator::new(root : T[A]) -> InorderIterator[A] {
-  let it = InorderIterator([])
-  it.move_left(root)
-  it
+test "Eq - equal sets" {
+  let s1 = from_array([1, 2, 3, 4, 5])
+  let s2 = from_array([5, 4, 3, 2, 1])
+  inspect(s1 == s2, content="true")
 }
 
 ///|
-fn[A] InorderIterator::move_left(
-  self : InorderIterator[A],
-  node : T[A]
-) -> Unit {
-  loop node {
-    Empty => ()
-    Node(left~, ..) as curr => {
-      let InorderIterator(self) = self
-      self.push(curr)
-      continue left
-    }
-  }
+test "Eq - different elements same size" {
+  let s1 = from_array([1, 2, 3, 4, 5])
+  let s2 = from_array([1, 2, 3, 4, 6])
+  inspect(s1 == s2, content="false")
 }
 
 ///|
-fn[A] InorderIterator::next(self : InorderIterator[A]) -> A? {
-  let InorderIterator(s) = self
-  guard s.pop() is Some(curr) else { return None }
-  guard curr is Node(right~, value~, ..)
-  self.move_left(right)
-  Some(value)
+test "Eq - different sizes" {
+  let s1 = from_array([1, 2, 3])
+  let s2 = from_array([1, 2, 3, 4, 5])
+  inspect(s1 == s2, content="false")
 }
 
 ///|
-test "InorderIterator" {
-  let arr : FixedArray[_] = [1, 2, 3, 4, 5, 6, 7]
-  let set = of(arr)
-  let iter = InorderIterator::new(set)
-  for i = 0; ; i = i + 1 {
-    match iter.next() {
-      None => break
-      Some(value) => assert_eq(value, arr[i])
-    }
-  }
+test "Eq - empty sets" {
+  let s1 : SortedSet[Int] = new()
+  let s2 : SortedSet[Int] = new()
+  inspect(s1 == s2, content="true")
+}
+
+///|
+test "Eq - one empty one not" {
+  let s1 : SortedSet[Int] = new()
+  let s2 = from_array([1])
+  inspect(s1 == s2, content="false")
+}
+
+///|
+test "Compare - equal sets" {
+  let s1 = from_array([1, 2, 3])
+  let s2 = from_array([3, 2, 1])
+  inspect(s1.compare(s2), content="0")
+}
+
+///|
+test "Compare - first smaller by size" {
+  let s1 = from_array([1, 2])
+  let s2 = from_array([1, 2, 3])
+  inspect(s1.compare(s2) < 0, content="true")
+}
+
+///|
+test "Compare - first larger by size" {
+  let s1 = from_array([1, 2, 3, 4])
+  let s2 = from_array([1, 2])
+  inspect(s1.compare(s2) > 0, content="true")
+}
+
+///|
+test "Compare - same size first smaller by elements" {
+  let s1 = from_array([1, 2, 3])
+  let s2 = from_array([1, 2, 4])
+  inspect(s1.compare(s2) < 0, content="true")
+}
+
+///|
+test "Compare - same size first larger by elements" {
+  let s1 = from_array([1, 2, 5])
+  let s2 = from_array([1, 2, 4])
+  inspect(s1.compare(s2) > 0, content="true")
+}
+
+///|
+test "Compare - empty sets" {
+  let s1 : SortedSet[Int] = new()
+  let s2 : SortedSet[Int] = new()
+  inspect(s1.compare(s2), content="0")
 }

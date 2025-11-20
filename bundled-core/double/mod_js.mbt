@@ -29,15 +29,15 @@
 /// Example:
 ///
 /// ```moonbit
-///   inspect(5.0.op_mod(3.0), content="2")
-///   inspect((-5.0).op_mod(3.0), content="-2")
-///   inspect(5.0.op_mod(not_a_number), content="NaN")
-///   inspect(infinity.op_mod(3.0), content="NaN")
+///   inspect(5.0.mod(3.0), content="2")
+///   inspect((-5.0).mod(3.0), content="-2")
+///   inspect(5.0.mod(@double.not_a_number), content="NaN")
+///   inspect(@double.infinity.mod(3.0), content="NaN")
 /// ```
-extern "js" fn mod_ffi(self : Double, other : Double) -> Double =
+extern "js" fn Double::mod_ffi(self : Double, other : Double) -> Double =
   #| (a, b) => (a % b)
 
 ///|
-pub impl Mod for Double with op_mod(self, other) {
+pub impl Mod for Double with mod(self, other) {
   self.mod_ffi(other)
 }

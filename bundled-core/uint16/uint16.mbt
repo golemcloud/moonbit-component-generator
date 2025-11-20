@@ -19,32 +19,32 @@ pub let max_value : UInt16 = 65535
 pub let min_value : UInt16 = 0
 
 ///|
-pub impl Add for UInt16 with op_add(self : UInt16, that : UInt16) -> UInt16 {
+pub impl Add for UInt16 with add(self : UInt16, that : UInt16) -> UInt16 {
   (self.to_int() + that.to_int()).to_uint16()
 }
 
 ///|
-pub impl Sub for UInt16 with op_sub(self : UInt16, that : UInt16) -> UInt16 {
+pub impl Sub for UInt16 with sub(self : UInt16, that : UInt16) -> UInt16 {
   (self.to_int() - that.to_int()).to_uint16()
 }
 
 ///|
-pub impl Mul for UInt16 with op_mul(self : UInt16, that : UInt16) -> UInt16 {
+pub impl Mul for UInt16 with mul(self : UInt16, that : UInt16) -> UInt16 {
   (self.to_int() * that.to_int()).to_uint16()
 }
 
 ///|
-pub impl Div for UInt16 with op_div(self : UInt16, that : UInt16) -> UInt16 {
+pub impl Div for UInt16 with div(self : UInt16, that : UInt16) -> UInt16 {
   (self.to_int() / that.to_int()).to_uint16()
 }
 
 ///|
-pub impl Mod for UInt16 with op_mod(self : UInt16, that : UInt16) -> UInt16 {
+pub impl Mod for UInt16 with mod(self : UInt16, that : UInt16) -> UInt16 {
   (self.to_int() % that.to_int()).to_uint16()
 }
 
 ///|
-pub impl Eq for UInt16 with op_equal(self, that) {
+pub impl Eq for UInt16 with equal(self, that) {
   self.to_int() == that.to_int()
 }
 
@@ -54,33 +54,8 @@ pub impl Compare for UInt16 with compare(self, that) {
 }
 
 ///|
-pub impl Hash for UInt16 with hash(self) {
-  self.to_int()
-}
-
-///|
 pub impl Hash for UInt16 with hash_combine(self, hasher) {
   hasher.combine_int(self.to_int())
-}
-
-///|
-pub impl Shl for UInt16 with op_shl(self : UInt16, that : Int) -> UInt16 {
-  (self.to_int() << that).to_uint16()
-}
-
-///|
-pub impl Shr for UInt16 with op_shr(self : UInt16, that : Int) -> UInt16 {
-  (self.to_int() >> that).to_uint16()
-}
-
-///|
-pub impl BitOr for UInt16 with lor(self : UInt16, that : UInt16) -> UInt16 {
-  (self.to_int() | that.to_int()).to_uint16()
-}
-
-///|
-pub impl BitAnd for UInt16 with land(self : UInt16, that : UInt16) -> UInt16 {
-  (self.to_int() & that.to_int()).to_uint16()
 }
 
 ///|
@@ -106,4 +81,9 @@ pub fn UInt16::to_uint(self : UInt16) -> UInt {
 ///|
 pub fn UInt16::to_uint64(self : UInt16) -> UInt64 {
   self.to_int().to_uint64()
+}
+
+///|
+pub fn UInt16::reinterpret_as_int16(self : UInt16) -> Int16 {
+  self.to_int().to_int16()
 }

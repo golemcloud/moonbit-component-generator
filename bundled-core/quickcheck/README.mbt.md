@@ -7,6 +7,7 @@ MoonBit QuickCheck package provides property-based testing capabilities by gener
 Generate random values of any type that implements the `Arbitrary` trait:
 
 ```moonbit
+///|
 test "basic generation" {
   let b : Bool = @quickcheck.gen()
   inspect(b, content="true")
@@ -24,21 +25,16 @@ test "basic generation" {
 Generate multiple test cases using the `samples` function:
 
 ```moonbit
+///|
 test "multiple samples" {
   let ints : Array[Int] = @quickcheck.samples(5)
   inspect(ints, content="[0, 0, 0, -1, -1]")
   let strings : Array[String] = @quickcheck.samples(12)
   inspect(
     strings[5:10],
-    content=
-      
-  #|["E\b\u{0f} ", "", "K\u{1f}[", "!@", "xvLxb"]
-
-
-
-
-
-    ,
+    content=(
+      #|["E\b\u{0f} ", "", "K\u{1f}[", "!@", "xvLxb"]
+    ),
   )
 }
 ```
@@ -48,21 +44,21 @@ test "multiple samples" {
 QuickCheck provides `Arbitrary` implementations for all basic MoonBit types:
 
 ```moonbit
+///|
 test "builtin types" {
   // Basic types
   let v : (Bool, Char, Byte) = @quickcheck.gen()
-  inspect(v, content="(true, '#', b'\\x12')")
+  inspect(v, content="(false, '\\u{02}', b'\\x4D')")
   // Numeric types
   let v : (Int, Int64, UInt, UInt64, Float, Double, BigInt) = @quickcheck.gen()
-  inspect(v, content="(0, 0, 0, 0, 76806128, 0.33098446695254635, 0)")
+  inspect(v, content="(0, 0, 0, 0, 0.23986786603927612, 0.7917029935679342, 0)")
   // Collections
-
   let v : (String, Bytes, Iter[Int]) = @quickcheck.gen()
   inspect(
     v,
-    content=
+    content=(
       #|("", b"", [])
-    ,
+    ),
   )
 }
 ```
@@ -72,17 +68,20 @@ test "builtin types" {
 Implement `Arbitrary` trait for custom types:
 
 ```moonbit
+///|
 struct Point {
   x : Int
   y : Int
 } derive(Show)
 
+///|
 impl Arbitrary for Point with arbitrary(size, r0) {
   let r1 = r0.split()
-  let y = Arbitrary::arbitrary(size, r1)
-  { x: Arbitrary::arbitrary(size, r0), y }
+  let y = @quickcheck.Arbitrary::arbitrary(size, r1)
+  { x: @quickcheck.Arbitrary::arbitrary(size, r0), y }
 }
 
+///|
 test "custom type generation" {
   let point : Point = @quickcheck.gen()
   inspect(point, content="{x: 0, y: 0}")

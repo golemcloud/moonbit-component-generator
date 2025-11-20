@@ -51,7 +51,7 @@ test "copy" {
   let arr = [1, 2, 3, 4, 5]
   let copied = arr.copy()
   assert_eq(copied, [1, 2, 3, 4, 5])
-  @test.is_not(arr, copied)
+  @test.not_same_object(arr, copied)
   inspect(([] : Array[Int]).copy(), content="[]")
 }
 
@@ -89,6 +89,14 @@ test "from_iter" {
 }
 
 ///|
+test "from_iterator" {
+  let arr : Array[Int] = []
+  inspect(Array::from_iterator(arr.iterator()), content="[]")
+  let arr = [1, 2, 3, 4, 5]
+  inspect(Array::from_iterator(arr.iterator()), content="[1, 2, 3, 4, 5]")
+}
+
+///|
 test "Array::last" {
   // Test with a random array of integers
   inspect([1, 2, 3, 4, 5].last(), content="Some(5)")
@@ -119,9 +127,9 @@ test "zip" {
   let arr4 = ["a", "b", "c"]
   inspect(
     arr3.zip(arr4),
-    content=
+    content=(
       #|[(1, "a"), (2, "b")]
-    ,
+    ),
   )
 
   // Test with an empty array
@@ -146,22 +154,22 @@ test "unzip" {
 }
 
 ///|
-test "zip_with" {
+test "@array.zip_with" {
   // Test with two non-empty arrays and a function
   let arr1 = [1, 2, 3]
   let arr2 = [4, 5, 6]
   let add = (a, b) => a + b
-  inspect(zip_with(arr1, arr2, add), content="[5, 7, 9]")
+  inspect(@array.zip_with(arr1, arr2, add), content="[5, 7, 9]")
 
   // Test with arrays of different lengths and a function
   let arr3 = [1, 2]
   let arr4 = [4, 5, 6]
-  inspect(zip_with(arr3, arr4, add), content="[5, 7]")
+  inspect(@array.zip_with(arr3, arr4, add), content="[5, 7]")
 
   // Test with an empty array and a function
   let arr5 : Array[Int] = []
   let arr6 = [4, 5, 6]
-  inspect(zip_with(arr5, arr6, add), content="[]")
+  inspect(@array.zip_with(arr5, arr6, add), content="[]")
 }
 
 ///|
@@ -179,15 +187,40 @@ test "zip_to_iter2" {
   let arr4 = ["a", "b", "c"]
   inspect(
     arr3.zip_to_iter2(arr4).to_array(),
-    content=
+    content=(
       #|[(1, "a"), (2, "b")]
-    ,
+    ),
   )
 
   // Test with an empty array
   let arr5 : Array[Int] = []
   let arr6 = ["a", "b", "c"]
   inspect(arr5.zip_to_iter2(arr6), content="[]")
+}
+
+///|
+test "zip_to_iter2 early termination" {
+  // This test should trigger the uncovered line 301: break IterEnd
+  // We create an iterator that terminates early when it encounters a specific value
+  let arr1 = [1, 2, 3, 4, 5]
+  let arr2 = ['a', 'b', 'c', 'd', 'e']
+  let mut count = 0
+  let mut found_target = false
+
+  // Use run to iterate with early termination
+  let _ = arr1
+    .zip_to_iter2(arr2)
+    .run((x, _y) => {
+      count += 1
+      if x == 3 {
+        found_target = true
+        IterEnd // This should trigger the uncovered line 301
+      } else {
+        IterContinue
+      }
+    })
+  inspect(found_target, content="true")
+  inspect(count, content="3") // Should visit (1,'a'), (2,'b'), (3,'c') and terminate
 }
 
 ///|
@@ -222,7 +255,7 @@ test "Array[String]::join" {
   inspect(["a", "b", "c"].join(" "), content="a b c")
   inspect(["123", "456"].join(""), content="123456")
   inspect(["aaa", "bbb", "ccc"].join(" "), content="aaa bbb ccc")
-  inspect([].join(" "))
+  inspect(([] : Array[StringView]).join(" "))
 }
 
 ///|
@@ -234,5 +267,67 @@ test "Array[View]::join" {
   inspect(["a", "b", "c"][:].join(" "), content="a b c")
   inspect(["123", "456"][:].join(""), content="123456")
   inspect(["aaa", "bbb", "ccc"][:].join(" "), content="aaa bbb ccc")
-  inspect([][:].join(" "))
+  inspect(([] : Array[String])[:].join(" "))
+}
+
+///|
+test "fill" {
+  let arr = [1, 2, 3, 4, 5]
+  arr.fill(0)
+  inspect(arr, content="[0, 0, 0, 0, 0]")
+  let arr2 = [1, 2, 3, 4, 5]
+  arr2.fill(99, start=1, end=3)
+  inspect(arr2, content="[1, 99, 99, 4, 5]")
+  let arr3 = ["a", "b", "c", "d"]
+  arr3.fill("x", start=2)
+  inspect(
+    arr3,
+    content=(
+      #|["a", "b", "x", "x"]
+    ),
+  )
+}
+
+///|
+test "panic fill with invalid start" {
+  let arr = [1, 2, 3, 4, 5]
+  arr.fill(0, start=-1)
+}
+
+///|
+test "panic fill with invalid end" {
+  let arr = [1, 2, 3, 4, 5]
+  arr.fill(0, start=2, end=10)
+}
+
+///|
+test "Array::rev_iterator" {
+  let arr = [1, 2, 3, 4, 5]
+  let iter = arr.rev_iterator()
+  inspect(iter.to_array(), content="[5, 4, 3, 2, 1]")
+}
+
+///|
+test "Array::rev_iterator empty" {
+  let arr : Array[Int] = []
+  let iter = arr.rev_iterator()
+  assert_eq(iter.next(), None)
+}
+
+///|
+test "Array::iterator2" {
+  let arr = [10, 20, 30, 40]
+  let iter = arr.iterator2()
+  let results = []
+  while iter.next() is Some((i, x)) {
+    results.push((i, x))
+  }
+  inspect(results, content="[(0, 10), (1, 20), (2, 30), (3, 40)]")
+}
+
+///|
+test "Array::iterator2 empty" {
+  let arr : Array[Int] = []
+  let iter = arr.iterator2()
+  assert_eq(iter.next(), None)
 }

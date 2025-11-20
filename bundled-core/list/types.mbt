@@ -13,7 +13,8 @@
 // limitations under the License.
 
 ///|
-pub enum T[A] {
+#alias(T, deprecated)
+pub enum List[A] {
   Empty
-  More(A, mut tail~ : T[A])
+  More(A, mut tail~ : List[A])
 } derive(Eq)

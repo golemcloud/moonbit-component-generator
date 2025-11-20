@@ -13,8 +13,8 @@
 // limitations under the License.
 
 ///|
-#deprecated("use `_.to_array().rev_fold(...)` instead")
-pub fn[A, B] rev_fold(self : T[A], init~ : B, f : (B, A) -> B) -> B {
+#deprecated("use `_.to_array().rev_fold(...)` instead", skip_current_package=false)
+pub fn[A, B] List::rev_fold(self : List[A], init~ : B, f : (B, A) -> B) -> B {
   let xs = self.to_array()
   let mut acc = init
   for x in xs.rev_iter() {
@@ -24,14 +24,18 @@ pub fn[A, B] rev_fold(self : T[A], init~ : B, f : (B, A) -> B) -> B {
 }
 
 ///|
-#deprecated("use `_.rev().foldi(...)` instead")
-pub fn[A, B] rev_foldi(self : T[A], init~ : B, f : (Int, B, A) -> B) -> B {
+#deprecated("use `_.rev().foldi(...)` instead", skip_current_package=false)
+pub fn[A, B] List::rev_foldi(
+  self : List[A],
+  init~ : B,
+  f : (Int, B, A) -> B,
+) -> B {
   self.rev().foldi(init~, (i, b, a) => f(i, b, a))
 }
 
 ///|
-#deprecated("use `unsafe_tail` instead")
-pub fn[A] tail(self : T[A]) -> T[A] {
+#deprecated("use `unsafe_tail` instead", skip_current_package=false)
+pub fn[A] List::tail(self : List[A]) -> List[A] {
   match self {
     Empty => Empty
     More(_, tail~) => tail

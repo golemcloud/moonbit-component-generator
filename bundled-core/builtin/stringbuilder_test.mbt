@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///|
 // when we write the string into the buffer
 // we assume the string is utf16 and blit
 // we assume the bytes (in valid region [0, len)) is utf16
 // so that
+
+///|
 fn id(s : String) -> String {
   StringBuilder::new()..write_string(s).to_string()
 }
@@ -53,7 +54,37 @@ test "write_iter" {
   let sb = StringBuilder::new()
   sb.write_iter(str.iter())
   inspect(sb.to_string(), content="Hello🤣🤣🤣")
-  let str_view = str.view(start_offset=1, end_offset=7)
+  let str_view = str[1:7]
   sb.write_iter(str_view.iter())
   inspect(sb.to_string(), content="Hello🤣🤣🤣ello🤣")
+}
+
+///|
+test "StringBuilder::write_stringview" {
+  let str = "Hello🤣🤣🤣"
+  let sb = StringBuilder::new()
+
+  // Test basic substring
+  let str_view = str[1:7]
+  sb.write_stringview(str_view)
+  inspect(sb.to_string(), content="ello🤣")
+
+  // Test multiple writes
+  sb.write_stringview(str[0:5])
+  inspect(sb.to_string(), content="ello🤣Hello")
+
+  // Test empty view
+  sb.reset()
+  sb.write_stringview(str[5:5])
+  inspect(sb.to_string(), content="")
+
+  // Test full string view
+  sb.write_stringview(str[0:str.length()])
+  inspect(sb.to_string(), content="Hello🤣🤣🤣")
+
+  // Test with ASCII only
+  let ascii = "world"
+  sb.reset()
+  sb.write_stringview(ascii[1:4])
+  inspect(sb.to_string(), content="orl")
 }

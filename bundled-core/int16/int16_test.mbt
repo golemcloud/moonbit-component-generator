@@ -77,7 +77,7 @@ test "Int16::from_int64" {
 }
 
 ///|
-test "Int16::op_add" {
+test "Int16::add" {
   let add = (a : Int16, b : Int16) => a + b
   inspect(add(1, 2), content="3")
   inspect(add(0, 0), content="0")
@@ -94,7 +94,7 @@ test "Int16::op_add" {
 }
 
 ///|
-test "Int16::op_sub" {
+test "Int16::sub" {
   let sub = (a : Int16, b : Int16) => a - b
   inspect(sub(3, 2), content="1")
   inspect(sub(0, 0), content="0")
@@ -111,7 +111,7 @@ test "Int16::op_sub" {
 }
 
 ///|
-test "Int16::op_mul" {
+test "Int16::mul" {
   let mul = (a : Int16, b : Int16) => a * b
   inspect(mul(0, 0), content="0")
   inspect(mul(1, 1), content="1")
@@ -130,7 +130,7 @@ test "Int16::op_mul" {
 }
 
 ///|
-test "Int16::op_div" {
+test "Int16::div" {
   let div = (a : Int16, b : Int16) => a / b
   inspect(div(6, 2), content="3")
   inspect(div(0, 1), content="0")
@@ -174,27 +174,27 @@ test "Int16::compare" {
 
 ///|
 test "Int16::hash" {
-  inspect(Int16::hash(1), content="1")
-  inspect(Int16::hash(-1), content="-1")
-  inspect(Int16::hash(32767), content="32767")
-  inspect(Int16::hash(-32768), content="-32768")
-  inspect(Int16::hash(0), content="0")
-  inspect(Int16::hash(12345), content="12345")
-  inspect(Int16::hash(-12345), content="-12345")
+  inspect(Hasher::new(seed=0)..combine(1).finalize(), content="-205818221")
+  inspect(Hasher::new(seed=0)..combine(-1).finalize(), content="67608159")
+  inspect(Hasher::new(seed=0)..combine(32767).finalize(), content="929308064")
+  inspect(Hasher::new(seed=0)..combine(-32768).finalize(), content="-841328155")
+  inspect(Hasher::new(seed=0)..combine(0).finalize(), content="148298089")
+  inspect(Hasher::new(seed=0)..combine(12345).finalize(), content="-393624961")
+  inspect(Hasher::new(seed=0)..combine(-12345).finalize(), content="1221658118")
 }
 
 ///|
-test "Int16::op_equal" {
-  inspect(Int16::op_equal(1, 2), content="false")
-  inspect(Int16::op_equal(2, 1), content="false")
-  inspect(Int16::op_equal(1, 1), content="true")
-  inspect(Int16::op_equal(-1, 1), content="false")
-  inspect(Int16::op_equal(1, -1), content="false")
-  inspect(Int16::op_equal(-1, -1), content="true")
+test "Int16::equal" {
+  inspect(Int16::equal(1, 2), content="false")
+  inspect(Int16::equal(2, 1), content="false")
+  inspect(Int16::equal(1, 1), content="true")
+  inspect(Int16::equal(-1, 1), content="false")
+  inspect(Int16::equal(1, -1), content="false")
+  inspect(Int16::equal(-1, -1), content="true")
 }
 
 ///|
-test "Int16::op_shl" {
+test "Int16::shl" {
   let shl = (a : Int16, b : Int) => a << b
   inspect(shl(0, 0), content="0")
   inspect(shl(1, 0), content="1")
@@ -253,7 +253,7 @@ test "Int16::op_shl" {
 }
 
 ///|
-test "Int16::op_shr" {
+test "Int16::shr" {
   let shr = (a : Int16, b : Int) => a >> b
   inspect(shr(0, 0), content="0")
   inspect(shr(1, 0), content="1")
@@ -380,7 +380,7 @@ test "Int16::lxor" {
 }
 
 ///|
-test "Int16::op_mod" {
+test "Int16::mod" {
   let mod = (a : Int16, b : Int16) => a % b
   inspect(mod(10, 3), content="1")
   inspect(mod(10, 2), content="0")
@@ -398,7 +398,7 @@ test "Int16::op_mod" {
 }
 
 ///|
-test "Int16::op_neg" {
+test "Int16::neg" {
   let neg = (a : Int16) => -a
   inspect(neg(10), content="-10")
   inspect(neg(-10), content="10")
@@ -425,4 +425,11 @@ test "Int16::to_json" {
   inspect(Int16::to_json(1), content="Number(1)")
   inspect(Int16::to_json(32767), content="Number(32767)")
   inspect(Int16::to_json(-32768), content="Number(-32768)")
+}
+
+///|
+test "Int16::reinterpret_as_uint16" {
+  inspect((-1 : Int16).reinterpret_as_uint16(), content="65535")
+  inspect((0 : Int16).reinterpret_as_uint16(), content="0")
+  inspect((1 : Int16).reinterpret_as_uint16(), content="1")
 }

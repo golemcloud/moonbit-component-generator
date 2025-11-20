@@ -18,23 +18,8 @@ test "panic array_split_at" {
 }
 
 ///|
-test "panic array_split_at" {
-  [1].split_at(3) |> ignore
-}
-
-///|
 test "panic array_swap" {
   [1, 2, 3].swap(1, 5)
-}
-
-///|
-test "panic array_swap" {
-  [1, 2, 3].swap(1, 5)
-}
-
-///|
-test "panic array_op_get" {
-  [1, 2, 3][5] |> ignore
 }
 
 ///|
@@ -108,83 +93,27 @@ test "panic array_as_view_get_index_error" {
 }
 
 ///|
-test "panic array_as_view_set_index_error" {
-  [1, 2, 3][:][5] = 0
-}
-
-///|
-test "panic array_as_view_swap_index_error" {
-  [1, 2, 3][:].swap(1, 9)
-}
-
-///|
-test "panic op_div coverage for division by zero" {
+test "panic div coverage for division by zero" {
   let a = BigInt::from_int(123456789)
   let b = BigInt::from_int(0)
   (a / b) |> ignore
 }
 
 ///|
-test "panic op_mod coverage for modulo by zero" {
+test "panic mod coverage for modulo by zero" {
   let a = BigInt::from_int(123456789)
   let b = BigInt::from_int(0)
   (a % b) |> ignore
 }
 
 ///|
-test "panic op_shl coverage for negative shift" {
+test "panic shl coverage for negative shift" {
   let a = BigInt::from_int(123456789)
   (a << -1) |> ignore
 }
 
 ///|
-test "panic op_shr coverage for negative shift" {
-  let a = BigInt::from_int(123456789)
-  (a >> -1) |> ignore
-}
-
-///|
-test "panic from_string coverage for empty string" {
-  BigInt::from_string("") |> ignore
-}
-
-///|
-test "panic from_string coverage for invalid character" {
-  BigInt::from_string("123a56789") |> ignore
-}
-
-///|
-test "panic from_hex coverage for empty string" {
-  BigInt::from_hex("") |> ignore
-}
-
-///|
-test "panic from_hex coverage for invalid character" {
-  BigInt::from_hex("123g56789") |> ignore
-}
-
-///|
-test "panic op_div coverage for division by zero" {
-  let a = BigInt::from_int(123456789)
-  let b = BigInt::from_int(0)
-  (a / b) |> ignore
-}
-
-///|
-test "panic op_mod coverage for modulo by zero" {
-  let a = BigInt::from_int(123456789)
-  let b = BigInt::from_int(0)
-  (a % b) |> ignore
-}
-
-///|
-test "panic op_shl coverage for negative shift" {
-  let a = BigInt::from_int(123456789)
-  (a << -1) |> ignore
-}
-
-///|
-test "panic op_shr coverage for negative shift" {
+test "panic shr coverage for negative shift" {
   let a = BigInt::from_int(123456789)
   (a >> -1) |> ignore
 }
@@ -310,24 +239,4 @@ test "panic set_utf16be_char with invalid code point" {
 test "panic" {
   let _ : Int = Option::None.unwrap()
 
-}
-
-///|
-test "panic substring_start_index_error" {
-  "test".substring(start=-1, end=0) |> ignore
-}
-
-///|
-test "panic substring_end_index_error" {
-  "test".substring(start=0, end=-1) |> ignore
-}
-
-///|
-test "panic substring_start_end_index_error" {
-  "test".substring(start=1, end=0) |> ignore
-}
-
-///|
-test "panic substring_length_index_error" {
-  "test".substring(start=0, end=5) |> ignore
 }

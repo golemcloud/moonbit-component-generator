@@ -32,7 +32,7 @@ pub fn[X] singleton(idx : Int, value : X) -> SparseArray[X] {
 }
 
 ///|
-pub fn[X] op_get(self : SparseArray[X], idx : Int) -> X? {
+pub fn[X] SparseArray::get(self : SparseArray[X], idx : Int) -> X? {
   if self.elem_info.has(idx) {
     Some(self.data[self.elem_info.index_of(idx)])
   } else {
@@ -41,7 +41,7 @@ pub fn[X] op_get(self : SparseArray[X], idx : Int) -> X? {
 }
 
 ///|
-fn[X] unsafe_get(self : SparseArray[X], idx : Int) -> X {
+fn[X] SparseArray::unsafe_get(self : SparseArray[X], idx : Int) -> X {
   self.data[self.elem_info.index_of(idx)]
 }
 
@@ -50,7 +50,7 @@ pub fn[X] doubleton(
   idx1 : Int,
   value1 : X,
   idx2 : Int,
-  value2 : X
+  value2 : X,
 ) -> SparseArray[X] {
   {
     elem_info: empty_bitset.add(idx1).add(idx2),
@@ -65,7 +65,11 @@ pub fn[X] doubleton(
 ///|
 /// Add a new element into the sparse array.
 /// `idx` must be absent from `self`
-pub fn[X] add(self : SparseArray[X], idx : Int, value : X) -> SparseArray[X] {
+pub fn[X] SparseArray::add(
+  self : SparseArray[X],
+  idx : Int,
+  value : X,
+) -> SparseArray[X] {
   let old_data = self.data
   let old_len = old_data.length()
   let new_len = old_len + 1
@@ -84,7 +88,10 @@ pub fn[X] add(self : SparseArray[X], idx : Int, value : X) -> SparseArray[X] {
 ///|
 /// Removes an element at the specified index from the sparse array.
 /// `idx` must be in `self`
-pub fn[X] remove(self : SparseArray[X], idx : Int) -> SparseArray[X] {
+pub fn[X] SparseArray::remove(
+  self : SparseArray[X],
+  idx : Int,
+) -> SparseArray[X] {
   let old_data = self.data
   let old_len = old_data.length()
   let pos_of_removed_item = self.elem_info.index_of(idx)
@@ -109,16 +116,16 @@ pub fn[X] remove(self : SparseArray[X], idx : Int) -> SparseArray[X] {
 pub fn[X] SparseArray::union(
   self : SparseArray[X],
   other : SparseArray[X],
-  f : (X, X) -> X raise?
+  f : (X, X) -> X raise?,
 ) -> SparseArray[X] raise? {
   let union_elem_info = self.elem_info.union(other.elem_info)
-  let data = FixedArray::make(union_elem_info.size(), self.data[0])
+  let data = FixedArray::make(union_elem_info.length(), self.data[0])
   for rest = union_elem_info, index = 0; rest != empty_bitset; {
     let idx = rest.first_idx()
-    data[index] = match self[idx] {
+    data[index] = match self.get(idx) {
       None => other.unsafe_get(idx)
       Some(value1) =>
-        match other[idx] {
+        match other.get(idx) {
           None => value1
           Some(value2) => f(value1, value2)
         }
@@ -131,7 +138,7 @@ pub fn[X] SparseArray::union(
 ///|
 fn[A] FixedArray::copy_prefix(
   self : FixedArray[A],
-  len~ : Int
+  len~ : Int,
 ) -> FixedArray[A] {
   let res = FixedArray::make(len, self[0])
   FixedArray::unsafe_blit(res, 0, self, 0, len)
@@ -143,11 +150,11 @@ fn[A] FixedArray::copy_prefix(
 pub fn[X] SparseArray::intersection(
   self : SparseArray[X],
   other : SparseArray[X],
-  f : (X, X) -> X? raise?
+  f : (X, X) -> X? raise?,
 ) -> SparseArray[X]? raise? {
   let inter_elem_info = self.elem_info.intersection(other.elem_info)
   guard inter_elem_info != 0 else { return None }
-  let data = FixedArray::make(inter_elem_info.size(), self.data[0])
+  let data = FixedArray::make(inter_elem_info.length(), self.data[0])
   for rest = inter_elem_info, index = 0, elem_info = inter_elem_info; rest != 0; {
     let idx = rest.first_idx()
     match f(self.unsafe_get(idx), other.unsafe_get(idx)) {
@@ -173,15 +180,14 @@ pub fn[X] SparseArray::intersection(
 pub fn[X] SparseArray::difference(
   self : SparseArray[X],
   other : SparseArray[X],
-  f : (X, X) -> X?
+  f : (X, X) -> X?,
 ) -> SparseArray[X]? {
   let self_elem_info = self.elem_info
-  guard self_elem_info != empty_bitset else { return None }
-  let data = FixedArray::make(self_elem_info.size(), self.data[0])
+  let data = FixedArray::make(self_elem_info.length(), self.data[0])
   for rest = self_elem_info, index = 0, elem_info = self_elem_info; rest !=
      empty_bitset; {
     let idx = rest.first_idx()
-    match other[idx] {
+    match other.get(idx) {
       None => {
         data[index] = self.unsafe_get(idx)
         continue rest.remove(idx), index + 1, elem_info
@@ -207,11 +213,48 @@ pub fn[X] SparseArray::difference(
 }
 
 ///|
+pub fn[X, Y] SparseArray::map(
+  self : SparseArray[X],
+  f : (X) -> Y raise?,
+) -> SparseArray[Y] raise? {
+  { elem_info: self.elem_info, data: self.data.map(f) }
+}
+
+///|
+pub fn[X] SparseArray::filter(
+  self : SparseArray[X],
+  pred : (X) -> X? raise?,
+) -> SparseArray[X]? raise? {
+  let self_elem_info = self.elem_info
+  let data = FixedArray::make(self_elem_info.length(), self.data[0])
+  for rest = self_elem_info, index = 0, elem_info = self_elem_info; rest !=
+     empty_bitset; {
+    let idx = rest.first_idx()
+    match pred(self.unsafe_get(idx)) {
+      None => continue rest.remove(idx), index, elem_info.remove(idx)
+      Some(v) => {
+        data[index] = v
+        continue rest.remove(idx), index + 1, elem_info
+      }
+    }
+  } else {
+    if elem_info == empty_bitset {
+      None
+    } else if elem_info == self_elem_info {
+      Some({ elem_info, data })
+    } else {
+      Some({ elem_info, data: data.copy_prefix(len=index) })
+    }
+  }
+}
+
 // replace an existing element in the sparse array.
-pub fn[X] replace(
+
+///|
+pub fn[X] SparseArray::replace(
   self : SparseArray[X],
   idx : Int,
-  value : X
+  value : X,
 ) -> SparseArray[X] {
   let new_data = self.data.copy()
   new_data[self.elem_info.index_of(idx)] = value
@@ -220,14 +263,18 @@ pub fn[X] replace(
 
 ///|
 /// Return the size of a sparse array
-pub fn[X] size(self : SparseArray[X]) -> Int {
+#alias(size, deprecated)
+pub fn[X] SparseArray::length(self : SparseArray[X]) -> Int {
   self.data.length()
 }
 
 ///|
 /// Iterate through elements in a sparse array
-pub fn[X] each(self : SparseArray[X], f : (X) -> Unit raise?) -> Unit raise? {
-  for i in 0..<self.elem_info.size() {
+pub fn[X] SparseArray::each(
+  self : SparseArray[X],
+  f : (X) -> Unit raise?,
+) -> Unit raise? {
+  for i in 0..<self.elem_info.length() {
     f(self.data[i])
   }
 }

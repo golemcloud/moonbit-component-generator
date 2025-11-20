@@ -99,7 +99,7 @@ impl MoonBitComponent {
             .push_dir(component.wit_dir())
             .context("Resolving WIT packages")?;
         let world_id = resolve
-            .select_world(root_package_id, selected_world)
+            .select_world(&[root_package_id], selected_world)
             .context("Selecting the WIT world")?;
 
         info!("Generating MoonBit WIT bindings");
@@ -165,7 +165,7 @@ impl MoonBitComponent {
             .push_dir(component.wit_dir())
             .context("Resolving WIT package")?;
         let world_id = resolve
-            .select_world(root_package_id, selected_world)
+            .select_world(&[root_package_id], selected_world)
             .context("Selecting WIT world")?;
 
         component.resolve = Some(resolve);

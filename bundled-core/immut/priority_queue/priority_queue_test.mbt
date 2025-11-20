@@ -14,23 +14,23 @@
 
 ///|
 test "from_fixed_array" {
-  let queue = @priority_queue.of([1, 6, 3, 4, 5])
+  let queue = @priority_queue.from_array([1, 6, 3, 4, 5])
   inspect(queue.peek(), content="Some(6)")
 }
 
 ///|
 test "from_array" {
-  let queue = @priority_queue.of([1, 6, 3, 4, 5])
+  let queue = @priority_queue.from_array([1, 6, 3, 4, 5])
   inspect(queue.peek(), content="Some(6)")
 }
 
 ///|
 test "to_array" {
-  let v = @priority_queue.of([1, 2, 3, 4])
+  let v = @priority_queue.from_array([1, 2, 3, 4])
   inspect(v.to_array(), content="[4, 3, 2, 1]")
   inspect(v.push(0).to_array(), content="[4, 3, 2, 1, 0]")
   inspect(
-    (@priority_queue.new() : @priority_queue.T[Int]).to_array(),
+    (@priority_queue.new() : @priority_queue.PriorityQueue[Int]).to_array(),
     content="[]",
   )
 }
@@ -38,7 +38,7 @@ test "to_array" {
 ///|
 test "as_iter" {
   let buf = StringBuilder::new(size_hint=20)
-  let v = @priority_queue.of([1, 2, 3])
+  let v = @priority_queue.from_array([1, 2, 3])
   v.iter().each(e => buf.write_string("[\{e}]"))
   inspect(buf, content="[3][2][1]")
   buf.reset()
@@ -47,8 +47,19 @@ test "as_iter" {
 }
 
 ///|
+test "iterator" {
+  let buf = StringBuilder::new(size_hint=20)
+  let v = @priority_queue.from_array([1, 2, 3])
+  v.iterator().each(e => buf.write_string("[\{e}]"))
+  inspect(buf, content="[3][2][1]")
+  buf.reset()
+  v.iterator().take(2).each(e => buf.write_string("[\{e}]"))
+  inspect(buf, content="[3][2]")
+}
+
+///|
 test "pop" {
-  let queue = @priority_queue.of([1, 2, 3, 4])
+  let queue = @priority_queue.from_array([1, 2, 3, 4])
   let first = queue.pop()
   inspect(
     match first {
@@ -57,7 +68,7 @@ test "pop" {
     },
     content="Some(3)",
   )
-  let empty : @priority_queue.T[Int] = @priority_queue.of([])
+  let empty : @priority_queue.PriorityQueue[Int] = @priority_queue.from_array([])
   inspect(
     match empty.pop() {
       Some(q) => q.peek()
@@ -69,7 +80,7 @@ test "pop" {
 
 ///|
 test "pop_exn" {
-  let queue = @priority_queue.of([1, 2, 3, 4])
+  let queue = @priority_queue.from_array([1, 2, 3, 4])
   let first = queue.unsafe_pop()
   inspect(first.peek(), content="Some(3)")
   inspect(
@@ -88,7 +99,7 @@ test "pop_exn" {
 
 ///|
 test "push" {
-  let queue = @priority_queue.of([1, 2, 3])
+  let queue = @priority_queue.from_array([1, 2, 3])
   inspect(queue.push(4).peek(), content="Some(4)")
 }
 
@@ -108,7 +119,7 @@ test "is_empty" {
 
 ///|
 test "length" {
-  let pq = @priority_queue.of([1, 2])
+  let pq = @priority_queue.from_array([1, 2])
   inspect(pq.length(), content="2")
   inspect(pq.unsafe_pop().length(), content="1")
   inspect(pq.unsafe_pop().unsafe_pop().length(), content="0")
@@ -117,50 +128,76 @@ test "length" {
 ///|
 test "from_iter multiple elements iter" {
   inspect(
-    @priority_queue.T::from_iter([1, 2, 3].iter()),
-    content="@immut/priority_queue.of([3, 2, 1])",
+    @priority_queue.PriorityQueue::from_iter([1, 2, 3].iter()),
+    content="@immut/priority_queue.from_array([3, 2, 1])",
   )
 }
 
 ///|
 test "from_iter single element iter" {
   inspect(
-    @priority_queue.T::from_iter([1].iter()),
-    content="@immut/priority_queue.of([1])",
+    @priority_queue.PriorityQueue::from_iter([1].iter()),
+    content="@immut/priority_queue.from_array([1])",
   )
 }
 
 ///|
 test "from_iter empty iter" {
-  let pq : @priority_queue.T[Int] = @priority_queue.T::from_iter(Iter::empty())
-  inspect(pq, content="@immut/priority_queue.of([])")
+  let pq : @priority_queue.PriorityQueue[Int] = @priority_queue.PriorityQueue::from_iter(
+    Iter::empty(),
+  )
+  inspect(pq, content="@immut/priority_queue.from_array([])")
+}
+
+///|
+test "from_iterator multiple elements iter" {
+  inspect(
+    @priority_queue.PriorityQueue::from_iterator([1, 2, 3].iterator()),
+    content="@immut/priority_queue.from_array([3, 2, 1])",
+  )
+}
+
+///|
+test "from_iterator single element iter" {
+  inspect(
+    @priority_queue.PriorityQueue::from_iterator([1].iterator()),
+    content="@immut/priority_queue.from_array([1])",
+  )
+}
+
+///|
+test "from_iterator empty iter" {
+  let pq : @priority_queue.PriorityQueue[Int] = @priority_queue.PriorityQueue::from_iterator(
+    Iterator::empty(),
+  )
+  inspect(pq, content="@immut/priority_queue.from_array([])")
 }
 
 ///|
 test "hash" {
-  let pq1 = @priority_queue.of([1, 2, 3, 4, 5])
-  let pq2 = @priority_queue.of([1, 2, 3, 4, 5])
+  let pq1 = @priority_queue.from_array([1, 2, 3, 4, 5])
+  let pq2 = @priority_queue.from_array([1, 2, 3, 4, 5])
   inspect(pq1.hash() == pq2.hash(), content="true")
-  let pq3 = @priority_queue.of([5, 4, 3, 2, 1])
+  let pq3 = @priority_queue.from_array([5, 4, 3, 2, 1])
   inspect(pq1.hash() == pq3.hash(), content="true")
-  let pq4 : @priority_queue.T[Int] = @priority_queue.new()
+  let pq4 : @priority_queue.PriorityQueue[Int] = @priority_queue.new()
   inspect(pq1.hash() == pq4.hash(), content="false")
   inspect(pq4.hash() == pq4.hash(), content="true")
-  let pq5 = @priority_queue.of([1, 2, 3, 4, 6])
+  let pq5 = @priority_queue.from_array([1, 2, 3, 4, 6])
   inspect(pq1.hash() == pq5.hash(), content="false")
 }
 
 ///|
 test "equal" {
-  let pq1 = @priority_queue.of([1, 2, 3, 4, 5])
+  let pq1 = @priority_queue.from_array([1, 2, 3, 4, 5])
   inspect(pq1 == pq1, content="true")
-  let pq2 = @priority_queue.of([1, 2, 3, 4, 5])
+  let pq2 = @priority_queue.from_array([1, 2, 3, 4, 5])
   inspect(pq1 == pq2, content="true")
-  let pq3 = @priority_queue.of([5, 4, 3, 2, 1])
+  let pq3 = @priority_queue.from_array([5, 4, 3, 2, 1])
   inspect(pq1 == pq3, content="true")
-  let pq4 : @priority_queue.T[Int] = @priority_queue.new()
+  let pq4 : @priority_queue.PriorityQueue[Int] = @priority_queue.new()
   inspect(pq1 == pq4, content="false")
-  let pq5 = @priority_queue.of([1, 2, 3])
+  let pq5 = @priority_queue.from_array([1, 2, 3])
   inspect(pq1 == pq5, content="false")
 }
 
@@ -173,35 +210,35 @@ test "complex" {
 
   let arr = (0).until(1000, inclusive=true).collect()
   arr.shuffle_in_place(rand~)
-  let mut pq = new()
+  let mut pq = @priority_queue.new()
   for i in 0..=1000 {
     pq = pq.push(arr[i])
   }
-  assert_eq(pq.length(), 1001)
+  inspect(pq.length(), content="1001")
   for i in 0..=1000 {
     assert_eq(pq.peek(), Some(1000 - i))
     pq = pq.pop().unwrap()
   }
   inspect(pq.iter(), content="[]")
-  assert_eq(pq.length(), 0)
+  inspect(pq.length(), content="0")
 }
 
 ///|
 test "compare" {
-  let pq1 = @priority_queue.of([1, 2, 3])
-  let pq2 = @priority_queue.of([1, 2, 4])
-  let pq3 = @priority_queue.of([1, 2])
-  let empty : @priority_queue.T[Int] = @priority_queue.new()
-  assert_eq(pq1.compare(pq2), -1)
-  assert_eq(pq1.compare(pq3), 1)
-  assert_eq(pq3.compare(pq1), -1)
-  assert_eq(pq1.compare(pq1), 0)
-  assert_eq(empty.compare(empty), 0)
+  let pq1 = @priority_queue.from_array([1, 2, 3])
+  let pq2 = @priority_queue.from_array([1, 2, 4])
+  let pq3 = @priority_queue.from_array([1, 2])
+  let empty : @priority_queue.PriorityQueue[Int] = @priority_queue.new()
+  inspect(pq1.compare(pq2), content="-1")
+  inspect(pq1.compare(pq3), content="1")
+  inspect(pq3.compare(pq1), content="-1")
+  inspect(pq1.compare(pq1), content="0")
+  inspect(empty.compare(empty), content="0")
 }
 
 ///|
 test "to_json" {
-  let pq = @priority_queue.of([1, 2, 3])
+  let pq = @priority_queue.from_array([1, 2, 3])
   @json.inspect(pq.peek().unwrap(), content=3)
   let json = pq.to_json()
   @json.inspect(json, content=[3, 2, 1])

@@ -13,25 +13,25 @@
 // limitations under the License.
 
 ///|
-pub impl[T0 : Eq, T1 : Eq] Eq for (T0, T1) with op_equal(
+pub impl[T0 : Eq, T1 : Eq] Eq for (T0, T1) with equal(
   self : (T0, T1),
-  other : (T0, T1)
+  other : (T0, T1),
 ) -> Bool {
   self.0 == other.0 && self.1 == other.1
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq] Eq for (T0, T1, T2) with op_equal(
+pub impl[T0 : Eq, T1 : Eq, T2 : Eq] Eq for (T0, T1, T2) with equal(
   self : (T0, T1, T2),
-  other : (T0, T1, T2)
+  other : (T0, T1, T2),
 ) -> Bool {
   self.0 == other.0 && self.1 == other.1 && self.2 == other.2
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq] Eq for (T0, T1, T2, T3) with op_equal(
+pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq] Eq for (T0, T1, T2, T3) with equal(
   self : (T0, T1, T2, T3),
-  other : (T0, T1, T2, T3)
+  other : (T0, T1, T2, T3),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -46,7 +46,7 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq] Eq for (
   T2,
   T3,
   T4,
-) with op_equal(self : (T0, T1, T2, T3, T4), other : (T0, T1, T2, T3, T4)) -> Bool {
+) with equal(self : (T0, T1, T2, T3, T4), other : (T0, T1, T2, T3, T4)) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
   self.2 == other.2 &&
@@ -62,10 +62,7 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq] Eq for (
   T3,
   T4,
   T5,
-) with op_equal(
-  self : (T0, T1, T2, T3, T4, T5),
-  other : (T0, T1, T2, T3, T4, T5)
-) -> Bool {
+) with equal(self : (T0, T1, T2, T3, T4, T5), other : (T0, T1, T2, T3, T4, T5)) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
   self.2 == other.2 &&
@@ -83,9 +80,9 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq] Eq for (
   T4,
   T5,
   T6,
-) with op_equal(
+) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6),
-  other : (T0, T1, T2, T3, T4, T5, T6)
+  other : (T0, T1, T2, T3, T4, T5, T6),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -106,9 +103,9 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq]
   T5,
   T6,
   T7,
-) with op_equal(
+) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6, T7),
-  other : (T0, T1, T2, T3, T4, T5, T6, T7)
+  other : (T0, T1, T2, T3, T4, T5, T6, T7),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -121,19 +118,19 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq]
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq, T8 : Eq] Eq for (
-  T0,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-) with op_equal(
+pub impl[
+  T0 : Eq,
+  T1 : Eq,
+  T2 : Eq,
+  T3 : Eq,
+  T4 : Eq,
+  T5 : Eq,
+  T6 : Eq,
+  T7 : Eq,
+  T8 : Eq,
+] Eq for (T0, T1, T2, T3, T4, T5, T6, T7, T8) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6, T7, T8),
-  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8)
+  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -147,20 +144,20 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq,
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq, T8 : Eq, T9 : Eq] Eq for (
-  T0,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  T9,
-) with op_equal(
+pub impl[
+  T0 : Eq,
+  T1 : Eq,
+  T2 : Eq,
+  T3 : Eq,
+  T4 : Eq,
+  T5 : Eq,
+  T6 : Eq,
+  T7 : Eq,
+  T8 : Eq,
+  T9 : Eq,
+] Eq for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9),
-  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)
+  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -175,21 +172,21 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq,
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq, T8 : Eq, T9 : Eq, T10 : Eq] Eq for (
-  T0,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  T9,
-  T10,
-) with op_equal(
+pub impl[
+  T0 : Eq,
+  T1 : Eq,
+  T2 : Eq,
+  T3 : Eq,
+  T4 : Eq,
+  T5 : Eq,
+  T6 : Eq,
+  T7 : Eq,
+  T8 : Eq,
+  T9 : Eq,
+  T10 : Eq,
+] Eq for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10),
-  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)
+  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -205,22 +202,22 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq,
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq, T8 : Eq, T9 : Eq, T10 : Eq, T11 : Eq] Eq for (
-  T0,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  T9,
-  T10,
-  T11,
-) with op_equal(
+pub impl[
+  T0 : Eq,
+  T1 : Eq,
+  T2 : Eq,
+  T3 : Eq,
+  T4 : Eq,
+  T5 : Eq,
+  T6 : Eq,
+  T7 : Eq,
+  T8 : Eq,
+  T9 : Eq,
+  T10 : Eq,
+  T11 : Eq,
+] Eq for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11),
-  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)
+  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -237,23 +234,23 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq,
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq, T8 : Eq, T9 : Eq, T10 : Eq, T11 : Eq, T12 : Eq] Eq for (
-  T0,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  T9,
-  T10,
-  T11,
-  T12,
-) with op_equal(
+pub impl[
+  T0 : Eq,
+  T1 : Eq,
+  T2 : Eq,
+  T3 : Eq,
+  T4 : Eq,
+  T5 : Eq,
+  T6 : Eq,
+  T7 : Eq,
+  T8 : Eq,
+  T9 : Eq,
+  T10 : Eq,
+  T11 : Eq,
+  T12 : Eq,
+] Eq for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12),
-  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)
+  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -271,24 +268,24 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq,
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq, T8 : Eq, T9 : Eq, T10 : Eq, T11 : Eq, T12 : Eq, T13 : Eq] Eq for (
-  T0,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  T9,
-  T10,
-  T11,
-  T12,
-  T13,
-) with op_equal(
+pub impl[
+  T0 : Eq,
+  T1 : Eq,
+  T2 : Eq,
+  T3 : Eq,
+  T4 : Eq,
+  T5 : Eq,
+  T6 : Eq,
+  T7 : Eq,
+  T8 : Eq,
+  T9 : Eq,
+  T10 : Eq,
+  T11 : Eq,
+  T12 : Eq,
+  T13 : Eq,
+] Eq for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13),
-  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)
+  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -307,25 +304,25 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq,
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq, T8 : Eq, T9 : Eq, T10 : Eq, T11 : Eq, T12 : Eq, T13 : Eq, T14 : Eq] Eq for (
-  T0,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  T9,
-  T10,
-  T11,
-  T12,
-  T13,
-  T14,
-) with op_equal(
+pub impl[
+  T0 : Eq,
+  T1 : Eq,
+  T2 : Eq,
+  T3 : Eq,
+  T4 : Eq,
+  T5 : Eq,
+  T6 : Eq,
+  T7 : Eq,
+  T8 : Eq,
+  T9 : Eq,
+  T10 : Eq,
+  T11 : Eq,
+  T12 : Eq,
+  T13 : Eq,
+  T14 : Eq,
+] Eq for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14),
-  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)
+  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&
@@ -345,26 +342,26 @@ pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq,
 }
 
 ///|
-pub impl[T0 : Eq, T1 : Eq, T2 : Eq, T3 : Eq, T4 : Eq, T5 : Eq, T6 : Eq, T7 : Eq, T8 : Eq, T9 : Eq, T10 : Eq, T11 : Eq, T12 : Eq, T13 : Eq, T14 : Eq, T15 : Eq] Eq for (
-  T0,
-  T1,
-  T2,
-  T3,
-  T4,
-  T5,
-  T6,
-  T7,
-  T8,
-  T9,
-  T10,
-  T11,
-  T12,
-  T13,
-  T14,
-  T15,
-) with op_equal(
+pub impl[
+  T0 : Eq,
+  T1 : Eq,
+  T2 : Eq,
+  T3 : Eq,
+  T4 : Eq,
+  T5 : Eq,
+  T6 : Eq,
+  T7 : Eq,
+  T8 : Eq,
+  T9 : Eq,
+  T10 : Eq,
+  T11 : Eq,
+  T12 : Eq,
+  T13 : Eq,
+  T14 : Eq,
+  T15 : Eq,
+] Eq for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) with equal(
   self : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15),
-  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)
+  other : (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15),
 ) -> Bool {
   self.0 == other.0 &&
   self.1 == other.1 &&

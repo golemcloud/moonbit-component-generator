@@ -23,11 +23,11 @@ test "panic unsafe_pop_back" {
 }
 
 ///|
-test "panic op_get" {
-  @deque.of([1, 2, 3])[-1] |> ignore
+test "panic get" {
+  @deque.from_array([1, 2, 3])[-1] |> ignore
 }
 
 ///|
-test "panic op_set" {
-  @deque.of([1, 2, 3])[-1] = 1
+test "panic Deque::set" {
+  @deque.from_array([1, 2, 3])[-1] = 1
 }

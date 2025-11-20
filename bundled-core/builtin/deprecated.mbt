@@ -24,13 +24,13 @@
 /// # Returns
 ///
 /// Returns an iterator that iterates over the range of Int from `start` to `end - 1`.
-#deprecated("Use `..<` in for loop or `until` method instead")
+#deprecated("Use `..<` in for loop or `until` method instead", skip_current_package=false)
 #coverage.skip
-pub fn Int::upto(self : Int, end : Int, inclusive~ : Bool = false) -> Iter[Int] {
+pub fn Int::upto(self : Int, end : Int, inclusive? : Bool = false) -> Iter[Int] {
   yield_ => {
     let mut i = self
     while i < end || (inclusive && i == end) {
-      if yield_(i) == IterEnd {
+      if yield_(i) is IterEnd {
         break IterEnd
       }
       if i == end {
@@ -55,17 +55,17 @@ pub fn Int::upto(self : Int, end : Int, inclusive~ : Bool = false) -> Iter[Int] 
 /// # Returns
 ///
 /// Returns an iterator that iterates over the range of UInt from `start` to `end - 1`.
-#deprecated("Use `..<` in for loop or `until` method instead")
+#deprecated("Use `..<` in for loop or `until` method instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt::upto(
   self : UInt,
   end : UInt,
-  inclusive~ : Bool = false
+  inclusive? : Bool = false,
 ) -> Iter[UInt] {
   yield_ => {
     let mut i = self
     while i < end || (inclusive && i == end) {
-      if yield_(i) == IterEnd {
+      if yield_(i) is IterEnd {
         break IterEnd
       }
       if i == end {
@@ -90,17 +90,17 @@ pub fn UInt::upto(
 /// # Returns
 ///
 /// Returns an iterator that iterates over the range of UInt64 from `start` to `end - 1`.
-#deprecated("Use `..<` in for loop or `until` method instead")
+#deprecated("Use `..<` in for loop or `until` method instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::upto(
   self : UInt64,
   end : UInt64,
-  inclusive~ : Bool = false
+  inclusive? : Bool = false,
 ) -> Iter[UInt64] {
   yield_ => {
     let mut i = self
     while i < end || (inclusive && i == end) {
-      if yield_(i) == IterEnd {
+      if yield_(i) is IterEnd {
         break IterEnd
       }
       if i == end {
@@ -125,52 +125,17 @@ pub fn UInt64::upto(
 /// # Returns
 ///
 /// Returns an iterator that iterates over the range of Int64 from `start` to `end - 1`.
-#deprecated("Use `..<` in for loop or `until` method instead")
+#deprecated("Use `..<` in for loop or `until` method instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::upto(
   self : Int64,
   end : Int64,
-  inclusive~ : Bool = false
+  inclusive? : Bool = false,
 ) -> Iter[Int64] {
   yield_ => {
     let mut i = self
     while i < end || (inclusive && i == end) {
-      if yield_(i) == IterEnd {
-        break IterEnd
-      }
-      if i == end {
-        break IterContinue
-      }
-      i += 1
-    } else {
-      IterContinue
-    }
-  }
-}
-
-///|
-/// Creates an iterator that iterates over a range of Float with default step 1.0 .
-///
-/// # Arguments
-///
-/// * `start` - The starting value of the range (inclusive).
-/// * `end` - The ending value of the range (exclusive).
-/// * `inclusive` - Whether the ending value is inclusive (default false).
-///
-/// # Returns
-///
-/// Returns an iterator that iterates over the range of Float from `start` to `end - 1`.
-#deprecated("Use `..<` in for loop or `until` method instead")
-#coverage.skip
-pub fn Float::upto(
-  self : Float,
-  end : Float,
-  inclusive~ : Bool = false
-) -> Iter[Float] {
-  yield_ => {
-    let mut i = self
-    while i < end || (inclusive && i == end) {
-      if yield_(i) == IterEnd {
+      if yield_(i) is IterEnd {
         break IterEnd
       }
       if i == end {
@@ -195,17 +160,17 @@ pub fn Float::upto(
 /// # Returns
 ///
 /// Returns an iterator that iterates over the range of Double from `start` to `end - 1`.
-#deprecated("Use `..<` in for loop or `until` method instead")
+#deprecated("Use `..<` in for loop or `until` method instead", skip_current_package=false)
 #coverage.skip
 pub fn Double::upto(
   self : Double,
   end : Double,
-  inclusive~ : Bool = false
+  inclusive? : Bool = false,
 ) -> Iter[Double] {
   yield_ => {
     let mut i = self
     while i < end || (inclusive && i == end) {
-      if yield_(i) == IterEnd {
+      if yield_(i) is IterEnd {
         break IterEnd
       }
       if i == end {
@@ -219,137 +184,8 @@ pub fn Double::upto(
 }
 
 ///|
-/// Searches the array for the first element that satisfies the predicate
-/// function.
-///
-/// Parameters:
-///
-/// * `array` : The array to search in.
-/// * `predicate` : A function that takes an element and returns a boolean
-/// indicating whether the element satisfies the search condition.
-///
-/// Returns the index of the first element that satisfies the predicate, or
-/// `None` if no such element is found.
-///
-/// Example:
-///
-/// ```moonbit
-///   let arr = [1, 2, 3, 4, 5]
-///   inspect(arr.search_by((x) => { x > 3 }), content="Some(3)")
-///   inspect(arr.search_by((x) => { x > 10 }), content="None")
-/// ```
-///
-#deprecated("Use `search_by` instead.")
+#deprecated("check `@encoding/utf8.encode`", skip_current_package=false)
 #coverage.skip
-pub fn[T] Array::find_index(self : Array[T], f : (T) -> Bool) -> Int? {
-  self.search_by(f)
-}
-
-///|
-/// Search the index of the first element that satisfies the predicate.
-///
-
-///|
-/// Fold out values from an array according to certain rules.
-///
-/// Example:
-///
-/// ```moonbit
-///   let sum = [1, 2, 3, 4, 5].fold(init=0, (sum, elem) => sum + elem)
-///   assert_eq(sum, 15)
-/// ```
-#deprecated("Use `fold` instead.")
-#coverage.skip
-pub fn[T, U] Array::fold_left(
-  self : Array[T],
-  f : (U, T) -> U raise?,
-  init~ : U
-) -> U raise? {
-  self.fold(init~, f)
-}
-
-///|
-/// Fold out values from an array according to certain rules in reversed turn.
-///
-/// Example:
-///
-/// ```moonbit
-///   let sum = [1, 2, 3, 4, 5].rev_fold(init=0, (sum, elem) => sum + elem)
-///   assert_eq(sum, 15)
-/// ```
-#deprecated("Use `rev_fold` instead.")
-#coverage.skip
-pub fn[T, U] Array::fold_right(
-  self : Array[T],
-  f : (U, T) -> U raise?,
-  init~ : U
-) -> U raise? {
-  self.rev_fold(init~, f)
-}
-
-///|
-/// Fold out values from an array according to certain rules with index.
-///
-/// Example:
-///
-/// ```moonbit
-///   let sum = [1, 2, 3, 4, 5].foldi(init=0, (index, sum, _elem) => sum + index)
-///   assert_eq(sum, 10)
-/// ```
-#deprecated("Use `foldi` instead.")
-#coverage.skip
-pub fn[T, U] Array::fold_lefti(
-  self : Array[T],
-  f : (Int, U, T) -> U raise?,
-  init~ : U
-) -> U raise? {
-  self.foldi(init~, f)
-}
-
-///|
-/// Fold out values from an array according to certain rules in reversed turn with index.
-///
-/// Example:
-///
-/// ```moonbit
-///   let sum = [1, 2, 3, 4, 5].rev_foldi(init=0, (index, sum, _elem) => sum + index)
-///   assert_eq(sum, 10)
-/// ```
-#deprecated("Use `rev_foldi` instead.")
-#coverage.skip
-pub fn[T, U] Array::fold_righti(
-  self : Array[T],
-  f : (Int, U, T) -> U raise?,
-  init~ : U
-) -> U raise? {
-  self.rev_foldi(init~, f)
-}
-
-///|
-#deprecated("Use `unsafe_pop` instead")
-#coverage.skip
-pub fn[T] Array::pop_exn(self : Array[T]) -> T {
-  self.unsafe_pop()
-}
-
-///|
-/// Creates a byte sequence from a UTF-16 encoded string. Each character in the
-/// string is encoded as a pair of bytes in little-endian order.
-///
-/// Parameters:
-///
-/// * `string` : The input string to be converted to a byte sequence.
-///
-/// Returns a new byte sequence containing the UTF-16LE encoded representation of
-/// the input string.
-///
-/// Example:
-///
-/// ```moonbit
-///   let bytes = "ABC".to_bytes()
-///   inspect(bytes, content="b\"\\x41\\x00\\x42\\x00\\x43\\x00\"")
-/// ```
-#deprecated("Use `str.to_bytes()` instead")
 pub fn Bytes::of_string(str : String) -> Bytes {
   FixedArray::make(str.length() * 2, Byte::default())
   ..blit_from_string(0, str, 0, str.length())
@@ -357,7 +193,7 @@ pub fn Bytes::of_string(str : String) -> Bytes {
 }
 
 ///|
-#deprecated("Bytes are immutable. Use `FixedArray::blit_from_bytes` if it's really necessary.")
+#deprecated("Bytes are immutable. Use `FixedArray::blit_from_bytes` if it's really necessary.", skip_current_package=false)
 pub fn Bytes::copy(self : Bytes) -> Bytes {
   Bytes::makei(self.length(), i => self[i])
 }
@@ -373,7 +209,7 @@ pub fn Bytes::copy(self : Bytes) -> Bytes {
 ///
 /// Returns the resulting `Byte` value after the bitwise left shift operation.
 ///
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn Byte::lsl(self : Byte, count : Int) -> Byte {
   (self.to_int() << count).to_byte()
@@ -389,7 +225,7 @@ pub fn Byte::lsl(self : Byte, count : Int) -> Byte {
 ///
 /// Returns the result of the logical shift right operation as a `Byte`.
 ///
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Byte::lsr(self : Byte, count : Int) -> Byte {
   (self.to_uint() >> count).reinterpret_as_int().to_byte()
@@ -397,14 +233,27 @@ pub fn Byte::lsr(self : Byte, count : Int) -> Byte {
 
 ///|
 /// Prints and returns the value of a given expression for quick and dirty debugging.
-#deprecated("This function is for debugging only and should not be used in production")
-pub fn[T] dump(t : T, name? : String, loc~ : SourceLoc = _) -> T {
+/// This could also be useful to print some logs to trace the progress.
+/// For example, you can put `dump(())` in each line, the execution will print the line number
+/// when it reaches that line.
+#callsite(autofill(loc))
+#deprecated("This function is for debugging only and should not be used in production", skip_current_package=true)
+pub fn[T] dump(t : T, name? : String, loc~ : SourceLoc) -> T {
   let name = match name {
     Some(name) => name
     None => ""
   }
   println("dump(\{name}@\{loc}) = \{any_to_string(t)}")
   t
+}
+
+///|
+test "dump" {
+  let x = 42
+  if false {
+    dump(()) // never reached here
+    assert_eq(dump(x) + x, 84)
+  }
 }
 
 ///|
@@ -416,9 +265,9 @@ pub fn[T] dump(t : T, name? : String, loc~ : SourceLoc = _) -> T {
 /// # Examples
 ///
 /// ```mbt
-///   let s = "Hello🤣";
-///   inspect(s.iter().nth(0).unwrap(), content="H");
-///   inspect(s.iter().nth(5).unwrap(), content="🤣"); // Returns full emoji character
+/// let s = "Hello🤣"
+/// inspect(s.get_char(0).unwrap(), content="H")
+/// inspect(s.get_char(5).unwrap(), content="🤣")
 /// ```
 ///
 /// # Panics
@@ -426,7 +275,7 @@ pub fn[T] dump(t : T, name? : String, loc~ : SourceLoc = _) -> T {
 /// Panics if:
 /// - The index is out of bounds
 /// - The string contains an invalid surrogate pair
-#deprecated("The index will be changed to utf16 index. If you want to access n-th character, use `str.iter().nth(n).unwrap()` instead.")
+#deprecated("The index will be changed to utf16 index. If you want to access n-th character, use `str.iter().nth(n).unwrap()` instead.", skip_current_package=false)
 pub fn String::codepoint_at(self : String, index : Int) -> Char {
   let charcode_len = self.length()
   guard index >= 0 && index < charcode_len else { abort("index out of bounds") }
@@ -434,9 +283,9 @@ pub fn String::codepoint_at(self : String, index : Int) -> Char {
       char_count < charcode_len && utf16_offset < index
       char_count = char_count + 1, utf16_offset = utf16_offset + 1 {
     let c1 = self.unsafe_charcode_at(char_count)
-    if is_leading_surrogate(c1) && char_count + 1 < charcode_len {
+    if c1.is_leading_surrogate() && char_count + 1 < charcode_len {
       let c2 = self.unsafe_charcode_at(char_count + 1)
-      if is_trailing_surrogate(c2) {
+      if c2.is_trailing_surrogate() {
         continue char_count + 2, utf16_offset + 1
       } else {
         abort("invalid surrogate pair")
@@ -447,9 +296,9 @@ pub fn String::codepoint_at(self : String, index : Int) -> Char {
       abort("index out of bounds")
     }
     let c1 = self.unsafe_charcode_at(char_count)
-    if is_leading_surrogate(c1) && char_count + 1 < charcode_len {
+    if c1.is_leading_surrogate() && char_count + 1 < charcode_len {
       let c2 = self.unsafe_charcode_at(char_count + 1)
-      if is_trailing_surrogate(c2) {
+      if c2.is_trailing_surrogate() {
         code_point_of_surrogate_pair(c1, c2)
       } else {
         abort("invalid surrogate pair")
@@ -461,11 +310,14 @@ pub fn String::codepoint_at(self : String, index : Int) -> Char {
 }
 
 ///|
-#deprecated("Use `char_length` instead.")
-pub fn String::codepoint_length(
-  self : String,
-  start_offset~ : Int = 0,
-  end_offset? : Int
-) -> Int {
-  self.char_length(start_offset~, end_offset?)
+/// Returns the Unicode code point at the given index without bounds checking.
+#deprecated("Use `s.get_char(i).unwrap()` instead", skip_current_package=true)
+pub fn String::unsafe_char_at(self : String, index : Int) -> Char {
+  let c1 = self.unsafe_charcode_at(index)
+  if c1.is_leading_surrogate() {
+    let c2 = self.unsafe_charcode_at(index + 1)
+    code_point_of_surrogate_pair(c1, c2)
+  } else {
+    c1.unsafe_to_char()
+  }
 }

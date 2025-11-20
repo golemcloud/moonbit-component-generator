@@ -25,12 +25,7 @@ test "show error" {
     }
   }
 
-  inspect(
-    try? f(true),
-    content=
-      #|Ok("ok")
-    ,
-  )
+  inspect(try! f(true), content="ok")
   inspect(
     try? f(false),
     content="Err(moonbitlang/core/error_blackbox_test.IntError.IntError)",
@@ -38,7 +33,7 @@ test "show error" {
 }
 
 ///|
-/// This could be mimiced using defer in swift
+/// This could be mimicked using defer in swift
 /// ```swift
 /// func protect<A, E: Error>(finally: () -> Void, work: () throws -> A) rethrows -> A {
 ///   do {
@@ -54,7 +49,7 @@ test "show error" {
 /// here `protect` raise the `work` error
 fn[A, E : Error] protect(
   finalize~ : () -> Unit raise?,
-  work : () -> A raise E
+  work : () -> A raise E,
 ) -> A raise E {
   try work() catch {
     e => {
@@ -63,7 +58,7 @@ fn[A, E : Error] protect(
       }
       raise e
     }
-  } else {
+  } noraise {
     x => {
       finalize() catch {
         _ => ()
@@ -85,7 +80,7 @@ fn[A] protect2(finalize~ : () -> Unit raise?, work : () -> A raise) -> A raise {
       finalize()
       raise e
     }
-  } else {
+  } noraise {
     x => {
       finalize()
       x
@@ -96,60 +91,60 @@ fn[A] protect2(finalize~ : () -> Unit raise?, work : () -> A raise) -> A raise {
 ///|
 test "protect" {
   let x = try? protect(finalize=() => (), () => if true {
-      raise Failure("error")
-    } else {
-      1
-    })
+    raise Failure("error")
+  } else {
+    1
+  })
   inspect(
     x,
-    content=
+    content=(
       #|Err(Failure("error"))
-    ,
+    ),
   )
 }
 
 ///|
 test "protect & finally raise error" {
   let x = try? protect(finalize=() => raise Failure("finally error"), () => if true {
-      raise Failure("error")
-    } else {
-      1
-    })
+    raise Failure("error")
+  } else {
+    1
+  })
   inspect(
     x,
-    content=
+    content=(
       #|Err(Failure("error"))
-    ,
+    ),
   )
 }
 
 ///|
 test "protect2" {
   let x = try? protect2(finalize=() => (), () => if true {
-      raise Failure("error")
-    } else {
-      1
-    })
+    raise Failure("error")
+  } else {
+    1
+  })
   inspect(
     x,
-    content=
+    content=(
       #|Err(Failure("error"))
-    ,
+    ),
   )
 }
 
 ///|
 test "protect2 & finally raise error" {
   let x = try? protect2(finalize=() => raise Failure("finally error"), () => if true {
-      raise Failure("error")
-    } else {
-      1
-    })
+    raise Failure("error")
+  } else {
+    1
+  })
   inspect(
     x,
-    content=
+    content=(
       #|Err(Failure("finally error"))
-    ,
+    ),
   )
 }
 
@@ -174,14 +169,14 @@ test "error to json" {
 
   inspect(
     j(ErrWithToJson(42)),
-    content=
-      #|Object({"$tag": String("ErrWithToJson"), "0": Number(42)})
-    ,
+    content=(
+      #|Array([String("ErrWithToJson"), Number(42)])
+    ),
   )
   inspect(
     j(ErrWithoutToJson(42)),
-    content=
+    content=(
       #|String("moonbitlang/core/error_blackbox_test.ErrWithoutToJson.ErrWithoutToJson")
-    ,
+    ),
   )
 }

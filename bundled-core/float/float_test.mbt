@@ -22,7 +22,7 @@ test "show" {
 test {
   assert_eq(Float::abs(1.0), 1.0)
   assert_eq(Float::abs(-1.0), 1.0)
-  let f : Float = @float.default()
+  let f : Float = Float::default()
   inspect(f.to_string(), content="0")
 }
 
@@ -71,9 +71,12 @@ test "Hash" {
     a : Float
   } derive(Hash)
   let a = A::{ a: 1.0 }
-  inspect(a.hash(), content="1986884538")
-  inspect(a.a.hash(), content="749479517")
-  inspect((2.0 : Float).hash(), content="-1861484393")
+  inspect(Hasher::new(seed=0)..combine(a).finalize(), content="1986884538")
+  inspect(Hasher::new(seed=0)..combine(a.a).finalize(), content="1986884538")
+  inspect(
+    Hasher::new(seed=0)..combine((2.0 : Float)).finalize(),
+    content="250978825",
+  )
 }
 
 ///|
@@ -146,14 +149,19 @@ test "Float::to_be_bytes with various values" {
 test "to_le_bytes for zero" {
   inspect(
     (0.0 : Float).to_le_bytes(),
-    content=
+    content=(
       #|b"\x00\x00\x00\x00"
-    ,
+    ),
   )
   inspect(
     (-0.0 : Float).to_le_bytes(),
-    content=
+    content=(
       #|b"\x00\x00\x00\x80"
-    ,
+    ),
   )
+}
+
+///|
+test "Float::is_close - infinity should return false" {
+  inspect(@float.infinity.is_close(1.0), content="false")
 }

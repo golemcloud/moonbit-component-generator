@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///| test Int::land
+///|
+/// test Int::land
 test "Int::land should perform bitwise AND operation" {
   let a = 0b101
   let b = 0b011
@@ -22,7 +23,8 @@ test "Int::land should perform bitwise AND operation" {
   inspect((0xffff_ffff & 0xffff_ffff) == 0xffff_ffff, content="true")
 }
 
-///| test Int::lor
+///|
+/// test Int::lor
 test "Int::lor should perform bitwise OR operation" {
   inspect((0b101 | 0b011) == 0b111, content="true")
   inspect((0xffff_ffff | 0xa000_0000) == 0xffff_ffff, content="true")
@@ -30,7 +32,8 @@ test "Int::lor should perform bitwise OR operation" {
   inspect((0xffff_ffff | 0xffff_ffff) == 0xffff_ffff, content="true")
 }
 
-///| test Int::lxor
+///|
+/// test Int::lxor
 test "Int::lxor should perform bitwise XOR operation" {
   inspect((0b101 ^ 0b011) == 0b110, content="true")
   inspect((0xffff_ffff ^ 0xa000_0000) == 0x5fff_ffff, content="true")
@@ -38,8 +41,9 @@ test "Int::lxor should perform bitwise XOR operation" {
   inspect((0xffff_ffff ^ 0xffff_ffff) == 0, content="true")
 }
 
-///| test Int::op_shl
-test "Int::op_shl should perform left shift operation" {
+///|
+/// test Int::shl
+test "Int::shl should perform left shift operation" {
   inspect(7 << 1, content="14")
   inspect(0b101 << 1 == 0b1010, content="true")
   inspect(0xffff_ffff << 1 == 0xffff_fffe, content="true")
@@ -256,7 +260,7 @@ test "Int::clz" {
 }
 
 ///|
-test "grouped test for boundary cases" {
+test "grouped test for boundary cases: clz" {
   inspect(UInt::clz(0x00000000U), content="32")
   inspect(UInt::clz(0x80000000U), content="0")
   inspect(UInt::clz(0x40000000U), content="1")
@@ -272,6 +276,15 @@ test "grouped test for random cases" {
   inspect(UInt::clz(0x0FEDCBA9U), content="4")
   inspect(UInt::clz(0x0000FFFFU), content="16")
   inspect(UInt::clz(0xFFFF0000U), content="0")
+  // Random float values
+  inspect(Float::reinterpret_as_uint(123.456), content="1123477881")
+  inspect(Float::reinterpret_as_uint(-123.456), content="3270961529")
+  inspect(Float::reinterpret_as_uint(0.000123), content="956365200")
+  inspect(Float::reinterpret_as_uint(-0.000123), content="3103848848")
+  inspect(Float::reinterpret_as_uint(987654321.0), content="1315666339")
+  inspect(Float::reinterpret_as_uint(-987654321.0), content="3463149987")
+  inspect(Float::reinterpret_as_uint(1.0e+30), content="1900671690")
+  inspect(Float::reinterpret_as_uint(-1.0e+30), content="4048155338")
 }
 
 ///|
@@ -347,19 +360,6 @@ test "grouped test for boundary cases" {
     Float::reinterpret_as_uint((0x7FC00000).reinterpret_as_float()),
     content="2143289344",
   )
-}
-
-///|
-test "grouped test for random cases" {
-  // Random float values
-  inspect(Float::reinterpret_as_uint(123.456), content="1123477881")
-  inspect(Float::reinterpret_as_uint(-123.456), content="3270961529")
-  inspect(Float::reinterpret_as_uint(0.000123), content="956365200")
-  inspect(Float::reinterpret_as_uint(-0.000123), content="3103848848")
-  inspect(Float::reinterpret_as_uint(987654321.0), content="1315666339")
-  inspect(Float::reinterpret_as_uint(-987654321.0), content="3463149987")
-  inspect(Float::reinterpret_as_uint(1.0e+30), content="1900671690")
-  inspect(Float::reinterpret_as_uint(-1.0e+30), content="4048155338")
 }
 
 ///|
@@ -479,6 +479,12 @@ test "Int::to_char - Invalid values" {
   inspect(Int::to_char(-1), content="None")
   inspect(Int::to_char(1114112), content="None")
   inspect(Int::to_char(1114113), content="None")
+  inspect(Int::to_char(-1), content="None")
+  inspect(Int::to_char(0x10FFFF + 1), content="None")
+  inspect(Int::to_char(0xD800), content="None")
+  inspect(Int::to_char(0xDFFF), content="None")
+  inspect(Int::to_char(0xD900), content="None")
+  inspect(Int::to_char(0xDF00), content="None")
 }
 
 ///|
@@ -493,16 +499,6 @@ test "Int::to_char - Valid values" {
   inspect(Int::to_char(0xFFFF), content="Some('\\u{ffff}')")
   inspect(Int::to_char(0x10000), content="Some('𐀀')")
   inspect(Int::to_char(0x10FFFF), content="Some('\\u{10ffff}')")
-}
-
-///|
-test "Int::to_char - Invalid values" {
-  inspect(Int::to_char(-1), content="None")
-  inspect(Int::to_char(0x10FFFF + 1), content="None")
-  inspect(Int::to_char(0xD800), content="None")
-  inspect(Int::to_char(0xDFFF), content="None")
-  inspect(Int::to_char(0xD900), content="None")
-  inspect(Int::to_char(0xDF00), content="None")
 }
 
 ///|

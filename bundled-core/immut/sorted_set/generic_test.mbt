@@ -14,21 +14,21 @@
 
 ///|
 test "sorted set equality comparison with unequal elements" {
-  let set1 = @sorted_set.of([1, 2, 3])
-  let set2 = @sorted_set.of([1, 2, 4])
+  let set1 = @sorted_set.from_array([1, 2, 3])
+  let set2 = @sorted_set.from_array([1, 2, 4])
   assert_false(set1 == set2)
 }
 
 ///|
 test "compare with shared prefix" {
-  let set1 = @sorted_set.of([1, 2, 3])
-  let set2 = @sorted_set.of([1, 2, 4])
+  let set1 = @sorted_set.from_array([1, 2, 3])
+  let set2 = @sorted_set.from_array([1, 2, 4])
   assert_true(set1 < set2)
 }
 
 ///|
 test "iter early termination - value" {
-  let set = @sorted_set.of([1, 2, 3])
+  let set = @sorted_set.from_array([1, 2, 3])
   let mut count = 0
   let _ = set
     .iter()
@@ -38,12 +38,12 @@ test "iter early termination - value" {
       count = count + 1
       IterContinue
     })
-  assert_eq(count, 1)
+  inspect(count, content="1")
 }
 
 ///|
 test "iter terminates on right" {
-  let set = of([1, 2, 3])
+  let set = @sorted_set.from_array([1, 2, 3])
   let result = set.iter().take(2).to_array()
   inspect(result, content="[1, 2]")
 }
@@ -70,4 +70,11 @@ test "iter with early termination on left subtree" {
 
   // Verify that we stopped after processing the first element
   inspect(count, content="1")
+}
+
+///|
+test "iterator" {
+  let set = @sorted_set.from_array([2, 1, 3])
+  let result = set.iterator().collect()
+  inspect(result, content="[1, 2, 3]")
 }

@@ -12,13 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///| Returns the element that gives the maximum value from the specified function.
+///|
+/// A newtype wrapper that reverses the comparison order of the wrapped value.
+///
+/// `Reverse[T]` is useful when you need to reverse the natural ordering of a type.
+/// For example, to create a min-heap from a max-heap data structure, or to sort
+/// in descending order instead of ascending order.
+///
+/// # Examples
+///
+/// ```mbt
+///   let a = @cmp.Reverse(1)
+///   let b = @cmp.Reverse(2)
+///   inspect(a.compare(b), content="1")  // 1 > 2 in reversed order
+///   inspect(b.compare(a), content="-1") // 2 < 1 in reversed order
+///   inspect(a == a, content="true")     // Equality works correctly
+///   inspect(a.to_string(), content="Reverse(1)") // Shows wrapped value
+/// ```
+pub(all) struct Reverse[T](T) derive(Eq, Show, Hash)
+
+///|
+pub impl[T : Compare] Compare for Reverse[T] with compare(a, b) {
+  -a.0.compare(b.0)
+}
+
+///|
+/// Returns the element that gives the maximum value from the specified function.
 ///
 /// Returns the second argument if the comparison determines them to be equal.
 ///
 /// # Examples
 ///
 /// ```mbt
+///   inspect(@cmp.maximum_by_key(1, -2, @int.abs), content="-2")
 ///   inspect(@cmp.maximum_by_key(-2, 1, @int.abs), content="-2")
 ///   inspect(@cmp.maximum_by_key(-2, 2, @int.abs), content="2")
 /// ```
@@ -30,13 +56,15 @@ pub fn[T, K : Compare] maximum_by_key(x : T, y : T, f : (T) -> K) -> T {
   }
 }
 
-///| Returns the element that gives the minimum value from the specified function.
+///|
+/// Returns the element that gives the minimum value from the specified function.
 ///
 /// Returns the first argument if the comparison determines them to be equal.
 ///
 /// # Examples
 ///
 /// ```mbt
+///   inspect(@cmp.minimum_by_key(1, -2, @int.abs), content="1")
 ///   inspect(@cmp.minimum_by_key(-2, 1, @int.abs), content="1")
 ///   inspect(@cmp.minimum_by_key(-2, 2, @int.abs), content="-2")
 /// ```
@@ -56,8 +84,13 @@ pub fn[T, K : Compare] minimum_by_key(x : T, y : T, f : (T) -> K) -> T {
 /// # Examples
 ///
 /// ```mbt
-///   assert_eq(@cmp.maximum(1, 2), 2)
-///   assert_eq(@cmp.maximum(2, 2), 2)
+///   inspect(@cmp.maximum(1, 2), content="2")
+///   inspect(@cmp.maximum(2, 1), content="2")
+/// 
+///   let fst = []
+///   let snd = []
+///   @cmp.maximum(fst, snd).push(0)
+///   inspect(snd, content="[0]")
 /// ```
 pub fn[T : Compare] maximum(x : T, y : T) -> T {
   if x > y {
@@ -75,13 +108,73 @@ pub fn[T : Compare] maximum(x : T, y : T) -> T {
 /// # Examples
 ///
 /// ```mbt
-///   assert_eq(@cmp.minimum(1, 2), 1)
-///   assert_eq(@cmp.minimum(2, 2), 2)
+///   inspect(@cmp.minimum(1, 2), content="1")
+///   inspect(@cmp.minimum(2, 1), content="1")
+/// 
+///   let fst = []
+///   let snd = []
+///   @cmp.minimum(fst, snd).push(0)
+///   inspect(fst, content="[0]")
 /// ```
 pub fn[T : Compare] minimum(x : T, y : T) -> T {
   if x > y {
     y
   } else {
     x
+  }
+}
+
+///|
+/// Returns both the minimum and maximum of two values as a tuple.
+///
+/// Parameters:
+///
+/// * `x` : The first value to compare.
+/// * `y` : The second value to compare.
+///
+/// Returns a tuple `(min, max)` where the first element is the smaller value
+/// and the second element is the larger value. If the values are equal, returns
+/// `(x, y)`.
+///
+/// Examples:
+///
+/// ```moonbit
+/// inspect(@cmp.minmax(1, 2), content="(1, 2)")
+/// inspect(@cmp.minmax(2, 1), content="(1, 2)")
+/// ```
+pub fn[T : Compare] minmax(x : T, y : T) -> (T, T) {
+  if x > y {
+    (y, x)
+  } else {
+    (x, y)
+  }
+}
+
+///|
+/// Returns the minimum and maximum of two values based on a comparison
+/// function.
+///
+/// Parameters:
+///
+/// * `x` : The first value to compare.
+/// * `y` : The second value to compare.
+/// * `f` : A function that extracts a comparable key from each value.
+///
+/// Returns a tuple `(min, max)` where the first element is the value that
+/// produces the smaller key and the second element is the value that produces
+/// the larger key. If the keys are equal, returns `(x, y)`.
+///
+/// Examples:
+///
+/// ```moonbit
+/// inspect(@cmp.minmax_by_key(1, -2, @int.abs), content="(1, -2)")
+/// inspect(@cmp.minmax_by_key(-2, 1, @int.abs), content="(1, -2)")
+/// inspect(@cmp.minmax_by_key(-2, 2, @int.abs), content="(-2, 2)")
+/// ```
+pub fn[T, K : Compare] minmax_by_key(x : T, y : T, f : (T) -> K) -> (T, T) {
+  if f(x) > f(y) {
+    (y, x)
+  } else {
+    (x, y)
   }
 }

@@ -26,7 +26,7 @@
 
 ///|
 fn top12(x : Float) -> UInt {
-  x.reinterpret_as_int().reinterpret_as_uint() >> 20
+  x.reinterpret_as_uint() >> 20
 }
 
 ///|
@@ -56,7 +56,7 @@ priv struct Exp2fData {
 }
 
 ///|
-let expf_n : UInt64 = (1 << exp2f_table_bits).to_int64().reinterpret_as_uint64()
+let expf_n : UInt64 = (1 << exp2f_table_bits).to_uint64()
 
 ///|
 let exp2f_data_n : Double = (1 << exp2f_table_bits).to_double()
@@ -94,16 +94,15 @@ let exp2f_data : Exp2fData = {
 /// Example:
 ///
 /// ```moonbit
-/// inspect(expf(0), content="1")
-/// inspect(expf(1), content="2.7182817459106445")
-/// inspect(expf(@float.neg_infinity), content="0")
+/// inspect(@math.expf(0), content="1")
+/// inspect(@math.expf(1), content="2.7182817459106445")
+/// inspect(@math.expf(@float.neg_infinity), content="0")
 /// ```
 pub fn expf(x : Float) -> Float {
   let xd = x.to_double()
   let abstop = top12(x) & 0x7ff
   if abstop >= top12(88.0) {
-    if x.reinterpret_as_int().reinterpret_as_uint() ==
-      @float.neg_infinity.reinterpret_as_int().reinterpret_as_uint() {
+    if x.reinterpret_as_uint() == @float.neg_infinity.reinterpret_as_uint() {
       return 0.0
     }
     if abstop >= top12(@float.infinity) {
@@ -150,12 +149,12 @@ pub fn expf(x : Float) -> Float {
 /// Example
 ///
 /// ```moonbit
-/// inspect(expm1f(0), content="0")
-/// inspect(expm1f(1), content="1.7182817459106445")
-/// inspect(expm1f(-1), content="-0.6321205496788025")
-/// inspect(expm1f(@float.not_a_number), content="NaN")
-/// inspect(expm1f(@float.infinity), content="Infinity")
-/// inspect(expm1f(@float.neg_infinity), content="-1")
+/// inspect(@math.expm1f(0), content="0")
+/// inspect(@math.expm1f(1), content="1.7182817459106445")
+/// inspect(@math.expm1f(-1), content="-0.6321205496788025")
+/// inspect(@math.expm1f(@float.not_a_number), content="NaN")
+/// inspect(@math.expm1f(@float.infinity), content="Infinity")
+/// inspect(@math.expm1f(@float.neg_infinity), content="-1")
 /// ```
 pub fn expm1f(x : Float) -> Float {
   let float_ln2_hi : Float = 6.9314575195e-01 // 0x3f317200
@@ -192,7 +191,7 @@ pub fn expm1f(x : Float) -> Float {
     // if  |x| > 0.5 ln2
     if hx < 0x3F851592 {
       // and |x| < 1.5 ln2
-      if not(sign) {
+      if !sign {
         hi = x - float_ln2_hi
         lo = float_ln2_lo
         k = 1
@@ -242,7 +241,7 @@ pub fn expm1f(x : Float) -> Float {
     return (1.0 : Float) + (2.0 : Float) * (x - e)
   }
   let twopk = ((0x7f + k) << 23).reinterpret_as_float() // 2^k
-  if not(k is (0..=56)) {
+  if !(k is (0..=56)) {
     // suffice to return exp(x)-1
     let mut y = x - e + 1.0
     if k == 128 {

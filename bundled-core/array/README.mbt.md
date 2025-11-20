@@ -7,6 +7,7 @@ This package provides array manipulation utilities for MoonBit, including fixed-
 There are several ways to create arrays in MoonBit:
 
 ```moonbit
+///|
 test "array creation" {
   // Using array literal
   let arr1 = [1, 2, 3]
@@ -27,6 +28,7 @@ test "array creation" {
 Common array operations include mapping, filtering, and folding:
 
 ```moonbit
+///|
 test "array operations" {
   let nums = [1, 2, 3, 4, 5]
 
@@ -49,6 +51,7 @@ test "array operations" {
 The package provides various sorting utilities:
 
 ```moonbit
+///|
 test "sorting" {
   let arr = [3, 1, 4, 1, 5, 9, 2, 6]
 
@@ -63,9 +66,9 @@ test "sorting" {
   sorted2.sort_by((a, b) => a.length().compare(b.length()))
   inspect(
     sorted2,
-    content=
+    content=(
       #|["b", "aa", "ccc"]
-    ,
+    ),
   )
 
   // Sort by key
@@ -74,9 +77,9 @@ test "sorting" {
   sorted3.sort_by_key(p => p.0)
   inspect(
     sorted3,
-    content=
+    content=(
       #|[(1, "a"), (2, "b"), (3, "c")]
-    ,
+    ),
   )
 }
 ```
@@ -86,6 +89,7 @@ test "sorting" {
 Array views provide a lightweight way to work with array slices:
 
 ```moonbit
+///|
 test "array views" {
   let arr = [1, 2, 3, 4, 5]
   let view = arr[1:4]
@@ -94,10 +98,6 @@ test "array views" {
   // Map view to new array
   let doubled = view.map(x => x * 2)
   inspect(doubled, content="[4, 6, 8]")
-
-  // Modify view in-place
-  view.map_inplace(x => x + 1)
-  inspect(arr, content="[1, 3, 4, 5, 5]")
 }
 ```
 
@@ -106,6 +106,7 @@ test "array views" {
 Fixed arrays provide immutable array operations:
 
 ```moonbit
+///|
 test "fixed arrays" {
   let fixed : FixedArray[_] = [1, 2, 3]
 
@@ -130,6 +131,7 @@ test "fixed arrays" {
 Additional array utilities for common operations:
 
 ```moonbit
+///|
 test "utilities" {
   // Join string array
   let words = ["hello", "world"]
@@ -140,7 +142,7 @@ test "utilities" {
   let nums = [1, 2, 3, 4, 5]
   // Using deterministic `rand` function below for demonstration
   // NOTE: When using a normal `rand` function, the actual result may vary
-  let shuffled = nums.shuffle(rand=(_) => { 1 })
+  let shuffled = nums.shuffle(rand=_ => 1)
   inspect(shuffled, content="[1, 3, 4, 5, 2]")
 }
 ```

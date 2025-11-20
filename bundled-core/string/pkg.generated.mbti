@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbitlang/core/string"
+
+import(
+  "moonbitlang/core/builtin"
+)
+
+// Values
+fn default() -> String
+
+#deprecated
+fn from_array(ArrayView[Char]) -> String
+
+#deprecated
+fn from_iter(Iter[Char]) -> String
+
+#deprecated
+fn from_iterator(Iterator[Char]) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+pub using @builtin {type StringView as View}
+
+// Traits
+pub trait ToStringView {
+  to_string_view(Self) -> StringView
+}
+impl ToStringView for String
+impl ToStringView for StringView
+

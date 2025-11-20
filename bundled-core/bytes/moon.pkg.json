@@ -1,8 +1,14 @@
 {
-  "import": ["moonbitlang/core/builtin"],
+  "import": ["moonbitlang/core/builtin", "moonbitlang/core/byte"],
   "test-import": [
     "moonbitlang/core/array",
-    "moonbitlang/core/double",
-    "moonbitlang/core/test"
+    "moonbitlang/core/double", 
+    "moonbitlang/core/uint",
+    "moonbitlang/core/uint64",
+    "moonbitlang/core/test",
+    "moonbitlang/core/quickcheck",
+    "moonbitlang/core/error",
+    "moonbitlang/core/json",
+    "moonbitlang/core/float"
   ]
 }

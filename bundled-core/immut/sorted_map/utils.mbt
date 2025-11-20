@@ -12,28 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///| Create an empty map.
-#deprecated("Use `new()` instead")
-#coverage.skip
-pub fn[K, V] T::empty() -> T[K, V] {
-  Empty
-}
-
-///| Create an empty map.
-pub fn[K, V] new() -> T[K, V] {
+///|
+/// Create an empty map.
+#as_free_fn
+#alias(empty, deprecated)
+pub fn[K, V] SortedMap::new() -> SortedMap[K, V] {
   Empty
 }
 
 ///|
 /// Create a map with a single key-value pair.
-pub fn[K, V] singleton(key : K, value : V) -> T[K, V] {
+#as_free_fn
+pub fn[K, V] SortedMap::singleton(key : K, value : V) -> SortedMap[K, V] {
   Tree(key, value~, size=1, Empty, Empty)
 }
 
 ///|
 /// Check if the map contains a key.
 /// O(log n).
-pub fn[K : Compare, V] contains(self : T[K, V], key : K) -> Bool {
+pub fn[K : Compare, V] SortedMap::contains(
+  self : SortedMap[K, V],
+  key : K,
+) -> Bool {
   loop self {
     Empty => false
     Tree(k, l, r, ..) => {
@@ -51,7 +51,8 @@ pub fn[K : Compare, V] contains(self : T[K, V], key : K) -> Bool {
 
 ///|
 /// Get the number of key-value pairs in the map.
-pub fn[K, V] size(self : T[K, V]) -> Int {
+#alias(size, deprecated)
+pub fn[K, V] SortedMap::length(self : SortedMap[K, V]) -> Int {
   match self {
     Empty => 0
     Tree(_) as t => t.size
@@ -59,29 +60,26 @@ pub fn[K, V] size(self : T[K, V]) -> Int {
 }
 
 ///|
-pub fn[K, V] is_empty(self : T[K, V]) -> Bool {
-  self.size() == 0
+pub fn[K, V] SortedMap::is_empty(self : SortedMap[K, V]) -> Bool {
+  self.length() == 0
 }
 
 ///|
-fn[K, V] make_tree(key : K, value : V, l : T[K, V], r : T[K, V]) -> T[K, V] {
-  let size = l.size() + r.size() + 1
+fn[K, V] make_tree(
+  key : K,
+  value : V,
+  l : SortedMap[K, V],
+  r : SortedMap[K, V],
+) -> SortedMap[K, V] {
+  let size = l.length() + r.length() + 1
   Tree(key, value~, size~, l, r)
 }
 
 ///|
 /// Get the value associated with a key.
 /// O(log n).
-#deprecated("Use `get` instead")
-#coverage.skip
-pub fn[K : Compare, V] lookup(self : T[K, V], key : K) -> V? {
-  self.get(key)
-}
-
-///|
-/// Get the value associated with a key.
-/// O(log n).
-pub fn[K : Compare, V] get(self : T[K, V], key : K) -> V? {
+#alias(lookup, deprecated)
+pub fn[K : Compare, V] SortedMap::get(self : SortedMap[K, V], key : K) -> V? {
   loop self {
     Empty => None
     Tree(k, value~, l, r, ..) => {
@@ -98,14 +96,31 @@ pub fn[K : Compare, V] get(self : T[K, V], key : K) -> V? {
 }
 
 ///|
-#deprecated("Use `get` instead. `op_get` will return `V` instead of `Option[V]` in the future.")
-pub fn[K : Compare, V] op_get(self : T[K, V], key : K) -> V? {
-  self.get(key)
+/// Get the value associated with a key.
+/// O(log n).
+#alias("_[_]")
+pub fn[K : Compare, V] SortedMap::at(self : SortedMap[K, V], key : K) -> V {
+  loop self {
+    Empty => panic()
+    Tree(k, value~, l, r, ..) => {
+      let c = key.compare(k)
+      if c == 0 {
+        value
+      } else if c < 0 {
+        continue l
+      } else {
+        continue r
+      }
+    }
+  }
 }
 
 ///|
 /// Iterate over the key-value pairs in the map.
-pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit) -> Unit {
+pub fn[K, V] SortedMap::each(
+  self : SortedMap[K, V],
+  f : (K, V) -> Unit,
+) -> Unit {
   match self {
     Empty => ()
     Tree(k, value~, l, r, ..) => {
@@ -118,14 +133,17 @@ pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit) -> Unit {
 
 ///|
 /// Iterate over the key-value pairs with index.
-pub fn[K, V] eachi(self : T[K, V], f : (Int, K, V) -> Unit) -> Unit {
-  fn do_eachi(m : T[K, V], f, i) {
+pub fn[K, V] SortedMap::eachi(
+  self : SortedMap[K, V],
+  f : (Int, K, V) -> Unit,
+) -> Unit {
+  fn do_eachi(m : SortedMap[K, V], f, i) {
     match m {
       Empty => ()
       Tree(k, value~, l, r, ..) => {
         do_eachi(l, f, i)
-        f(l.size() + i, k, value)
-        do_eachi(r, f, l.size() + i + 1)
+        f(l.length() + i, k, value)
+        do_eachi(r, f, l.length() + i + 1)
       }
     }
   }
@@ -134,18 +152,11 @@ pub fn[K, V] eachi(self : T[K, V], f : (Int, K, V) -> Unit) -> Unit {
 }
 
 ///|
-/// Ts over the values in the map.
-pub fn[K, X, Y] map(self : T[K, X], f : (X) -> Y) -> T[K, Y] {
-  match self {
-    Empty => Empty
-    Tree(k, value~, size~, l, r) =>
-      Tree(k, value=f(value), size~, l.map(f), r.map(f))
-  }
-}
-
-///|
 /// Maps over the key-value pairs in the map.
-pub fn[K, X, Y] map_with_key(self : T[K, X], f : (K, X) -> Y) -> T[K, Y] {
+pub fn[K, X, Y] SortedMap::map_with_key(
+  self : SortedMap[K, X],
+  f : (K, X) -> Y,
+) -> SortedMap[K, Y] {
   match self {
     Empty => Empty
     Tree(k, value~, l, r, size~) =>
@@ -154,21 +165,15 @@ pub fn[K, X, Y] map_with_key(self : T[K, X], f : (K, X) -> Y) -> T[K, Y] {
 }
 
 ///|
-/// Fold the values in the map.
-/// O(n).
-pub fn[K, V, A] fold(self : T[K, V], init~ : A, f : (A, V) -> A) -> A {
-  self.foldl_with_key((acc, _k, v) => f(acc, v), init~)
-}
-
-///|
 /// Post-order fold.
 /// O(n).
-pub fn[K, V, A] foldr_with_key(
-  self : T[K, V],
+#alias(foldr_with_key)
+pub fn[K, V, A] SortedMap::rev_fold(
+  self : SortedMap[K, V],
   f : (A, K, V) -> A,
-  init~ : A
+  init~ : A,
 ) -> A {
-  fn go(m : T[K, V], acc) {
+  fn go(m : SortedMap[K, V], acc) {
     match m {
       Empty => acc
       Tree(k, value~, l, r, ..) => go(l, f(go(r, acc), k, value))
@@ -181,12 +186,12 @@ pub fn[K, V, A] foldr_with_key(
 ///|
 /// Pre-order fold.
 /// O(n).
-pub fn[K, V, A] foldl_with_key(
-  self : T[K, V],
+pub fn[K, V, A] SortedMap::foldl_with_key(
+  self : SortedMap[K, V],
   f : (A, K, V) -> A,
-  init~ : A
+  init~ : A,
 ) -> A {
-  fn go(m : T[K, V], acc) {
+  fn go(m : SortedMap[K, V], acc) {
     match m {
       Empty => acc
       Tree(k, value~, l, r, ..) => go(r, f(go(l, acc), k, value))
@@ -197,7 +202,7 @@ pub fn[K, V, A] foldl_with_key(
 }
 
 ///|
-fn[K : Show, V : Show] debug_tree(self : T[K, V]) -> String {
+fn[K : Show, V : Show] SortedMap::debug_tree(self : SortedMap[K, V]) -> String {
   match self {
     Empty => "_"
     Tree(k, value~, l, r, ..) => {
@@ -211,7 +216,12 @@ fn[K : Show, V : Show] debug_tree(self : T[K, V]) -> String {
 ///|
 /// Build a map from an array of key-value pairs.
 /// O(n*log n).
-pub fn[K : Compare, V] from_array(array : Array[(K, V)]) -> T[K, V] {
+#as_free_fn
+#alias(of, deprecated="Use from_array instead")
+#as_free_fn(of, deprecated="Use from_array instead")
+pub fn[K : Compare, V] SortedMap::from_array(
+  array : ArrayView[(K, V)],
+) -> SortedMap[K, V] {
   for i = 0, mp = Empty; i < array.length(); {
     let (k, v) = array[i]
     continue i + 1, mp.add(k, v)
@@ -221,7 +231,7 @@ pub fn[K : Compare, V] from_array(array : Array[(K, V)]) -> T[K, V] {
 }
 
 ///|
-pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
+pub fn[K, V] SortedMap::iter(self : SortedMap[K, V]) -> Iter[(K, V)] {
   Iter::new(yield_ => {
     fn go(t) {
       match t {
@@ -242,7 +252,35 @@ pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
 }
 
 ///|
-pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
+pub fn[K, V] SortedMap::iterator(self : SortedMap[K, V]) -> Iterator[(K, V)] {
+  let mut curr_node = self
+  let parents = []
+  Iterator::new(fn() {
+    loop curr_node {
+      Tree(k, value~, Empty, r, ..) => {
+        curr_node = r
+        Some((k, value))
+      }
+      Tree(k, value~, l, r, ..) => {
+        parents.push((k, value, r))
+        continue l
+      }
+      Empty if parents.pop() is Some((k, v, r)) => {
+        curr_node = r
+        Some((k, v))
+      }
+      Empty => None
+    }
+  })
+}
+
+///|
+pub fn[K, V] SortedMap::iterator2(self : SortedMap[K, V]) -> Iterator2[K, V] {
+  self.iterator()
+}
+
+///|
+pub fn[K, V] SortedMap::iter2(self : SortedMap[K, V]) -> Iter2[K, V] {
   Iter2::new(yield_ => {
     fn go(t) {
       match t {
@@ -263,47 +301,34 @@ pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
 }
 
 ///|
-pub fn[K : Compare, V] from_iter(iter : Iter[(K, V)]) -> T[K, V] {
+#as_free_fn
+pub fn[K : Compare, V] SortedMap::from_iter(
+  iter : Iter[(K, V)],
+) -> SortedMap[K, V] {
+  iter.fold(init=new(), (m, e) => m.add(e.0, e.1))
+}
+
+///|
+#as_free_fn
+pub fn[K : Compare, V] SortedMap::from_iterator(
+  iter : Iterator[(K, V)],
+) -> SortedMap[K, V] {
   iter.fold(init=new(), (m, e) => m.add(e.0, e.1))
 }
 
 ///|
 /// Return all keys of the map in ascending order.
-pub fn[K, V] keys(self : T[K, V]) -> Array[K] {
-  self.iter().map(p => p.0).collect()
+pub fn[K, V] SortedMap::keys_as_iter(self : SortedMap[K, V]) -> Iter[K] {
+  self.iter().map(p => p.0)
 }
 
 ///|
 /// Return all elements of the map in the ascending order of their keys.
-pub fn[K, V] values(self : T[K, V]) -> Iter[V] {
+pub fn[K, V] SortedMap::values(self : SortedMap[K, V]) -> Iter[V] {
   self.iter().map(p => p.1)
 }
 
 ///|
-#deprecated("Use `values` instead")
-#coverage.skip
-pub fn[K, V] elems(self : T[K, V]) -> Array[V] {
-  self.values().collect()
-}
-
-///|
-pub fn[K : Compare, V] of(array : FixedArray[(K, V)]) -> T[K, V] {
-  for i = 0, mp = Empty; i < array.length(); {
-    let (k, v) = array[i]
-    continue i + 1, mp.add(k, v)
-  } else {
-    mp
-  }
-}
-
-///|
-pub fn[K : Show, V : ToJson] to_json(self : T[K, V]) -> Json {
+pub fn[K : Show, V : ToJson] SortedMap::to_json(self : SortedMap[K, V]) -> Json {
   ToJson::to_json(self)
-}
-
-///|
-pub fn[V : @json.FromJson] from_json(
-  json : Json
-) -> T[String, V] raise @json.JsonDecodeError {
-  @json.from_json(json)
 }

@@ -13,43 +13,27 @@
 // limitations under the License.
 
 ///|
-#deprecated("use `@immut/array.new` instead")
+/// Physically copy the array.
+/// Since it is an immutable data structure,
+/// it is rarely the case that you would need this function.
+/// 
+#deprecated("We don't copy immutable array", skip_current_package=false)
 #coverage.skip
-pub fn[A] T::new() -> T[A] {
-  new()
-}
+pub fn[A] T::copy(self : T[A]) -> T[A] {
+  fn copy(t : Tree[A]) -> Tree[A] {
+    match t {
+      Leaf(l) => Leaf(l.copy())
+      Empty => Empty
+      Node(node, sizes) =>
+        Node(
+          FixedArray::makei(node.length(), i => copy(node[i])),
+          match sizes {
+            Some(sizes) => Some(FixedArray::copy(sizes))
+            None => None
+          },
+        )
+    }
+  }
 
-///|
-#deprecated("use `@immut/array.from_iter` instead")
-#coverage.skip
-pub fn[A] T::from_iter(iter : Iter[A]) -> T[A] {
-  from_iter(iter)
-}
-
-///|
-#deprecated("use `@immut/array.from_array` instead")
-#coverage.skip
-pub fn[A] T::from_array(arr : Array[A]) -> T[A] {
-  from_array(arr)
-}
-
-///|
-#deprecated("use `@immut/array.make` instead")
-#coverage.skip
-pub fn[A] T::make(len : Int, value : A) -> T[A] {
-  make(len, value)
-}
-
-///|
-#deprecated("use `@immut/array.makei` instead")
-#coverage.skip
-pub fn[A] T::makei(len : Int, f : (Int) -> A) -> T[A] {
-  makei(len, f)
-}
-
-///|
-#deprecated("use `@immut/array.of` instead")
-#coverage.skip
-pub fn[A] T::of(arr : FixedArray[A]) -> T[A] {
-  of(arr)
+  { tree: copy(self.tree), size: self.size, shift: self.shift }
 }

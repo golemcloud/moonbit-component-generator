@@ -27,6 +27,7 @@ test "protect" {
   x.protect(2, () => r = x.val)
   assert_eq(r, 2)
   assert_eq(x.val, 1)
+  inspect(x, content="{val: 1}")
 }
 
 ///|
@@ -35,10 +36,10 @@ test "protect with error" {
   assert_eq(x.val, 1)
   let mut r = 0
   let result = try? x.protect(2, () => {
-      r = x.val
-      fail("")
-      r = -x.val
-    })
+    r = x.val
+    fail("")
+    r = -x.val
+  })
   assert_true(result is Err(_))
   assert_eq(r, 2)
   assert_eq(x.val, 1)
@@ -83,4 +84,43 @@ test "update with identity function" {
 test "Ref::new with string" {
   let r = Ref::new("hello")
   inspect(r, content="{val: \"hello\"}")
+}
+
+///|
+test "map with error handling" {
+  let x = @ref.new(10)
+  let result = try? x.map(a => {
+    if a > 5 {
+      fail("value too large")
+    }
+    a * 2
+  })
+  assert_true(result is Err(_))
+  let y = @ref.new(3)
+  let result2 = try? y.map(a => {
+    if a > 5 {
+      fail("value too large")
+    }
+    a * 2
+  })
+  match result2 {
+    Ok(r) => assert_eq(r.val, 6)
+    Err(_) => assert_true(false)
+  }
+}
+
+///|
+test "update with error handling" {
+  let x = @ref.new(5)
+  let result = try? x.update(a => {
+    if a == 5 {
+      fail("cannot update value 5")
+    }
+    a + 1
+  })
+  assert_true(result is Err(_))
+  assert_eq(x.val, 5) // value should remain unchanged on error
+  let y = @ref.new(3)
+  y.update(a => a + 1)
+  assert_eq(y.val, 4)
 }

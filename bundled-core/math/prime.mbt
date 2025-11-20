@@ -200,13 +200,13 @@ let small_primes : Array[@bigint.BigInt] = [
 ///   let rand = @random.Rand::new()
 ///   let prime = BigInt::from_string("17")
 ///   let composite = BigInt::from_string("15")
-///   inspect(is_probable_prime(prime, rand), content="true")
-///   inspect(is_probable_prime(composite, rand), content="false")
+///   inspect(@math.is_probable_prime(prime, rand), content="true")
+///   inspect(@math.is_probable_prime(composite, rand), content="false")
 /// ```
 pub fn is_probable_prime(
   number : @bigint.BigInt,
   rand : @random.Rand,
-  iters~ : Int = DEFAULT_PRIME_TEST_ITERS
+  iters? : Int = DEFAULT_PRIME_TEST_ITERS,
 ) -> Bool {
   if iters <= 0 {
     abort("non-positive iters for probably prime")
@@ -242,8 +242,8 @@ pub fn is_probable_prime(
 ///
 /// ```moonbit
 ///   let rand = @random.Rand::new()
-///   let prime = probable_prime(64, rand)
-///   inspect(is_probable_prime(prime, rand), content="true")
+///   let prime = @math.probable_prime(64, rand)
+///   inspect(@math.is_probable_prime(prime, rand), content="true")
 /// ```
 pub fn probable_prime(bits : Int, rand : @random.Rand) -> @bigint.BigInt {
   for {
@@ -277,7 +277,7 @@ fn trial_divisions(n : @bigint.BigInt) -> Bool {
 fn miller_rabin_test(
   w : @bigint.BigInt,
   iters : Int,
-  rand : @random.Rand
+  rand : @random.Rand,
 ) -> Bool {
   if w <= 3N {
     abort("candidate of miller rabin test must larger than 3")

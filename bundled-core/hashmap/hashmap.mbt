@@ -13,31 +13,6 @@
 // limitations under the License.
 
 ///|
-fn power_2_above(x : Int, n : Int) -> Int {
-  for i = x {
-    if i >= n {
-      break i
-    }
-    let next = i << 1
-    if next < 0 {
-      // overflow happened
-      break i
-    }
-    continue next
-  }
-}
-
-///|
-test "power_2_above" {
-  inspect(power_2_above(1, 15), content="16")
-  inspect(power_2_above(1, 16), content="16")
-  inspect(power_2_above(1, 17), content="32")
-  inspect(power_2_above(1, 32), content="32")
-  inspect(power_2_above(128, 33), content="128")
-  inspect(power_2_above(1, 2147483647), content="1073741824")
-}
-
-///|
 /// Creates a new empty hash map with the specified initial capacity. The actual
 /// capacity will be rounded up to the next power of 2 that is greater than or
 /// equal to the requested capacity, with a minimum of 8.
@@ -53,12 +28,13 @@ test "power_2_above" {
 /// Example:
 ///
 /// ```moonbit
-///   let map : @hashmap.T[String, Int] = @hashmap.new(capacity=16)
+///   let map : @hashmap.HashMap[String, Int] = @hashmap.new(capacity=16)
 ///   inspect(map.capacity(), content="16")
 ///   inspect(map.is_empty(), content="true")
 /// ```
-pub fn[K, V] new(capacity~ : Int = 8) -> T[K, V] {
-  let capacity = power_2_above(8, capacity)
+#as_free_fn
+pub fn[K, V] HashMap::new(capacity? : Int = 8) -> HashMap[K, V] {
+  let capacity = capacity.next_power_of_two()
   {
     size: 0,
     capacity,
@@ -87,7 +63,12 @@ pub fn[K, V] new(capacity~ : Int = 8) -> T[K, V] {
 ///   inspect(map.get(1), content="Some(\"ONE\")")
 ///   inspect(map.get(2), content="Some(\"two\")")
 /// ```
-pub fn[K : Hash + Eq, V] from_array(arr : Array[(K, V)]) -> T[K, V] {
+#as_free_fn
+#alias(of, deprecated="Use from_array instead")
+#as_free_fn(of, deprecated="Use from_array instead")
+pub fn[K : Hash + Eq, V] HashMap::from_array(
+  arr : ArrayView[(K, V)],
+) -> HashMap[K, V] {
   let m = new(capacity=arr.length())
   arr.each(e => m.set(e.0, e.1))
   m
@@ -107,73 +88,77 @@ pub fn[K : Hash + Eq, V] from_array(arr : Array[(K, V)]) -> T[K, V] {
 /// Example:
 ///
 /// ```moonbit
-///   let map : @hashmap.T[String, Int] = @hashmap.new()
+///   let map : @hashmap.HashMap[String, Int] = @hashmap.new()
 ///   map.set("key", 42)
 ///   inspect(map.get("key"), content="Some(42)")
 ///   map.set("key", 24) // update existing key
 ///   inspect(map.get("key"), content="Some(24)")
 /// ```
-pub fn[K : Hash + Eq, V] set(self : T[K, V], key : K, value : V) -> Unit {
+#alias("_[_]=_")
+pub fn[K : Hash + Eq, V] HashMap::set(
+  self : HashMap[K, V],
+  key : K,
+  value : V,
+) -> Unit {
   self.set_with_hash(key, value, key.hash())
 }
 
 ///|
-fn[K : Eq, V] set_with_hash(
-  self : T[K, V],
+fn[K : Eq, V] HashMap::set_with_hash(
+  self : HashMap[K, V],
   key : K,
   value : V,
-  hash : Int
+  hash : Int,
 ) -> Unit {
   if self.size >= self.capacity / 2 {
     self.grow()
   }
-  for idx = hash & self.capacity_mask, entry = { psl: 0, hash, key, value } {
+  let (idx, psl) = for psl = 0, idx = hash & self.capacity_mask {
     match self.entries[idx] {
-      None => {
-        self.entries[idx] = Some(entry)
-        self.size += 1
-        break
-      }
+      None => break (idx, psl)
       Some(curr_entry) => {
-        if curr_entry.hash == entry.hash && curr_entry.key == entry.key {
-          curr_entry.value = entry.value
-          break
+        if curr_entry.hash == hash && curr_entry.key == key {
+          curr_entry.value = value
+          return
         }
-        let curr_entry = if entry.psl > curr_entry.psl {
-          self.entries[idx] = Some(entry)
-          curr_entry
-        } else {
-          entry
+        if psl > curr_entry.psl {
+          self.push_away(idx, curr_entry)
+          break (idx, psl)
         }
-        curr_entry.psl += 1
-        continue (idx + 1) & self.capacity_mask, curr_entry
+        continue psl + 1, (idx + 1) & self.capacity_mask
       }
     }
   }
+  let entry = { psl, key, value, hash }
+  self.entries[idx] = Some(entry)
+  self.size += 1
 }
 
 ///|
-/// Sets the value associated with a key in the hash map. If the key already
-/// exists, updates its value; otherwise, adds a new key-value pair. This
-/// function is automatically called when using the index assignment syntax
-/// `map[key] = value`.
-///
-/// Parameters:
-///
-/// * `map` : The hash map to modify.
-/// * `key` : The key to associate with the value. Must implement `Hash` and `Eq`
-/// traits.
-/// * `value` : The value to associate with the key.
-///
-/// Example:
-///
-/// ```moonbit
-///   let map : @hashmap.T[String, Int] = @hashmap.new()
-///   map["key"] = 42
-///   inspect(map.get("key"), content="Some(42)")
-/// ```
-pub fn[K : Hash + Eq, V] op_set(self : T[K, V], key : K, value : V) -> Unit {
-  self.set(key, value)
+fn[K, V] HashMap::push_away(
+  self : HashMap[K, V],
+  idx : Int,
+  entry : Entry[K, V],
+) -> Unit {
+  for psl = entry.psl + 1, idx = (idx + 1) & self.capacity_mask, entry = entry {
+    match self.entries[idx] {
+      None => {
+        entry.psl = psl
+        self.entries[idx] = Some(entry)
+        break
+      }
+      Some(curr_entry) =>
+        if psl > curr_entry.psl {
+          entry.psl = psl
+          self.entries[idx] = Some(entry)
+          continue curr_entry.psl + 1,
+            (idx + 1) & self.capacity_mask,
+            curr_entry
+        } else {
+          continue psl + 1, (idx + 1) & self.capacity_mask, entry
+        }
+    }
+  }
 }
 
 ///|
@@ -189,11 +174,11 @@ pub fn[K : Hash + Eq, V] op_set(self : T[K, V], key : K, value : V) -> Unit {
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([("key", 42)])
+///   let map = @hashmap.from_array([("key", 42)])
 ///   inspect(map.get("key"), content="Some(42)")
 ///   inspect(map.get("nonexistent"), content="None")
 /// ```
-pub fn[K : Hash + Eq, V] get(self : T[K, V], key : K) -> V? {
+pub fn[K : Hash + Eq, V] HashMap::get(self : HashMap[K, V], key : K) -> V? {
   // self.get_with_hash(key, key.hash())
   let hash = key.hash()
   for i = 0, idx = hash & self.capacity_mask {
@@ -209,39 +194,33 @@ pub fn[K : Hash + Eq, V] get(self : T[K, V], key : K) -> V? {
 }
 
 ///|
-fn[K : Eq, V] get_with_hash(self : T[K, V], key : K, hash : Int) -> V? {
-  for i = 0, idx = hash & self.capacity_mask {
-    guard self.entries[idx] is Some(entry) else { break None }
-    if entry.hash == hash && entry.key == key {
-      break Some(entry.value)
-    }
-    if i > entry.psl {
-      break None
-    }
-    continue i + 1, (idx + 1) & self.capacity_mask
-  }
-}
-
-///|
-/// Retrieves a value from the hash map using the index operator syntax. This
-/// method is automatically called when using the square bracket notation
-/// `map[key]`.
+/// Retrieves the value associated with a given key in the hash map.
 ///
 /// Parameters:
 ///
-/// * `map` : The hash map to retrieve the value from.
-/// * `key` : The key to look up in the map. Must implement both `Hash` and `Eq`
-/// traits.
+/// * `self` : The hash map to search in.
+/// * `key` : The key to look up in the map.
 ///
-/// Returns `Some(value)` if the key exists in the map, `None` otherwise.
+/// Returns `value` if the key exists in the map, panic otherwise.
 ///
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([("key", 42)])
-///   inspect(map.get("key"), content="Some(42)")
-///   inspect(map.get("nonexistent"), content="None")
+///   let map = @hashmap.from_array([("key", 42)])
+///   inspect(map["key"], content="42")
 /// ```
+#alias("_[_]")
+pub fn[K : Hash + Eq, V] HashMap::at(self : HashMap[K, V], key : K) -> V {
+  let hash = key.hash()
+  for i = 0, idx = hash & self.capacity_mask {
+    guard self.entries[idx] is Some(entry)
+    if entry.hash == hash && entry.key == key {
+      break entry.value
+    }
+    guard entry.psl <= i
+    continue i + 1, (idx + 1) & self.capacity_mask
+  }
+}
 
 ///|
 /// Gets the value associated with the given key. If the key doesn't exist in the
@@ -261,25 +240,49 @@ fn[K : Eq, V] get_with_hash(self : T[K, V], key : K, hash : Int) -> V? {
 /// Example:
 ///
 /// ```moonbit
-///   let map : @hashmap.T[String, Int] = @hashmap.new()
+///   let map : @hashmap.HashMap[String, Int] = @hashmap.new()
 ///   let value = map.get_or_init("key", () => { 42 })
 ///   inspect(value, content="42")
 ///   inspect(map.get("key"), content="Some(42)")
 /// ```
-pub fn[K : Hash + Eq, V] get_or_init(
-  self : T[K, V],
+pub fn[K : Hash + Eq, V] HashMap::get_or_init(
+  self : HashMap[K, V],
   key : K,
-  init : () -> V
+  init : () -> V,
 ) -> V {
   let hash = key.hash()
-  match self.get_with_hash(key, hash) {
-    Some(v) => v
-    None => {
-      let v = init()
-      self.set_with_hash(key, v, hash)
-      v
+  let (idx, psl, new_value, push_away) = for psl = 0, idx = hash &
+                                               self.capacity_mask {
+    match self.entries[idx] {
+      Some(entry) => {
+        if entry.hash == hash && entry.key == key {
+          return entry.value
+        }
+        if psl > entry.psl {
+          let new_value = init()
+          break (idx, psl, new_value, Some(entry))
+        }
+        continue psl + 1, (idx + 1) & self.capacity_mask
+      }
+      None => {
+        let new_value = init()
+        break (idx, psl, new_value, None)
+      }
     }
   }
+  if self.size >= self.capacity / 2 {
+    // Slow path, we need to resize
+    self.grow()
+    self.set_with_hash(key, new_value, hash)
+  } else {
+    if push_away is Some(entry) {
+      self.push_away(idx, entry)
+    }
+    let entry = { psl, hash, key, value: new_value }
+    self.entries[idx] = Some(entry)
+    self.size += 1
+  }
+  new_value
 }
 
 ///|
@@ -298,14 +301,14 @@ pub fn[K : Hash + Eq, V] get_or_init(
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([("a", 1), ("b", 2)])
+///   let map = @hashmap.from_array([("a", 1), ("b", 2)])
 ///   inspect(map.get_or_default("a", 0), content="1")
 ///   inspect(map.get_or_default("c", 0), content="0")
 /// ```
-pub fn[K : Hash + Eq, V] get_or_default(
-  self : T[K, V],
+pub fn[K : Hash + Eq, V] HashMap::get_or_default(
+  self : HashMap[K, V],
   key : K,
-  default : V
+  default : V,
 ) -> V {
   let hash = key.hash()
   for i = 0, idx = hash & self.capacity_mask {
@@ -333,11 +336,14 @@ pub fn[K : Hash + Eq, V] get_or_default(
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([("a", 1), ("b", 2)])
+///   let map = @hashmap.from_array([("a", 1), ("b", 2)])
 ///   inspect(map.contains("a"), content="true")
 ///   inspect(map.contains("c"), content="false")
 /// ```
-pub fn[K : Hash + Eq, V] contains(self : T[K, V], key : K) -> Bool {
+pub fn[K : Hash + Eq, V] HashMap::contains(
+  self : HashMap[K, V],
+  key : K,
+) -> Bool {
   let hash = key.hash()
   for i = 0, idx = hash & self.capacity_mask {
     guard self.entries[idx] is Some(entry) else { return false }
@@ -352,10 +358,31 @@ pub fn[K : Hash + Eq, V] contains(self : T[K, V], key : K) -> Bool {
 }
 
 ///|
-pub fn[K : Hash + Eq, V : Eq] contains_kv(
-  self : T[K, V],
+/// Checks if a map contains a specific key-value pair.
+///
+/// Parameters:
+///
+/// * `map` : A map of type `@hashmap.HashMap[K, V]` to search in.
+/// * `key` : The key to look up in the map.
+/// * `value` : The value to be compared with the value associated with the key.
+///
+/// Returns `true` if the map contains the specified key and its associated value
+/// equals the given value, `false` otherwise.
+///
+/// Example:
+///
+/// ```moonbit
+/// 
+///   let map = @hashmap.new()
+///   map..set("a", 1)..set("b", 2)
+///   inspect(map.contains_kv("a", 1), content="true")
+///   inspect(map.contains_kv("a", 2), content="false")
+///   inspect(map.contains_kv("c", 3), content="false")
+/// ```
+pub fn[K : Hash + Eq, V : Eq] HashMap::contains_kv(
+  self : HashMap[K, V],
   key : K,
-  value : V
+  value : V,
 ) -> Bool {
   let hash = key.hash()
   for i = 0, idx = hash & self.capacity_mask {
@@ -384,18 +411,25 @@ pub fn[K : Hash + Eq, V : Eq] contains_kv(
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([("a", 1), ("b", 2)])
+///   let map = @hashmap.from_array([("a", 1), ("b", 2)])
 ///   map.remove("a")
 ///   inspect(map.get("a"), content="None")
-///   inspect(map.size(), content="1")
+///   inspect(map.length(), content="1")
 /// ```
-pub fn[K : Hash + Eq, V] remove(self : T[K, V], key : K) -> Unit {
-  let hash = key.hash()
+pub fn[K : Hash + Eq, V] HashMap::remove(self : HashMap[K, V], key : K) -> Unit {
+  self.remove_with_hash(key, key.hash())
+}
+
+///|
+fn[K : Eq, V] HashMap::remove_with_hash(
+  self : HashMap[K, V],
+  key : K,
+  hash : Int,
+) -> Unit {
   for i = 0, idx = hash & self.capacity_mask {
     match self.entries[idx] {
       Some(entry) => {
         if entry.hash == hash && entry.key == key {
-          self.entries[idx] = None
           self.shift_back(idx)
           self.size -= 1
           break
@@ -411,24 +445,20 @@ pub fn[K : Hash + Eq, V] remove(self : T[K, V], key : K) -> Unit {
 }
 
 ///|
-fn[K, V] shift_back(self : T[K, V], start_index : Int) -> Unit {
-  for prev = start_index, curr = (start_index + 1) & self.capacity_mask {
-    match self.entries[curr] {
-      Some({ psl, hash, key, value }) => {
-        if psl == 0 {
-          break
-        }
-        self.entries[prev] = Some({ psl: psl - 1, hash, key, value })
-        self.entries[curr] = None
-        continue curr, (curr + 1) & self.capacity_mask
-      }
-      None => break
+fn[K, V] HashMap::shift_back(self : HashMap[K, V], idx : Int) -> Unit {
+  let next = (idx + 1) & self.capacity_mask
+  match self.entries[next] {
+    None | Some({ psl: 0, .. }) => self.entries[idx] = None
+    Some(entry) => {
+      entry.psl -= 1
+      self.entries[idx] = Some(entry)
+      self.shift_back(next)
     }
   }
 }
 
 ///|
-fn[K : Eq, V] grow(self : T[K, V]) -> Unit {
+fn[K : Eq, V] HashMap::grow(self : HashMap[K, V]) -> Unit {
   let old_entries = self.entries
   let new_capacity = self.capacity << 1
   self.entries = FixedArray::make(new_capacity, None)
@@ -454,22 +484,10 @@ fn[K : Eq, V] grow(self : T[K, V]) -> Unit {
 /// Returns a new hash map containing all the key-value pairs from the input
 /// array.
 ///
-/// Example:
-///
-/// ```moonbit
-///   let map = @hashmap.of([(1, "one"), (2, "two")])
-///   inspect(map.get(1), content="Some(\"one\")")
-///   inspect(map.get(2), content="Some(\"two\")")
-/// ```
-pub fn[K : Eq + Hash, V] of(arr : FixedArray[(K, V)]) -> T[K, V] {
-  let m = new(capacity=arr.length())
-  arr.each(e => m.set(e.0, e.1))
-  m
-}
 
 ///|
 test "of" {
-  let m = of([(1, 2), (3, 4)])
+  let m = from_array([(1, 2), (3, 4)])
   inspect(m.get(1), content="Some(2)")
   inspect(m.get(3), content="Some(4)")
 }
@@ -489,10 +507,10 @@ test "of" {
 /// Example:
 ///
 /// ```moonbit
-///   let samples : Array[@hashmap.T[Int, String]] = @quickcheck.samples(5)
+///   let samples : Array[@hashmap.HashMap[Int, String]] = @quickcheck.samples(5)
 ///   inspect(samples.length(), content="5")
 /// ```
-pub impl[K : @quickcheck.Arbitrary + Hash + Eq, V : @quickcheck.Arbitrary] @quickcheck.Arbitrary for T[
+pub impl[K : @quickcheck.Arbitrary + Hash + Eq, V : @quickcheck.Arbitrary] @quickcheck.Arbitrary for HashMap[
   K,
   V,
 ] with arbitrary(size, rs) {
@@ -505,7 +523,122 @@ pub impl[K : @quickcheck.Arbitrary + Hash + Eq, V : @quickcheck.Arbitrary] @quic
 }
 
 ///|
-priv type MyString String derive(Eq)
+pub impl[K, V] Default for HashMap[K, V] with default() {
+  new()
+}
+
+///|
+/// Applies a function to each key-value pair in the map and 
+/// returns a new map with the results, using the original keys.
+pub fn[K, V, V2] HashMap::map(
+  self : HashMap[K, V],
+  f : (K, V) -> V2,
+) -> HashMap[K, V2] {
+  let other = {
+    capacity: self.capacity,
+    entries: FixedArray::make(self.capacity, None),
+    size: self.size,
+    capacity_mask: self.capacity_mask,
+  }
+  if self.size == 0 {
+    return other
+  }
+  for i in 0..<self.capacity {
+    if self.entries[i] is Some({ key, value, hash, psl }) {
+      other.entries[i] = Some({ psl, key, value: f(key, value), hash })
+    }
+  }
+  other
+}
+
+///|
+/// Copy the map, creating a new map with the same key-value pairs.
+pub fn[K, V] HashMap::copy(self : HashMap[K, V]) -> HashMap[K, V] {
+  let other = {
+    capacity: self.capacity,
+    entries: FixedArray::make(self.capacity, None),
+    size: self.size,
+    capacity_mask: self.capacity_mask,
+  }
+  if self.size == 0 {
+    return other
+  }
+  for i in 0..<self.capacity {
+    if self.entries[i] is Some({ key, value, hash, psl }) {
+      other.entries[i] = Some({ psl, key, value, hash })
+    }
+  }
+  other
+}
+
+///|
+/// Merges two maps into a new map. Returns a new map containing all key-value
+/// pairs from both maps. When both maps contain the same key, the value from
+/// `other` takes precedence.
+///
+/// This is a pure operation - it does not modify either of the input maps.
+///
+/// Parameters:
+///
+/// * `self` : The first map.
+/// * `other` : The second map whose values take precedence in case of key
+/// conflicts.
+///
+/// Returns a new hash map containing all entries from both maps.
+///
+/// Example:
+///
+/// ```moonbit
+/// let map1 = @hashmap.from_array([("a", 1), ("b", 2)])
+/// let map2 = @hashmap.from_array([("b", 3), ("c", 4)])
+/// let merged = map1.merge(map2).to_array()
+/// merged.sort()
+/// @json.inspect(merged, content=([["a",1],["b",3],["c",4]]))
+/// ```
+pub fn[K : Eq, V] HashMap::merge(
+  self : HashMap[K, V],
+  other : HashMap[K, V],
+) -> HashMap[K, V] {
+  let result = self.copy()
+  result.merge_in_place(other)
+  result
+}
+
+///|
+/// Merges another map into this map in-place. Updates the current map by adding
+/// all key-value pairs from `other`. When both maps contain the same key, the
+/// value from `other` overwrites the value in this map.
+///
+/// This is a mutating operation - it modifies the receiver map.
+///
+/// Parameters:
+///
+/// * `self` : The map to be modified.
+/// * `other` : The map whose entries will be added to `self`.
+///
+/// Example:
+///
+/// ```moonbit
+/// let map1 = @hashmap.from_array([("a", 1), ("b", 2)])
+/// let map2 = @hashmap.from_array([("b", 3), ("c", 4)])
+/// map1.merge_in_place(map2)
+/// let merged = map1.to_array()
+/// merged.sort()
+/// @json.inspect(merged, content=[["a", 1], ["b", 3], ["c", 4]])
+/// ```
+pub fn[K : Eq, V] HashMap::merge_in_place(
+  self : HashMap[K, V],
+  other : HashMap[K, V],
+) -> Unit {
+  for entry in other.entries {
+    if entry is Some({ key, value, hash, .. }) {
+      self.set_with_hash(key, value, hash)
+    }
+  }
+}
+
+///|
+priv struct MyString(String) derive(Eq)
 
 ///|
 #coverage.skip
@@ -517,35 +650,87 @@ impl Hash for MyString with hash(self) {
 ///|
 #coverage.skip
 impl Hash for MyString with hash_combine(self, hasher) {
-  hasher.combine_string(self.inner())
+  hasher.combine_string(self.0)
 }
 
 ///|
 #coverage.skip
 impl Show for MyString with output(self, logger) {
-  logger.write_string(self.inner())
+  logger.write_string(self.0)
+}
+
+///|
+fn[K : Hash + Eq, V : Eq] verify_content(
+  map : HashMap[K, V],
+  expected : Array[(K, V)],
+) -> Unit raise {
+  for entry in expected {
+    let (k, v) = entry
+    assert_true(map.contains_kv(k, v))
+  }
+  assert_eq(map.length(), expected.length())
 }
 
 ///|
 test "arbitrary" {
-  let samples : Array[T[String, Int]] = @quickcheck.samples(20)
-  inspect(
-    samples[5:10],
-    content=
-      #|[HashMap::of([]), HashMap::of([]), HashMap::of([("", 0)]), HashMap::of([("", 0)]), HashMap::of([("", 0)])]
-    ,
-  )
-  inspect(
-    samples[11:15],
-    content=
-      #|[HashMap::of([("Q", 1), ("", 0), ("\u{1e}", 0)]), HashMap::of([("", 0)]), HashMap::of([("F:", 0), ("A&", 2), ("v\b", 0), ("", 0), ("#", 0)]), HashMap::of([("p(", -2), ("^\u{1e}", 3), ("2x", 1), ("", 3)])]
-    ,
-  )
+  let samples : Array[HashMap[String, Int]] = @quickcheck.samples(20)
+  let data = [
+    [],
+    [],
+    [],
+    [("", 0)],
+    [("", 0)],
+    [],
+    [],
+    [("", 0)],
+    [("", 0)],
+    [("", 0)],
+    [("}\u{11}e", -1), ("", 0), ("0f", -1), ("k", -2)],
+    [("Q", 1), ("", 0), ("\u{1e}", 0)],
+    [("", 0)],
+    [("F:", 0), ("A&", 2), ("v\b", 0), ("", 0), ("#", 0)],
+    [("p(", -2), ("^\u{1e}", 3), ("2x", 1), ("", 3)],
+    [("A", -3), ("", 0), ("/w", 0), ("lD", 0), ("jlF0", 3)],
+    [
+      ("zd", 2),
+      ("[z\r]j", 4),
+      ("\u{1d}r", -3),
+      ("", 0),
+      ("p=61s\u{14}", -7),
+      ("t|,7X4\"\u{14}", -10),
+      ("HeH\b\u{15}d", 1),
+      ("LC\u{19}", 1),
+      ("\u{0b}", 0),
+      ("\n", 0),
+      ("3", -9),
+      ("v", -1),
+    ],
+    [
+      ("", -1),
+      ("&\b", -4),
+      ("ob%>j\bD?xboR5", 0),
+      (";:B", -3),
+      ("`", 1),
+      ("OwQCP+@", -1),
+      ("O]k", -3),
+      ("\n^", -3),
+      ("U_-*\u{1c}x\u{18}", -11),
+      ("shU^\u{1d}hd8\u{1d}", 0),
+      ("!\u{1b}63p", 3),
+      ("q", 1),
+      ("R@", 4),
+    ],
+    [("", -4), ("v", -2), (")xh", 1), ("C\u{10}\u{0e}", -3), ("|", 0)],
+    [("", 1), ("b", -1)],
+  ]
+  for i in 0..<samples.length() {
+    verify_content(samples[i], data[i])
+  }
 }
 
 ///|
 test "set" {
-  let m : T[MyString, Int] = new()
+  let m : HashMap[MyString, Int] = new()
   m.set("a", 1)
   m.set("b", 1)
   m.set("bc", 2)
@@ -553,16 +738,16 @@ test "set" {
   m.set("cd", 2)
   m.set("c", 1)
   m.set("d", 1)
-  assert_eq(m.size(), 7)
-  inspect(
-    m.debug_entries(),
-    content="_,(0,a,1),(1,b,1),(2,c,1),(3,d,1),(3,bc,2),(4,cd,2),(4,abc,3),_,_,_,_,_,_,_,_",
-  )
+  inspect(m.length(), content="7")
+  // inspect(
+  //   m._debug_entries(),
+  //   content="_,(0,a,1),(1,b,1),(2,c,1),(3,d,1),(3,bc,2),(4,cd,2),(4,abc,3),_,_,_,_,_,_,_,_",
+  // )
 }
 
 ///|
 test "remove" {
-  let m : T[MyString, Int] = new()
+  let m : HashMap[MyString, Int] = new()
   m.set("a", 1)
   m.set("ab", 2)
   m.set("bc", 2)
@@ -570,30 +755,30 @@ test "remove" {
   m.set("abc", 3)
   m.set("abcdef", 6)
   m.remove("ab")
-  assert_eq(m.size(), 5)
-  inspect(
-    m.debug_entries(),
-    content="_,(0,a,1),(0,bc,2),(1,cd,2),(1,abc,3),_,(0,abcdef,6),_,_,_,_,_,_,_,_,_",
-  )
+  inspect(m.length(), content="5")
+  // inspect(
+  //   m._debug_entries(),
+  //   content="_,(0,a,1),(0,bc,2),(1,cd,2),(1,abc,3),_,(0,abcdef,6),_,_,_,_,_,_,_,_,_",
+  // )
 }
 
 ///|
 test "remove_unexist_key" {
-  let m : T[MyString, Int] = new()
+  let m : HashMap[MyString, Int] = new()
   m.set("a", 1)
   m.set("ab", 2)
   m.set("abc", 3)
   m.remove("d")
-  assert_eq(m.size(), 3)
-  inspect(m.debug_entries(), content="_,(0,a,1),(0,ab,2),(0,abc,3),_,_,_,_")
+  inspect(m.length(), content="3")
+  // inspect(m._debug_entries(), content="_,(0,a,1),(0,ab,2),(0,abc,3),_,_,_,_")
 }
 
 ///|
 test "clear" {
-  let m : T[MyString, Int] = of([("a", 1), ("b", 2), ("c", 3)])
+  let m : HashMap[MyString, Int] = from_array([("a", 1), ("b", 2), ("c", 3)])
   m.clear()
-  assert_eq(m.size(), 0)
-  assert_eq(m.capacity(), 8)
+  inspect(m.length(), content="0")
+  inspect(m.capacity(), content="8")
   for i in 0..<m.capacity() {
     @test.same_object(m.entries[i], None)
   }
@@ -601,32 +786,43 @@ test "clear" {
 
 ///|
 test "grow" {
-  let m : T[MyString, Int] = new()
+  let m : HashMap[MyString, Int] = new()
   m.set("C", 1)
   m.set("Go", 2)
   m.set("C++", 3)
   m.set("Java", 4)
   m.set("Scala", 5)
   m.set("Julia", 5)
-  assert_eq(m.size(), 6)
+  inspect(m.length(), content="6")
   inspect(m.capacity(), content="16")
   m.set("Cobol", 5)
-  assert_eq(m.size(), 7)
+  inspect(m.length(), content="7")
   inspect(m.capacity(), content="16")
   m.set("Python", 6)
   m.set("Haskell", 7)
   m.set("Rescript", 8)
-  assert_eq(m.size(), 10)
+  inspect(m.length(), content="10")
   inspect(m.capacity(), content="32")
-  inspect(
-    m.debug_entries(),
-    content="_,(0,C,1),(0,Go,2),(0,C++,3),(0,Java,4),(0,Scala,5),(1,Julia,5),(2,Cobol,5),(2,Python,6),(2,Haskell,7),(2,Rescript,8),_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_",
-  )
+  inspect(m.get("C"), content="Some(1)")
+  inspect(m.get("Go"), content="Some(2)")
+  inspect(m.get("C++"), content="Some(3)")
+  inspect(m.get("Java"), content="Some(4)")
+  inspect(m.get("Scala"), content="Some(5)")
+  inspect(m.get("Julia"), content="Some(5)")
+  inspect(m.get("Cobol"), content="Some(5)")
+  inspect(m.get("Python"), content="Some(6)")
+  inspect(m.get("Haskell"), content="Some(7)")
+  inspect(m.get("Rescript"), content="Some(8)")
+  // Only for debugging
+  // inspect(
+  //   m._debug_entries(),
+  //   content="_,(0,C,1),(0,Go,2),(0,C++,3),(0,Java,4),(0,Scala,5),(1,Julia,5),(2,Cobol,5),(2,Python,6),(2,Haskell,7),(2,Rescript,8),_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_",
+  // )
 }
 
 ///|
 test "get_or_init" {
-  let m : T[MyString, Int] = new()
+  let m : HashMap[MyString, Int] = new()
   inspect(m.get_or_init("a", () => 1), content="1")
   inspect(m.get("a"), content="Some(1)")
   inspect(m.get_or_init("a", () => 2), content="1")

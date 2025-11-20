@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///|
 // Similar to Iter but used for two values
 // It is useful for iterating over map entries
 // without boxing
@@ -20,13 +19,16 @@
 // ```
 //    for k, v in map { ... }
 // ```
-type Iter2[A, B] ((A, B) -> IterResult) -> IterResult
 
 ///|
+struct Iter2[A, B](((A, B) -> IterResult) -> IterResult)
+
 //TODO: Add intrinsic for Iter::run
+
+///|
 pub fn[A, B] Iter2::run(
   self : Iter2[A, B],
-  f : (A, B) -> IterResult
+  f : (A, B) -> IterResult,
 ) -> IterResult {
   self(f)
 }
@@ -36,7 +38,7 @@ pub impl[A : Show, B : Show] Show for Iter2[A, B] with output(self, logger) {
   logger.write_string("[")
   let mut first = true
   for k, v in self {
-    if not(first) {
+    if !first {
       // AI: support !first ?
       logger.write_string(", ")
     } else {
@@ -54,7 +56,7 @@ pub impl[A : Show, B : Show] Show for Iter2[A, B] with output(self, logger) {
 
 ///|
 pub fn[A, B] Iter2::new(
-  f : ((A, B) -> IterResult) -> IterResult
+  f : ((A, B) -> IterResult) -> IterResult,
 ) -> Iter2[A, B] {
   Iter2(f)
 }
@@ -112,10 +114,10 @@ pub fn[A, B] Iter2::to_array(self : Iter2[A, B]) -> Array[(A, B)] {
 /// ```
 pub fn[A, B] Iter2::concat(
   self : Iter2[A, B],
-  other : Iter2[A, B]
+  other : Iter2[A, B],
 ) -> Iter2[A, B] {
   yield_ => {
-    guard self.run(yield_) == IterContinue else { IterEnd }
+    guard self.run(yield_) is IterContinue else { IterEnd }
     other.run(yield_)
   }
 }

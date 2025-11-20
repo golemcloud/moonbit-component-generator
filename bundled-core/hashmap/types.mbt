@@ -32,13 +32,14 @@ priv struct Entry[K, V] {
 /// # Example
 ///
 /// ```mbt
-///   let map = @hashmap.of([(3, "three"), (8, "eight"), (1, "one")])
+///   let map = @hashmap.from_array([(3, "three"), (8, "eight"), (1, "one")])
 ///   assert_eq(map.get(2), None)
 ///   assert_eq(map.get(3), Some("three"))
 ///   map.set(3, "updated")
 ///   assert_eq(map.get(3), Some("updated"))
 /// ```
-struct T[K, V] {
+#alias(T, deprecated)
+struct HashMap[K, V] {
   mut entries : FixedArray[Entry[K, V]?]
   mut capacity : Int
   mut capacity_mask : Int // capacity_mask = capacity - 1, used to find idx
@@ -49,9 +50,9 @@ struct T[K, V] {
 }
 
 ///|
-pub impl[K : Hash + Eq, V : Eq] Eq for T[K, V] with op_equal(
-  self : T[K, V],
-  that : T[K, V]
+pub impl[K : Hash + Eq, V : Eq] Eq for HashMap[K, V] with equal(
+  self : HashMap[K, V],
+  that : HashMap[K, V],
 ) -> Bool {
   guard self.size == that.size else { return false }
   for k, v in self {

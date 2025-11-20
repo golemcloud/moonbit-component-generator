@@ -58,7 +58,7 @@ pub fn[T] ignore(t : T) -> Unit = "%ignore"
 pub fn[T] physical_equal(a : T, b : T) -> Bool = "%refeq"
 
 ///|
-pub fnalias @abort.abort
+pub using @abort {abort}
 
 ///|
 pub fn[T] panic() -> T = "%panic"
@@ -102,7 +102,7 @@ pub fn not(x : Bool) -> Bool = "%bool_not"
 ///   inspect(true == false, content="false")
 ///   inspect(false == false, content="true")
 /// ```
-pub impl Eq for Bool with op_equal(self : Bool, other : Bool) -> Bool = "%bool_eq"
+pub impl Eq for Bool with equal(self : Bool, other : Bool) -> Bool = "%bool_eq"
 
 ///|
 /// Compares two boolean values and returns their relative order. This is a
@@ -132,7 +132,7 @@ pub impl Eq for Bool with op_equal(self : Bool, other : Bool) -> Bool = "%bool_e
 ///   inspect(t.compare(t), content="0")
 /// ```
 ///
-#deprecated("Use `compare` instead")
+#deprecated("Use `compare` instead", skip_current_package=false)
 #coverage.skip
 pub fn Bool::op_compare(self : Bool, other : Bool) -> Int = "%bool_compare"
 
@@ -195,7 +195,7 @@ pub impl Default for Bool with default() = "%bool_default"
 ///   inspect(42, content="42")
 ///   inspect(--2147483647, content="2147483647") // negating near min value
 /// ```
-pub impl Neg for Int with op_neg(self) = "%i32_neg"
+pub impl Neg for Int with neg(self) = "%i32_neg"
 
 ///|
 /// Adds two 32-bit signed integers. Performs two's complement arithmetic, which
@@ -217,7 +217,7 @@ pub impl Neg for Int with op_neg(self) = "%i32_neg"
 ///   inspect(42 + 1, content="43")
 ///   inspect(2147483647 + 1, content="-2147483648") // Overflow wraps around to minimum value
 /// ```
-pub impl Add for Int with op_add(self, other) = "%i32_add"
+pub impl Add for Int with add(self, other) = "%i32_add"
 
 ///|
 /// Performs subtraction between two 32-bit integers, following standard two's
@@ -240,7 +240,7 @@ pub impl Add for Int with op_add(self, other) = "%i32_add"
 ///   let max = 2147483647 // Int maximum value
 ///   inspect(max - -1, content="-2147483648") // Overflow case
 /// ```
-pub impl Sub for Int with op_sub(self, other) = "%i32_sub"
+pub impl Sub for Int with sub(self, other) = "%i32_sub"
 
 ///|
 /// Multiplies two 32-bit integers. This is the implementation of the `*`
@@ -262,7 +262,7 @@ pub impl Sub for Int with op_sub(self, other) = "%i32_sub"
 ///   let max = 2147483647 // Int.max_value
 ///   inspect(max * 2, content="-2") // Overflow wraps around
 /// ```
-pub impl Mul for Int with op_mul(self, other) = "%i32_mul"
+pub impl Mul for Int with mul(self, other) = "%i32_mul"
 
 ///|
 /// Performs integer division between two 32-bit integers. The result is
@@ -285,7 +285,7 @@ pub impl Mul for Int with op_mul(self, other) = "%i32_mul"
 ///   inspect(-10 / 3, content="-3")
 ///   inspect(10 / -3, content="-3")
 /// ```
-pub impl Div for Int with op_div(self, other) = "%i32_div"
+pub impl Div for Int with div(self, other) = "%i32_div"
 
 ///|
 /// Calculates the remainder of dividing one integer by another. The result
@@ -307,7 +307,7 @@ pub impl Div for Int with op_div(self, other) = "%i32_div"
 ///   inspect(-7 % 3, content="-1")
 ///   inspect(7 % -3, content="1")
 /// ```
-pub impl Mod for Int with op_mod(self, other) = "%i32_mod"
+pub impl Mod for Int with mod(self, other) = "%i32_mod"
 
 ///|
 /// Performs a bitwise NOT operation on a 32-bit integer. Flips each bit in the
@@ -348,7 +348,7 @@ pub fn Int::lnot(self : Int) -> Int = "%i32_lnot"
 ///   let y = 0xAA // 10101010
 ///   inspect(x & y, content="160") // 10100000 = 160
 /// ```
-pub fn Int::land(self : Int, other : Int) -> Int = "%i32_land"
+pub impl BitAnd for Int with land(self : Int, other : Int) -> Int = "%i32_land"
 
 ///|
 /// Performs a bitwise OR operation between two 32-bit integers. For each bit
@@ -370,7 +370,7 @@ pub fn Int::land(self : Int, other : Int) -> Int = "%i32_land"
 ///   let y = 0x0F0F // 0000_1111_0000_1111
 ///   inspect(x | y, content="65535") // 1111_1111_1111_1111 = 65535
 /// ```
-pub fn Int::lor(self : Int, other : Int) -> Int = "%i32_lor"
+pub impl BitOr for Int with lor(self : Int, other : Int) -> Int = "%i32_lor"
 
 ///|
 /// Performs a bitwise XOR operation between two integers.
@@ -391,7 +391,7 @@ pub fn Int::lor(self : Int, other : Int) -> Int = "%i32_lor"
 ///   inspect(x ^ y, content="65535") // 1111_1111_1111_1111
 ///   inspect(x ^ x, content="0") // XOR with self gives 0
 /// ```
-pub fn Int::lxor(self : Int, other : Int) -> Int = "%i32_lxor"
+pub impl BitXOr for Int with lxor(self : Int, other : Int) -> Int = "%i32_lxor"
 
 ///|
 /// Performs a left shift operation on a 32-bit integer. Shifts each bit in the
@@ -416,7 +416,7 @@ pub fn Int::lxor(self : Int, other : Int) -> Int = "%i32_lxor"
 ///   let y = -4
 ///   inspect(y << 2, content="-16") // Binary: 100 -> 10000
 /// ```
-pub impl Shl for Int with op_shl(self, other) = "%i32_shl"
+pub impl Shl for Int with shl(self, other) = "%i32_shl"
 
 ///|
 /// Performs an arithmetic right shift operation on an integer value. Shifts the
@@ -441,7 +441,7 @@ pub impl Shl for Int with op_shl(self, other) = "%i32_shl"
 ///   let p = 16
 ///   inspect(p >> 2, content="4") // Regular right shift for positive numbers
 /// ```
-pub impl Shr for Int with op_shr(self, other) = "%i32_shr"
+pub impl Shr for Int with shr(self, other) = "%i32_shr"
 
 ///|
 /// Performs a left shift operation on a 32-bit integer. Shifts each bit in the
@@ -465,7 +465,7 @@ pub impl Shr for Int with op_shr(self, other) = "%i32_shr"
 ///   inspect(y << 2, content="168") // Binary: 101010 -> 10101000
 /// ```
 ///
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int::lsl(self : Int, other : Int) -> Int = "%i32_shl"
 
@@ -491,7 +491,7 @@ pub fn Int::lsl(self : Int, other : Int) -> Int = "%i32_shl"
 ///   inspect(x << 3, content="8") // Equivalent to x << 3
 /// ```
 ///
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int::shl(self : Int, other : Int) -> Int = "%i32_shl"
 
@@ -517,7 +517,7 @@ pub fn Int::shl(self : Int, other : Int) -> Int = "%i32_shl"
 ///   inspect(unsigned >> 1, content="2147483646") // Using the recommended operator
 /// ```
 ///
-#deprecated("Use UInt type and infix operator `>>` instead")
+#deprecated("Use UInt type and infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int::lsr(self : Int, other : Int) -> Int {
   (self.reinterpret_as_uint() >> other).reinterpret_as_int()
@@ -543,7 +543,7 @@ pub fn Int::lsr(self : Int, other : Int) -> Int {
 ///   inspect(x >> 2, content="-4") // Right shift preserves sign bit
 /// ```
 ///
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int::asr(self : Int, other : Int) -> Int = "%i32_shr"
 
@@ -567,7 +567,7 @@ pub fn Int::asr(self : Int, other : Int) -> Int = "%i32_shr"
 ///   inspect(n >> 3, content="-128") // Preserves sign bit during right shift
 /// ```
 ///
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int::shr(self : Int, other : Int) -> Int = "%i32_shr"
 
@@ -635,7 +635,7 @@ pub fn Int::popcnt(self : Int) -> Int = "%i32_popcnt"
 ///   inspect(42 == 42, content="true")
 ///   inspect(42 == -42, content="false")
 /// ```
-pub impl Eq for Int with op_equal(self : Int, other : Int) -> Bool = "%i32_eq"
+pub impl Eq for Int with equal(self : Int, other : Int) -> Bool = "%i32_eq"
 
 ///|
 /// Compares two integers and returns their relative order.
@@ -661,6 +661,18 @@ pub impl Eq for Int with op_equal(self : Int, other : Int) -> Bool = "%i32_eq"
 ///   inspect(a.compare(a), content="0") // 42 = 42
 /// ```
 pub impl Compare for Int with compare(self, other) = "%i32_compare"
+
+///|
+pub impl Compare for Int with op_lt(x, y) = "%i32.lt"
+
+///|
+pub impl Compare for Int with op_le(x, y) = "%i32.le"
+
+///|
+pub impl Compare for Int with op_gt(x, y) = "%i32.gt"
+
+///|
+pub impl Compare for Int with op_ge(x, y) = "%i32.ge"
 
 ///|
 pub fn Int::is_pos(self : Int) -> Bool = "%i32_is_pos"
@@ -775,7 +787,7 @@ pub fn Int::reinterpret_as_uint(self : Int) -> UInt = "%i32.to_u32_reinterpret"
 ///   inspect(neg.reinterpret_as_uint(), content="4294967295") // 2^32 - 1
 /// ```
 ///
-#deprecated("Use `reinterpret_as_uint` instead")
+#deprecated("Use `reinterpret_as_uint` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int::to_uint(self : Int) -> UInt = "%i32.to_u32_reinterpret"
 // Double primitive ops
@@ -822,7 +834,7 @@ pub fn Int::to_uint64(self : Int) -> UInt64 {
 ///   inspect(--42.0, content="42")
 ///   inspect(-(0.0 / 0.0), content="NaN") // Negating NaN returns NaN
 /// ```
-pub impl Neg for Double with op_neg(self) = "%f64_neg"
+pub impl Neg for Double with neg(self) = "%f64_neg"
 
 ///|
 /// Adds two double-precision floating-point numbers together following IEEE 754
@@ -846,7 +858,7 @@ pub impl Neg for Double with op_neg(self) = "%f64_neg"
 ///   inspect(2.5 + 3.7, content="6.2")
 ///   inspect(1.0 / 0.0 + -1.0 / 0.0, content="NaN") // Infinity + -Infinity = NaN
 /// ```
-pub impl Add for Double with op_add(self, other) = "%f64_add"
+pub impl Add for Double with add(self, other) = "%f64_add"
 
 ///|
 /// Performs subtraction between two double-precision floating-point numbers.
@@ -867,7 +879,7 @@ pub impl Add for Double with op_add(self, other) = "%f64_add"
 ///   inspect(a - b, content="2")
 ///   inspect(0.0 / 0.0 - 1.0, content="NaN") // NaN - anything = NaN
 /// ```
-pub impl Sub for Double with op_sub(self, other) = "%f64_sub"
+pub impl Sub for Double with sub(self, other) = "%f64_sub"
 
 ///|
 /// Multiplies two double-precision floating-point numbers. This is the
@@ -895,7 +907,7 @@ pub impl Sub for Double with op_sub(self, other) = "%f64_sub"
 ///   let nan = 0.0 / 0.0 // NaN
 ///   inspect(nan * 1.0, content="NaN")
 /// ```
-pub impl Mul for Double with op_mul(self, other) = "%f64_mul"
+pub impl Mul for Double with mul(self, other) = "%f64_mul"
 
 ///|
 /// Performs division between two double-precision floating-point numbers.
@@ -923,7 +935,7 @@ pub impl Mul for Double with op_mul(self, other) = "%f64_mul"
 ///   inspect(-6.0 / 2.0, content="-3")
 ///   inspect(1.0 / 0.0, content="Infinity")
 /// ```
-pub impl Div for Double with op_div(self, other) = "%f64_div"
+pub impl Div for Double with div(self, other) = "%f64_div"
 
 ///|
 /// Calculates the square root of a double-precision floating-point number. For
@@ -971,7 +983,7 @@ pub fn Double::sqrt(self : Double) -> Double = "%f64_sqrt"
 ///   let nan = 0.0 / 0.0 // NaN
 ///   inspect(nan == nan, content="false") // Note: NaN equals itself in MoonBit
 /// ```
-pub impl Eq for Double with op_equal(self : Double, other : Double) -> Bool = "%f64_eq"
+pub impl Eq for Double with equal(self : Double, other : Double) -> Bool = "%f64_eq"
 
 ///|
 /// Tests for inequality between two double-precision floating-point numbers.
@@ -1024,6 +1036,18 @@ pub fn Double::op_neq(self : Double, other : Double) -> Bool = "%f64_ne"
 ///   inspect(a.compare(a), content="0") // 3.14 = 3.14
 /// ```
 pub impl Compare for Double with compare(self, other) = "%f64_compare"
+
+///|
+pub impl Compare for Double with op_lt(x, y) = "%f64.lt"
+
+///|
+pub impl Compare for Double with op_le(x, y) = "%f64.le"
+
+///|
+pub impl Compare for Double with op_gt(x, y) = "%f64.gt"
+
+///|
+pub impl Compare for Double with op_ge(x, y) = "%f64.ge"
 
 ///|
 /// Returns the default value for double-precision floating-point numbers (0.0).
@@ -1105,7 +1129,7 @@ pub fn Char::to_uint(self : Char) -> UInt {
 }
 
 ///|
-#deprecated("Use `Int::unsafe_to_char` instead, and use `Int::to_char` for safe conversion")
+#deprecated("Use `Int::unsafe_to_char` instead, and use `Int::to_char` for safe conversion", skip_current_package=false)
 pub fn Char::from_int(val : Int) -> Char = "%char_from_int"
 
 ///|
@@ -1128,7 +1152,7 @@ pub fn Char::from_int(val : Int) -> Char = "%char_from_int"
 ///   inspect(a == b, content="true")
 ///   inspect(a == c, content="false")
 /// ```
-pub impl Eq for Char with op_equal(self : Char, other : Char) -> Bool = "%char_eq"
+pub impl Eq for Char with equal(self : Char, other : Char) -> Bool = "%char_eq"
 
 ///|
 /// Compares two characters based on their Unicode code points. Returns a
@@ -1155,6 +1179,18 @@ pub impl Eq for Char with op_equal(self : Char, other : Char) -> Bool = "%char_e
 ///   inspect('a'.compare('a'), content="0")
 /// ```
 pub impl Compare for Char with compare(self, other) = "%char_compare"
+
+///|
+pub impl Compare for Char with op_lt(x, y) = "%i32.lt"
+
+///|
+pub impl Compare for Char with op_le(x, y) = "%i32.le"
+
+///|
+pub impl Compare for Char with op_gt(x, y) = "%i32.gt"
+
+///|
+pub impl Compare for Char with op_ge(x, y) = "%i32.ge"
 
 ///|
 /// Returns the default value for the `Char` type, which is the null character
@@ -1191,7 +1227,8 @@ pub impl Default for Char with default() = "%char_default"
 ///   let bytes = b"\x01\x02\x03"
 ///   inspect(bytes[1], content="b'\\x02'")
 /// ```
-pub fn Bytes::op_get(self : Bytes, idx : Int) -> Byte = "%bytes_get"
+#alias("_[_]")
+pub fn Bytes::at(self : Bytes, idx : Int) -> Byte = "%bytes_get"
 
 ///|
 /// Retrieves a byte at the specified index from a byte sequence without
@@ -1217,6 +1254,7 @@ pub fn Bytes::op_get(self : Bytes, idx : Int) -> Byte = "%bytes_get"
 /// ```
 ///
 #internal(unsafe, "Panic if index is out of bounds")
+#doc(hidden)
 pub fn Bytes::unsafe_get(self : Bytes, idx : Int) -> Byte = "%bytes.unsafe_get"
 
 ///|
@@ -1253,9 +1291,12 @@ pub fn Bytes::length(self : Bytes) -> Int = "%bytes_length"
 ///
 /// ```moonbit
 ///   let bytes = Bytes::make(3, b'\xFF')
-///   inspect(bytes, content=
-///   #|b"\xff\xff\xff"
-/// )
+///   inspect(
+///     bytes, 
+///     content=(
+///       #|b"\xff\xff\xff"
+///     ),
+///   )
 ///   let empty = Bytes::make(0, b'\x00')
 ///   inspect(empty, content="b\"\"")
 /// ```
@@ -1368,7 +1409,8 @@ pub fn UInt64::to_byte(self : UInt64) -> Byte {
 ///   let arr = FixedArray::make(3, 42)
 ///   inspect(arr[1], content="42")
 /// ```
-pub fn[T] FixedArray::op_get(self : FixedArray[T], idx : Int) -> T = "%fixedarray.get"
+#alias("_[_]")
+pub fn[T] FixedArray::at(self : FixedArray[T], idx : Int) -> T = "%fixedarray.get"
 
 ///|
 /// Retrieves an element from a fixed-size array at the specified index without
@@ -1393,39 +1435,17 @@ pub fn[T] FixedArray::op_get(self : FixedArray[T], idx : Int) -> T = "%fixedarra
 /// ```
 ///
 #internal(unsafe, "Panic if index is out of bounds")
+#doc(hidden)
 pub fn[T] FixedArray::unsafe_get(self : FixedArray[T], idx : Int) -> T = "%fixedarray.unsafe_get"
 
 ///|
 #internal(unsafe, "Panic if index is out of bounds")
+#doc(hidden)
 pub fn[T] FixedArray::unsafe_set(
   self : FixedArray[T],
   idx : Int,
-  val : T
+  val : T,
 ) -> Unit = "%fixedarray.unsafe_set"
-
-///|
-/// Sets a value at the specified index in a fixed-size array. The original value
-/// at that index is overwritten.
-///
-/// Parameters:
-///
-/// * `array` : The fixed-size array to modify.
-/// * `index` : The position in the array where the value will be set.
-/// * `value` : The new value to assign at the specified index.
-///
-/// Throws a runtime error if the index is out of bounds (less than 0 or greater
-/// than or equal to the length of the array).
-///
-/// Example:
-///
-/// ```moonbit
-///   let arr = [1, 2, 3]
-///   arr[1] = 42
-///   inspect(arr, content="[1, 42, 3]")
-/// ```
-///
-#intrinsic("%fixedarray.set")
-pub fn[T] FixedArray::op_set(self : FixedArray[T], idx : Int, val : T) -> Unit = "%fixedarray.set"
 
 ///|
 /// Sets the value at the specified index in a fixed-size array.
@@ -1447,6 +1467,7 @@ pub fn[T] FixedArray::op_set(self : FixedArray[T], idx : Int, val : T) -> Unit =
 ///   arr.set(1, 42)
 ///   inspect(arr[1], content="42")
 /// ```
+#alias("_[_]=_")
 pub fn[T] FixedArray::set(self : FixedArray[T], idx : Int, val : T) -> Unit = "%fixedarray.set"
 
 ///|
@@ -1518,38 +1539,21 @@ pub fn[T] FixedArray::make(len : Int, init : T) -> FixedArray[T] = "%fixedarray.
 ///   inspect("🤣".length(), content="2") // Emoji uses two UTF-16 code units
 ///   inspect("".length(), content="0") // Empty string
 /// ```
+#alias(charcode_length, deprecated)
 pub fn String::length(self : String) -> Int = "%string_length"
 
 ///|
-#deprecated("use `length` instead")
-pub fn String::charcode_length(self : String) -> Int = "%string_length"
-
-///|
-#deprecated("use `String::charcode_at` and `Int::to_char` instead")
-pub fn String::op_get(self : String, idx : Int) -> Char = "%string_get"
-
-///|
-/// Retrieves the character at the specified index in a string.
+/// Returns the UTF-16 code unit at the given index.
 ///
 /// Parameters:
 ///
 /// * `string` : The string to access.
-/// * `index` : The position in the string from which to retrieve the character.
+/// * `index` : The position in the string from which to retrieve the code unit.
 ///
-/// Returns a Unicode character at the specified position in the string.
-///
-/// Throws a runtime error if the index is negative or greater than or equal to
-/// the length of the string.
-///
-/// Example:
-///
-/// ```moonbit
-///   let s = "Hello, 世界"
-///   inspect(s.charcode_at(0), content="72")
-///   inspect(s.char_at(7), content="世")
-/// ```
-#deprecated("use `charcode_at` instead")
-pub fn String::get(self : String, idx : Int) -> Char = "%string_get"
+/// This method has O(1) complexity.
+#alias(charcode_at, deprecated)
+#alias("_[_]")
+pub fn String::at(self : String, idx : Int) -> Int = "%string_get"
 
 ///|
 /// Returns the UTF-16 code unit at a given position in the string without
@@ -1566,13 +1570,17 @@ pub fn String::get(self : String, idx : Int) -> Char = "%string_get"
 /// Example:
 ///
 /// ```moonbit
-///   let s = "Hello🤣"
-///   inspect(s.unsafe_charcode_at(0), content="72") // 'H'
-///   inspect(s.unsafe_charcode_at(5), content="55358") // First surrogate of 🤣
-///   inspect(s.unsafe_charcode_at(6), content="56611") // Second surrogate of 🤣
+///   let str = "B🤣🤣C"
+///   inspect(str.unsafe_charcode_at(0), content="66") // 'B'
+///   inspect(str.unsafe_charcode_at(1), content="55358") // First surrogate of 🤣
+///   inspect(str.unsafe_charcode_at(2), content="56611") // Second surrogate of 🤣
+///   inspect(str.unsafe_charcode_at(3), content="55358") // First surrogate of 🤣
+///   inspect(str.unsafe_charcode_at(4), content="56611") // Second surrogate of 🤣
+///   inspect(str.unsafe_charcode_at(5), content="67") // 'C'
 /// ```
-///
+/// TODO: rename to `unsafe_get`
 #internal(unsafe, "Panic if index is out of bounds.")
+#doc(hidden)
 pub fn String::unsafe_charcode_at(self : String, idx : Int) -> Int = "%string.unsafe_get"
 
 ///|
@@ -1594,7 +1602,7 @@ pub fn String::unsafe_charcode_at(self : String, idx : Int) -> Int = "%string.un
 ///   inspect(hello + world, content="Hello World!")
 ///   inspect("" + "abc", content="abc") // concatenating with empty string
 /// ```
-pub impl Add for String with op_add(self, other) = "%string_add"
+pub impl Add for String with add(self, other) = "%string_add"
 
 ///|
 /// Tests whether two strings are equal by comparing their characters.
@@ -1616,7 +1624,7 @@ pub impl Add for String with op_add(self, other) = "%string_add"
 ///   inspect(str1 == str2, content="true")
 ///   inspect(str1 == str3, content="false")
 /// ```
-pub impl Eq for String with op_equal(self : String, other : String) -> Bool = "%string_eq"
+pub impl Eq for String with equal(self : String, other : String) -> Bool = "%string_eq"
 
 ///|
 /// Returns the string itself without any modifications. This method is primarily
@@ -1636,8 +1644,9 @@ pub impl Eq for String with op_equal(self : String, other : String) -> Bool = "%
 /// ```
 pub fn String::to_string(self : String) -> String = "%string_to_string"
 
-///|
 // For internal use only
+
+///|
 priv type UnsafeMaybeUninit[_]
 
 ///|
@@ -1724,7 +1733,7 @@ pub fn UInt::reinterpret_as_int(self : UInt) -> Int = "%u32.to_i32_reinterpret"
 ///   inspect(b.reinterpret_as_int(), content="-1") // becomes -1 when reinterpreted as Int
 /// ```
 ///
-#deprecated("Use `reinterpret_as_int` instead")
+#deprecated("Use `reinterpret_as_int` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt::to_int(self : UInt) -> Int = "%u32.to_i32_reinterpret"
 
@@ -1751,7 +1760,7 @@ pub fn UInt::to_int(self : UInt) -> Int = "%u32.to_i32_reinterpret"
 ///   let max = 4294967295U // UInt::max_value
 ///   inspect(max + 1U, content="0")
 /// ```
-pub impl Add for UInt with op_add(self, other) = "%u32.add"
+pub impl Add for UInt with add(self, other) = "%u32.add"
 
 ///|
 /// Performs subtraction between two unsigned 32-bit integers. When the result
@@ -1777,7 +1786,7 @@ pub impl Add for UInt with op_add(self, other) = "%u32.add"
 ///   let d = 5U
 ///   inspect(c - d, content="4294967294") // wraps around to 2^32 - 2
 /// ```
-pub impl Sub for UInt with op_sub(self, other) = "%u32.sub"
+pub impl Sub for UInt with sub(self, other) = "%u32.sub"
 
 ///|
 /// Performs multiplication between two unsigned 32-bit integers. The result
@@ -1801,7 +1810,7 @@ pub impl Sub for UInt with op_sub(self, other) = "%u32.sub"
 ///   let max = 4294967295U
 ///   inspect(max * 2U, content="4294967294") // Wraps around to max * 2 % 2^32
 /// ```
-pub impl Mul for UInt with op_mul(self, other) = "%u32.mul"
+pub impl Mul for UInt with mul(self, other) = "%u32.mul"
 
 ///|
 /// Performs division between two unsigned 32-bit integers. The operation follows
@@ -1822,7 +1831,7 @@ pub impl Mul for UInt with op_mul(self, other) = "%u32.mul"
 ///   let b = 5U
 ///   inspect(a / b, content="8") // Using infix operator
 /// ```
-pub impl Div for UInt with op_div(self, other) = "%u32.div"
+pub impl Div for UInt with div(self, other) = "%u32.div"
 
 ///|
 /// Calculates the remainder of dividing one unsigned integer by another.
@@ -1844,7 +1853,7 @@ pub impl Div for UInt with op_div(self, other) = "%u32.div"
 ///   inspect(a % b, content="2") // 17 divided by 5 gives quotient 3 and remainder 2
 ///   inspect(7U % 4U, content="3")
 /// ```
-pub impl Mod for UInt with op_mod(self, other) = "%u32.mod"
+pub impl Mod for UInt with mod(self, other) = "%u32.mod"
 
 ///|
 /// Compares two unsigned 32-bit integers for equality.
@@ -1865,7 +1874,7 @@ pub impl Mod for UInt with op_mod(self, other) = "%u32.mod"
 ///   inspect(a == b, content="true")
 ///   inspect(a == c, content="false")
 /// ```
-pub impl Eq for UInt with op_equal(self : UInt, other : UInt) -> Bool = "%u32.eq"
+pub impl Eq for UInt with equal(self : UInt, other : UInt) -> Bool = "%u32.eq"
 
 ///|
 /// Checks if two unsigned 32-bit integers are not equal.
@@ -1913,6 +1922,18 @@ pub fn UInt::op_neq(self : UInt, other : UInt) -> Bool = "%u32.ne"
 pub impl Compare for UInt with compare(self, other) = "%u32.compare"
 
 ///|
+pub impl Compare for UInt with op_lt(x, y) = "%u32.lt"
+
+///|
+pub impl Compare for UInt with op_le(x, y) = "%u32.le"
+
+///|
+pub impl Compare for UInt with op_gt(x, y) = "%u32.gt"
+
+///|
+pub impl Compare for UInt with op_ge(x, y) = "%u32.ge"
+
+///|
 /// Performs a bitwise AND operation between two unsigned 32-bit integers. For
 /// each bit position, the result is 1 if the bits at that position in both
 /// operands are 1, and 0 otherwise.
@@ -1932,7 +1953,7 @@ pub impl Compare for UInt with compare(self, other) = "%u32.compare"
 ///   let b = 0xFF00U // 1111_1111_0000_0000
 ///   inspect(a & b, content="61440") // 1111_0000_0000_0000 = 61440
 /// ```
-pub fn UInt::land(self : UInt, other : UInt) -> UInt = "%u32.bitand"
+pub impl BitAnd for UInt with land(self : UInt, other : UInt) -> UInt = "%u32.bitand"
 
 ///|
 /// Performs a bitwise OR operation between two unsigned 32-bit integers. For
@@ -1953,7 +1974,7 @@ pub fn UInt::land(self : UInt, other : UInt) -> UInt = "%u32.bitand"
 ///   let b = 0x0F0FU // Binary: 0000_1111_0000_1111
 ///   inspect(a | b, content="65535") // Binary: 1111_1111_1111_1111
 /// ```
-pub fn UInt::lor(self : UInt, other : UInt) -> UInt = "%u32.bitor"
+pub impl BitOr for UInt with lor(self : UInt, other : UInt) -> UInt = "%u32.bitor"
 
 ///|
 /// Performs a bitwise XOR (exclusive OR) operation between two unsigned 32-bit
@@ -1974,7 +1995,7 @@ pub fn UInt::lor(self : UInt, other : UInt) -> UInt = "%u32.bitor"
 ///   let b = 0x0F0FU // Binary: 0000_1111_0000_1111
 ///   inspect(a ^ b, content="61455") // Binary: 1111_0000_0000_1111
 /// ```
-pub fn UInt::lxor(self : UInt, other : UInt) -> UInt = "%u32.bitxor"
+pub impl BitXOr for UInt with lxor(self : UInt, other : UInt) -> UInt = "%u32.bitxor"
 
 ///|
 /// Performs a bitwise NOT operation on an unsigned 32-bit integer. Flips all
@@ -2021,7 +2042,7 @@ pub fn UInt::lnot(self : UInt) -> UInt = "%u32.bitnot"
 ///   inspect(y << 1, content="16") // Using the recommended operator
 /// ```
 ///
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt::lsl(self : UInt, shift : Int) -> UInt = "%u32.shl"
 
@@ -2045,7 +2066,7 @@ pub fn UInt::lsl(self : UInt, shift : Int) -> UInt = "%u32.shl"
 ///   inspect(x << 3, content="8") // Binary: 1 -> 1000
 /// ```
 ///
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt::shl(self : UInt, shift : Int) -> UInt = "%u32.shl"
 
@@ -2069,7 +2090,7 @@ pub fn UInt::shl(self : UInt, shift : Int) -> UInt = "%u32.shl"
 ///   inspect(x >> 4, content="251658240") // Using the recommended operator
 /// ```
 ///
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt::lsr(self : UInt, shift : Int) -> UInt = "%u32.shr"
 
@@ -2092,7 +2113,7 @@ pub fn UInt::lsr(self : UInt, shift : Int) -> UInt = "%u32.shr"
 ///   inspect(x >> 8, content="16711680") // 0x00FF0000
 /// ```
 ///
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt::shr(self : UInt, shift : Int) -> UInt = "%u32.shr"
 
@@ -2118,7 +2139,7 @@ pub fn UInt::shr(self : UInt, shift : Int) -> UInt = "%u32.shr"
 ///   let y = 0xFFFFFFFFU
 ///   inspect(y << 16, content="4294901760") // All bits after position 16 are discarded
 /// ```
-pub impl Shl for UInt with op_shl(self, shift) = "%u32.shl"
+pub impl Shl for UInt with shl(self, shift) = "%u32.shl"
 
 ///|
 /// Performs a logical right shift operation on an unsigned 32-bit integer. The
@@ -2145,7 +2166,7 @@ pub impl Shl for UInt with op_shl(self, shift) = "%u32.shl"
 ///   let x = 0xFF000000U
 ///   inspect(x >> 32, content="4278190080") // Same as x >> 0 due to masking
 /// ```
-pub impl Shr for UInt with op_shr(self, shift) = "%u32.shr"
+pub impl Shr for UInt with shr(self, shift) = "%u32.shr"
 
 ///|
 /// Counts the number of leading zero bits in an unsigned 32-bit integer,
@@ -2280,291 +2301,6 @@ pub fn UInt::to_byte(self : UInt) -> Byte {
 pub fn UInt::to_double(self : UInt) -> Double = "%u32.to_f64"
 
 ///|
-/// Performs unary negation on a 32-bit floating-point number. Returns the
-/// arithmetic inverse of the operand.
-///
-/// Parameters:
-///
-/// * `self` : The floating-point number to negate.
-///
-/// Returns a new floating-point number with the same magnitude but opposite sign
-/// as the input. Special cases:
-///
-/// * Negating NaN returns NaN
-/// * Negating +0.0 returns -0.0
-/// * Negating -0.0 returns +0.0
-/// * Negating +Infinity returns -Infinity
-/// * Negating -Infinity returns +Infinity
-///
-/// Example:
-///
-/// ```moonbit
-///   let f = 3.14.to_float()
-///   inspect((-f).to_double(), content="-3.140000104904175")
-///   let zero = 0.0.to_float()
-///   inspect((-zero).to_double(), content="0")
-/// ```
-pub impl Neg for Float with op_neg(self) = "%f32.neg"
-
-///|
-/// Performs addition between two single-precision floating-point numbers.
-///
-/// Parameters:
-///
-/// * `self` : The first floating-point operand.
-/// * `other` : The second floating-point operand to be added to the first
-/// operand.
-///
-/// Returns a single-precision floating-point number representing the sum of the
-/// two operands.
-///
-/// Example:
-///
-/// ```moonbit
-///   let a = 3.14.to_float()
-///   let b = 2.86.to_float()
-///   let sum = a + b
-///   inspect(sum.to_double(), content="6")
-/// ```
-pub impl Add for Float with op_add(self, other) = "%f32.add"
-
-///|
-/// Performs subtraction between two single-precision floating-point numbers.
-///
-/// Parameters:
-///
-/// * `self` : The first floating-point number (minuend).
-/// * `other` : The second floating-point number (subtrahend).
-///
-/// Returns a new floating-point number representing the difference between
-/// `self` and `other`.
-///
-/// Example:
-///
-/// ```moonbit
-///   let x = 3.14.to_float()
-///   let y = 1.0.to_float()
-///   let result = x - y
-///   inspect(result.to_double(), content="2.140000104904175")
-/// ```
-pub impl Sub for Float with op_sub(self, other) = "%f32.sub"
-
-///|
-/// Performs multiplication between two single-precision floating-point numbers
-/// according to IEEE 754 rules.
-///
-/// Parameters:
-///
-/// * `self` : The first floating-point number operand.
-/// * `other` : The second floating-point number operand to multiply with the
-/// first.
-///
-/// Returns a single-precision floating-point number that is the product of the
-/// two operands.
-///
-/// Example:
-///
-/// ```moonbit
-///   let x = Int::to_float(2)
-///   let y = Int::to_float(3)
-///   let z = x * y
-///   inspect(z.to_double(), content="6")
-/// ```
-pub impl Mul for Float with op_mul(self, other) = "%f32.mul"
-
-///|
-/// Performs division between two 32-bit floating-point numbers according to IEEE
-/// 754 rules.
-///
-/// Parameters:
-///
-/// * `self` : The dividend floating-point number.
-/// * `other` : The divisor floating-point number.
-///
-/// Returns a new floating-point number representing the quotient of the
-/// division. Special cases follow IEEE 754 rules:
-///
-/// * Division by zero returns infinity (with the appropriate sign)
-/// * Division of zero by zero returns NaN
-/// * Division of infinity by infinity returns NaN
-///
-/// Example:
-///
-/// ```moonbit
-///   let a = 6.0.to_float()
-///   let b = 2.0.to_float()
-///   let result = (a / b).to_double()
-///   inspect(result, content="3")
-///   inspect((0.0.to_float() / 0.0.to_float()).to_double(), content="NaN")
-/// ```
-pub impl Div for Float with op_div(self, other) = "%f32.div"
-
-///|
-/// Calculates the square root of a floating-point number. For non-negative
-/// numbers, returns the principal square root. For negative numbers or NaN,
-/// returns NaN.
-///
-/// Parameters:
-///
-/// * `self` : The floating-point number whose square root is to be calculated.
-///
-/// Returns a 32-bit floating-point number representing the square root of the
-/// input value:
-///
-/// * For a positive number, returns its principal square root
-/// * For zero (positive or negative), returns zero with the same sign
-/// * For NaN or negative numbers, returns NaN
-///
-/// Example:
-///
-/// ```moonbit
-///   let x = 16.0.to_float()
-///   let root = x.sqrt()
-///   inspect(root.to_double(), content="4")
-///   let neg = (-4.0).to_float()
-///   let neg_root = neg.sqrt()
-///   inspect(neg_root.to_double(), content="NaN")
-/// ```
-pub fn Float::sqrt(self : Float) -> Float = "%f32.sqrt"
-
-///|
-/// Tests two floating-point numbers for equality. Follows IEEE 754 equality
-/// comparison rules, where NaN values are not equal to any value, including
-/// themselves.
-///
-/// Parameters:
-///
-/// * `self` : The first floating-point number to compare.
-/// * `other` : The second floating-point number to compare.
-///
-/// Returns `true` if both numbers are equal, `false` otherwise. Note that `-0.0`
-/// and `+0.0` are considered equal.
-///
-/// Example:
-///
-/// ```moonbit
-///   let x = 3.14
-///   let y = 3.14
-///   let z = 0.0 / 0.0 // NaN
-///   inspect(x == y, content="true")
-///   inspect(z == z, content="false") // NaN is not equal to itself
-/// ```
-pub impl Eq for Float with op_equal(self : Float, other : Float) -> Bool = "%f32.eq"
-
-///|
-/// Tests if two single-precision floating-point numbers are not equal. This
-/// operation follows IEEE 754 rules for floating-point comparison, including
-/// special handling of NaN values.
-///
-/// Parameters:
-///
-/// * `self` : The first floating-point number to compare.
-/// * `other` : The second floating-point number to compare.
-///
-/// Returns `true` if the two floating-point numbers are not equal, `false` if
-/// they are equal. Note that if either operand is NaN, the result is `true`.
-///
-/// Example:
-///
-/// ```moonbit
-///   let x = 1.0.to_float()
-///   let y = 2.0.to_float()
-///   let nan = (0.0 / 0.0).to_float()
-///   inspect(x != y, content="true")
-///   inspect(x != x, content="false")
-///   inspect(nan != nan, content="true") // NaN is not equal to itself
-/// ```
-pub fn Float::op_neq(self : Float, other : Float) -> Bool = "%f32.ne"
-
-///|
-/// Compares two 32-bit floating-point numbers and returns their relative order.
-///
-/// Parameters:
-///
-/// * `self` : The first floating-point number to compare.
-/// * `other` : The second floating-point number to compare.
-///
-/// Returns an integer indicating the relative order:
-///
-/// * A negative value if `self` is less than `other`
-/// * Zero if `self` equals `other`
-/// * A positive value if `self` is greater than `other`
-///
-/// Example:
-///
-/// ```moonbit
-///   let a = 3.14
-///   let b = 2.718
-///   inspect(a.compare(b), content="1") // 3.14 > 2.718
-///   inspect(b.compare(a), content="-1") // 2.718 < 3.14
-///   inspect(a.compare(a), content="0") // 3.14 = 3.14
-/// ```
-pub impl Compare for Float with compare(self, other) = "%f32.compare"
-
-///|
-/// Converts a 32-bit floating-point number to a double-precision (64-bit)
-/// floating-point number.
-///
-/// Parameters:
-///
-/// * `self` : The 32-bit floating-point number to be converted.
-///
-/// Returns a double-precision floating-point number that preserves the exact
-/// value of the input. Since double-precision has more bits than
-/// single-precision, this conversion is always exact and never loses precision.
-///
-/// Example:
-///
-/// ```moonbit
-///   let f = 3.14.to_float()
-///   inspect(f.to_double(), content="3.140000104904175")
-/// ```
-pub fn Float::to_double(self : Float) -> Double = "%f32.to_f64"
-
-///|
-/// Reinterprets the bits of a 32-bit floating-point number as a 32-bit signed
-/// integer without performing any numeric conversion. The bit pattern is
-/// preserved exactly, only the type interpretation changes.
-///
-/// Parameters:
-///
-/// * `self` : The 32-bit floating-point number whose bits are to be
-/// reinterpreted.
-///
-/// Returns a 32-bit signed integer that has the same bit pattern as the input
-/// floating-point number.
-///
-/// Example:
-///
-/// ```moonbit
-///   let f = 1.0.to_float()
-///   // IEEE 754 representation of 1.0 is 0x3F800000
-///   inspect(f.reinterpret_as_int(), content="1065353216")
-/// ```
-pub fn Float::reinterpret_as_int(self : Float) -> Int = "%f32.to_i32_reinterpret"
-
-///|
-/// Reinterprets the bits of a 32-bit floating-point number as an unsigned 32-bit
-/// integer without performing any numeric conversion. Preserves the exact bit
-/// pattern of the input value, only changing how these bits are interpreted.
-///
-/// Parameters:
-///
-/// * `float` : The 32-bit floating-point number whose bits are to be
-/// reinterpreted.
-///
-/// Returns an unsigned 32-bit integer (`UInt`) that has the same bit pattern as
-/// the input floating-point number.
-///
-/// Example:
-///
-/// ```moonbit
-///   let x : Float = 1.0
-///   inspect(x.reinterpret_as_uint(), content="1065353216") // Decimal representation of 0x3F800000
-/// ```
-pub fn Float::reinterpret_as_uint(self : Float) -> UInt = "%f32.to_i32_reinterpret"
-
-///|
 /// Converts an integer to a 32-bit floating-point number. The conversion is
 /// exact for small integers, but may lose precision for large integers due to
 /// the limited precision of the floating-point format.
@@ -2650,7 +2386,8 @@ pub fn UInt::reinterpret_as_float(self : UInt) -> Float = "%i32.to_f32_reinterpr
 /// ```
 pub fn Byte::to_float(self : Byte) -> Float = "%byte.to_f32"
 
-///| TODO: use intrinsics implement this
+///|
+/// TODO: use intrinsics implement this
 pub fn Byte::to_double(self : Byte) -> Double {
   self.to_int().to_double()
 }
@@ -2798,6 +2535,32 @@ pub fn UInt16::to_int(self : UInt16) -> Int = "%u16_to_i32"
 ///   inspect(x.to_byte(), content="b'\\x02'") // Only keeps 0000_0010
 /// ```
 pub fn UInt16::to_byte(self : UInt16) -> Byte = "%u16_to_byte"
+
+///|
+/// Converts a 32-bit unsigned integer to a 16-bit unsigned integer by truncating
+/// its value to fit within the range of 0 to 65535.
+///
+/// Parameters:
+///
+/// * `integer` : The 32-bit unsigned integer to be converted. Values outside the
+/// range of UInt16 will be truncated to fit.
+///
+/// Returns a 16-bit unsigned integer containing the lower 16 bits of the input
+/// value.
+///
+/// Example:
+///
+/// ```moonbit
+///   let n = 42U
+///   inspect(n.to_uint16(), content="42")
+///   let max = 4294967295U
+///   inspect(max.to_uint16(), content="65535") // -1 becomes max value of UInt16
+///   let large = 65536U
+///   inspect(large.to_uint16(), content="0") // Values wrap around
+/// ```
+pub fn UInt::to_uint16(self : UInt) -> UInt16 {
+  self.reinterpret_as_int().to_uint16()
+}
 
 ///|
 /// Converts a 32-bit signed integer to a 16-bit unsigned integer by truncating

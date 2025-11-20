@@ -58,11 +58,27 @@ test "stringview op_get" {
 }
 
 ///|
+test "stringview op_get iterator" {
+  let str = "Hello🤣🤣🤣"
+  let view = str.view(start_offset=1, end_offset=7)
+  inspect(view.iterator().nth(4).unwrap(), content="🤣")
+  inspect(view.iterator().nth(4).unwrap(), content="🤣")
+}
+
+///|
 test "stringview rev_get" {
   let str = "Hello🤣🤣🤣"
   let view = str.view(start_offset=1, end_offset=7)
   inspect(view.rev_iter().nth(0).unwrap(), content="🤣")
   inspect(view.rev_iter().nth(4).unwrap(), content="e")
+}
+
+///|
+test "stringview rev_get rev_iterator" {
+  let str = "Hello🤣🤣🤣"
+  let view = str.view(start_offset=1, end_offset=7)
+  inspect(view.rev_iterator().nth(0).unwrap(), content="🤣")
+  inspect(view.rev_iterator().nth(4).unwrap(), content="e")
 }
 
 ///|
@@ -309,6 +325,14 @@ test "stringview rev_iter" {
 }
 
 ///|
+test "stringview rev_iterator" {
+  let str = "hello🤣🤣🤣"
+  let view = str.view(start_offset=1, end_offset=7)
+  let iter = view.rev_iterator()
+  inspect(iter, content="['🤣', 'o', 'l', 'l', 'e']")
+}
+
+///|
 test "panic stringview negative index1" {
   let str = "hello🤣😭😂"
   let _ = str.view(start_offset=-9)
@@ -427,30 +451,6 @@ test "index_of_nth_char" {
   inspect(view.offset_of_nth_char(-4), content="Some(1)")
   inspect(view.offset_of_nth_char(-5), content="Some(0)")
   inspect(view.offset_of_nth_char(-6), content="None")
-}
-
-///|
-test "char_at" {
-  let str = "aa😭b😂cc"
-  let view = str.view(start_offset=1, end_offset=8)
-  inspect(view.char_at(0), content="a")
-  inspect(view.char_at(1), content="😭")
-  inspect(view.char_at(3), content="b")
-  inspect(view.char_at(4), content="😂")
-  inspect(view.char_at(6), content="c")
-}
-
-///|
-test "charcode_at" {
-  let str = "aa😭b😂cc"
-  let view = str.view(start_offset=1, end_offset=8)
-  inspect(view.charcode_at(0), content="97")
-  inspect(view.charcode_at(1), content="55357")
-  inspect(view.charcode_at(2), content="56877")
-  inspect(view.charcode_at(3), content="98")
-  inspect(view.charcode_at(4), content="55357")
-  inspect(view.charcode_at(5), content="56834")
-  inspect(view.charcode_at(6), content="99")
 }
 
 ///|
@@ -645,20 +645,36 @@ test "iter2" {
 }
 
 ///|
+test "iterator2" {
+  let str = "aa😭b😂cc"
+  let view = str.view(start_offset=1, end_offset=8)
+  inspect(
+    view.iterator2(),
+    content="[(0, 'a'), (1, '😭'), (2, 'b'), (3, '😂'), (4, 'c')]",
+  )
+}
+
+///|
 test "from_array" {
-  let v = View::from_array(['a', '😭', 'b', '😂', 'c'])
+  let v = StringView::from_array(['a', '😭', 'b', '😂', 'c'])
   inspect(v, content="a😭b😂c")
 }
 
 ///|
 test "from_iter" {
-  let v = View::from_iter(['a', '😭', 'b', '😂', 'c'].iter())
+  let v = StringView::from_iter(['a', '😭', 'b', '😂', 'c'].iter())
+  inspect(v, content="a😭b😂c")
+}
+
+///|
+test "from_iterator" {
+  let v = StringView::from_iterator(['a', '😭', 'b', '😂', 'c'].iterator())
   inspect(v, content="a😭b😂c")
 }
 
 ///|
 test "make" {
-  let v = View::make(5, 'a')
+  let v = StringView::make(5, 'a')
   inspect(v, content="aaaaa")
 }
 
@@ -667,9 +683,9 @@ test "to_json" {
   let v = "hello".view(start_offset=1, end_offset=4)
   inspect(
     v.to_json(),
-    content=
+    content=(
       #|String("ell")
-    ,
+    ),
   )
 }
 
@@ -680,4 +696,455 @@ test "hash" {
   let c = "abc"
   assert_eq(a.hash(), c.hash())
   assert_not_eq(a.hash(), b.hash())
+}
+
+///|
+/// This test checks the invariance that the hash of a string and its view are the same.
+/// 
+/// This is necessary because we may want to use a string view as a key in a hash map,
+/// and we need to ensure that the hash remains consistent with the original string.
+test "string view hash invariant" {
+  let strings : Array[String] = @quickcheck.samples(20)
+  for s in strings {
+    let view = s[:]
+    assert_eq(s.hash(), view.hash())
+  }
+}
+
+///|
+test "StringView::replace" {
+  inspect("hello"[:].replace(old="o", new="a"), content="hella")
+  inspect("hello"[:].replace(old="world", new="x"), content="hello")
+  inspect("abc"[:].replace(old="", new="x"), content="xabc")
+}
+
+///|
+test "StringView::repeat" {
+  inspect("ab"[:].repeat(1), content="ab")
+  inspect("ab"[:].repeat(0), content="")
+  inspect("ab"[:].repeat(-2), content="")
+}
+
+///|
+test "StringView::split take" {
+  inspect(
+    "a,b,c,d"[:].split(",").take(2).map(StringView::to_string).collect(),
+    content=(
+      #|["a", "b"]
+    ),
+  )
+}
+
+///|
+test "String::op_as_view basic usage" {
+  let str = "Hello🤣World"
+
+  // Basic usage - positive indices
+  let view1 = str[0:5]
+  inspect(view1, content="Hello")
+
+  // Negative indexing from end
+  let view2 = str[-5:]
+  inspect(view2, content="World")
+
+  // Full string view
+  let view3 = str[:]
+  inspect(view3, content="Hello🤣World")
+
+  // Start from middle
+  let view4 = str[5:]
+  inspect(view4, content="🤣World")
+
+  // End before middle
+  let view5 = str[:5]
+  inspect(view5, content="Hello")
+}
+
+///|
+test "String::op_as_view error cases" {
+  let str = "Hello🤣World"
+
+  // InvalidIndex - splits surrogate pair
+  let view1 = try? str[:6]
+  inspect(view1, content="Err(InvalidIndex)")
+
+  // IndexOutOfBounds - beyond string length
+  let view2 = try? str[0:20]
+  inspect(view2, content="Err(IndexOutOfBounds)")
+
+  // IndexOutOfBounds - negative index too large
+  let view3 = try? str[-20:]
+  inspect(view3, content="Err(IndexOutOfBounds)")
+
+  // IndexOutOfBounds - start > end
+  let view4 = try? str[5:3]
+  inspect(view4, content="Err(IndexOutOfBounds)")
+
+  // InvalidIndex - start on trailing surrogate
+  let view5 = try? str[6:8]
+  inspect(view5, content="Err(InvalidIndex)")
+}
+
+///|
+test "String::op_as_view with surrogate pairs" {
+  let str = "Hello🤣😭😂World"
+
+  // View containing complete emoji
+  let view1 = str[5:7]
+  inspect(view1, content="🤣")
+
+  // View containing multiple emojis
+  let view2 = str[5:11]
+  inspect(view2, content="🤣😭😂")
+
+  // View from middle of emoji sequence
+  let view3 = str[7:9]
+  inspect(view3, content="😭")
+
+  // Invalid - splits first emoji
+  let view4 = try? str[5:6]
+  inspect(view4, content="Err(InvalidIndex)")
+
+  // Invalid - splits second emoji
+  let view5 = try? str[7:8]
+  inspect(view5, content="Err(InvalidIndex)")
+}
+
+///|
+test "StringView::op_as_view basic usage" {
+  let str = "Hello🤣World"[1:-1] // "ello🤣Worl"
+
+  // Basic subview creation
+  let view1 = str[0:6]
+  inspect(view1, content="ello🤣")
+
+  // Negative indexing within view
+  let view2 = str[-2:]
+  inspect(view2, content="rl")
+
+  // Full view
+  let view3 = str[:]
+  inspect(view3, content="ello🤣Worl")
+
+  // Start from middle
+  let view4 = str[4:]
+  inspect(view4, content="🤣Worl")
+
+  // End before middle
+  let view5 = str[:4]
+  inspect(view5, content="ello")
+}
+
+///|
+test "StringView::op_as_view error cases" {
+  let str = "Hello🤣World"[1:-1] // "ello🤣Worl"
+
+  // IndexOutOfBounds - beyond view range
+  let view1 = try? str[0:15]
+  inspect(view1, content="Err(IndexOutOfBounds)")
+
+  // IndexOutOfBounds - negative index too large
+  let view2 = try? str[-20:]
+  inspect(view2, content="Err(IndexOutOfBounds)")
+
+  // IndexOutOfBounds - start > end
+  let view3 = try? str[5:3]
+  inspect(view3, content="Err(IndexOutOfBounds)")
+
+  // InvalidIndex - splits surrogate pair
+  let view4 = try? str[:5]
+  inspect(view4, content="Err(InvalidIndex)")
+
+  // IndexOutOfBounds - start beyond view
+  let view5 = try? str[11:]
+  inspect(view5, content="Err(IndexOutOfBounds)")
+}
+
+///|
+test "StringView::op_as_view with surrogate pairs" {
+  let str = "Hello🤣😭😂World"[1:-1] // "ello🤣😭😂Worl"
+
+  // View containing complete emoji
+  let view1 = str[4:6]
+  inspect(view1, content="🤣")
+
+  // View containing multiple emojis
+  let view2 = str[4:10]
+  inspect(view2, content="🤣😭😂")
+
+  // View from middle of emoji sequence
+  let view3 = str[6:8]
+  inspect(view3, content="😭")
+
+  // Invalid - splits first emoji
+  let view4 = try? str[4:5]
+  inspect(view4, content="Err(InvalidIndex)")
+
+  // Invalid - splits second emoji
+  let view5 = try? str[6:7]
+  inspect(view5, content="Err(InvalidIndex)")
+}
+
+///|
+test "nested StringView::op_as_view operations" {
+  let str = "Hello🤣World"
+
+  // Create first view
+  let view1 = str[1:-1] // "ello🤣Worl"
+  inspect(view1, content="ello🤣Worl")
+
+  // Create subview from first view
+  let view2 = view1[2:6] // "lo🤣"
+  inspect(view2, content="lo🤣")
+
+  // Create subview from second view
+  let view3 = view2[2:] // "🤣"
+  inspect(view3, content="🤣")
+
+  // Create subview with negative indexing
+  let view4 = view1[-4:-1] // "Wor"
+  inspect(view4, content="Wor")
+}
+
+///|
+test "StringView::op_as_view edge cases" {
+  let str = "Hello🤣World"
+
+  // Empty view at start
+  let view1 = str[0:0]
+  inspect(view1, content="")
+
+  // Empty view at end
+  let view2 = str[str.length():str.length()]
+  inspect(view2, content="")
+
+  // Single character view
+  let view3 = str[0:1]
+  inspect(view3, content="H")
+
+  // Single emoji view
+  let view4 = str[5:7]
+  inspect(view4, content="🤣")
+
+  // View with only ASCII characters
+  let view5 = str[0:5]
+  inspect(view5, content="Hello")
+}
+
+///|
+test "StringView::op_as_view with complex Unicode" {
+  let str = "Hello🤣😭😂🌍World"
+
+  // View with multiple emojis
+  let view1 = str[5:13]
+  inspect(view1, content="🤣😭😂🌍")
+
+  // View with mixed content
+  let view2 = str[4:14]
+  inspect(view2, content="o🤣😭😂🌍W")
+
+  // View ending with emoji
+  let view3 = str[-7:]
+  inspect(view3, content="🌍World")
+
+  // View starting with emoji
+  let view4 = str[5:]
+  inspect(view4, content="🤣😭😂🌍World")
+
+  // Invalid - splits emoji
+  let view5 = try? str[5:6]
+  inspect(view5, content="Err(InvalidIndex)")
+}
+
+///|
+test "StringView::op_as_view performance characteristics" {
+  let str = "Hello🤣World"
+
+  // Test that operations are O(1) - multiple operations
+  let view1 = str[1:-1]
+  let view2 = view1[1:-1]
+  let view3 = view2[1:-1]
+  let view4 = view3[1:-1]
+  inspect(view4, content="o🤣W")
+
+  // Test with longer string
+  let long_str = "Hello🤣WorldHello🤣WorldHello🤣World"
+  let long_view1 = long_str[5:15]
+  let long_view2 = long_view1[2:8]
+  inspect(long_view2, content="WorldH")
+}
+
+///|
+test "StringView::op_as_view with empty and single character strings" {
+  let empty_str = ""
+
+  // Empty string operations
+  let view1 = empty_str[:]
+  inspect(view1, content="")
+  let view2 = empty_str[0:0]
+  inspect(view2, content="")
+
+  // Single character string
+  let single_str = "A"
+  let view3 = single_str[:]
+  inspect(view3, content="A")
+  let view4 = single_str[0:1]
+  inspect(view4, content="A")
+  let view5 = single_str[0:0]
+  inspect(view5, content="")
+}
+
+///|
+test "StringView::op_as_view boundary validation" {
+  let str = "Hello🤣World"
+
+  // Test boundary conditions
+  let view1 = str[0:str.length()]
+  inspect(view1, content="Hello🤣World")
+  let view2 = str[str.length():str.length()]
+  inspect(view2, content="")
+
+  // Test negative boundary conditions
+  let view3 = str[-str.length():]
+  inspect(view3, content="Hello🤣World")
+  let view4 = str[-1:]
+  inspect(view4, content="d")
+
+  // Test invalid boundaries
+  let view5 = try? str[str.length() + 1:]
+  inspect(view5, content="Err(IndexOutOfBounds)")
+  let view6 = try? str[-str.length() - 1:]
+  inspect(view6, content="Err(IndexOutOfBounds)")
+}
+
+///|
+test "StringView add" {
+  let str = "Hello🤣World"
+  let view1 = str[0:5]
+  let view2 = str[5:]
+  inspect(view1 + view2, content="Hello🤣World")
+
+  // more tests
+  let view3 = str[0:5]
+  let view4 = str[5:]
+  inspect(view3 + view4, content="Hello🤣World")
+  let view5 = str[0:5]
+  let view6 = str[5:]
+  inspect(view5 + view6, content="Hello🤣World")
+  let view7 = str[0:5]
+  let view8 = str[5:]
+  inspect(view7 + view8, content="Hello🤣World")
+}
+
+// Added test to ensure StringView::op_get abort is covered
+// Accessing an index beyond the view length should panic
+// and cover the "Index out of bounds" branch in StringView::op_get.
+
+///|
+test "panic view op_get out of bounds" {
+  let str = "Hello"
+  let view = str.view(start_offset=0, end_offset=5)
+  view[5] |> ignore
+}
+
+// Added test to cover start index pointing to trailing surrogate
+// in StringView::op_as_view. Using a view that begins partway through a string
+// and attempting to create a subview starting on the trailing surrogate
+// of an emoji should raise `InvalidIndex`.
+
+///|
+test "StringView::op_as_view start on trailing surrogate" {
+  let base = "Hello🤣😭😂World"
+  let view = base[1:-1] // "ello🤣😭😂Worl"
+  let result = try? view[5:]
+  inspect(result, content="Err(InvalidIndex)")
+}
+
+///|
+test "stringview lexical_compare" {
+  // Test equal views
+  let str = "abc"
+  inspect(
+    str
+    .view(start_offset=0, end_offset=3)
+    .lexical_compare(str.view(start_offset=0, end_offset=3)),
+    content="0",
+  )
+
+  // Test identical views from different strings
+  let str1 = "abc"
+  let str2 = "abc"
+  inspect(str1.view().lexical_compare(str2.view()), content="0")
+
+  // Test lexicographically less than
+  inspect(
+    str.view(start_offset=0, end_offset=3).lexical_compare("abd".view()),
+    content="-1",
+  )
+  inspect("ab".view().lexical_compare("abc".view()), content="-1")
+  inspect("".view().lexical_compare("a".view()), content="-1")
+
+  // Test lexicographically greater than
+  inspect("abd".view().lexical_compare(str.view()), content="1")
+  inspect("abc".view().lexical_compare("ab".view()), content="1")
+  inspect("a".view().lexical_compare("".view()), content="1")
+
+  // Test different lengths with same prefix - Java behavior
+  // In lexicographical comparison, "ab" < "abc" (shorter string is less when it's a prefix)
+  inspect("ab".view().lexical_compare("abc".view()), content="-1")
+  inspect("abc".view().lexical_compare("ab".view()), content="1")
+
+  // Test case sensitivity
+  inspect("ABC".view().lexical_compare("abc".view()), content="-1") // uppercase letters have lower code points
+
+  // Test with numbers
+  inspect("123".view().lexical_compare("124".view()), content="-1")
+  inspect("124".view().lexical_compare("123".view()), content="1")
+
+  // Test with surrogate pairs (emoji)
+  let emoji1 = "🤣"
+  let emoji2 = "😭"
+  // Different emojis have different UTF-16 code units
+  inspect(emoji1.view().lexical_compare(emoji2.view()), content="1")
+  inspect(emoji2.view().lexical_compare(emoji1.view()), content="-1")
+  inspect(emoji1.view().lexical_compare(emoji1.view()), content="0")
+
+  // Test mixed ASCII and emoji
+  inspect("a🤣".view().lexical_compare("a😭".view()), content="1")
+  inspect("abc🤣".view().lexical_compare("abc".view()), content="1")
+  inspect("abc".view().lexical_compare("abc🤣".view()), content="-1")
+
+  // Test with views that have offsets
+  let long_str = "xyzabcdefghijkl"
+  inspect(
+    long_str
+    .view(start_offset=3, end_offset=6)
+    .lexical_compare(long_str.view(start_offset=3, end_offset=9)),
+    content="-1",
+  )
+  inspect(
+    long_str
+    .view(start_offset=3, end_offset=9)
+    .lexical_compare(long_str.view(start_offset=3, end_offset=6)),
+    content="1",
+  )
+
+  // Test views from different positions but same content
+  inspect(
+    long_str
+    .view(start_offset=3, end_offset=6)
+    .lexical_compare(long_str.view(start_offset=10, end_offset=13)),
+    content="-1",
+  ) // "abc" vs "jkl"
+
+  // Test empty views
+  inspect("".view().lexical_compare("".view()), content="0")
+
+  // Test comparing common prefixes with different suffixes
+  let str_a = "testing"
+  let str_b = "tested"
+  inspect(str_b.view().lexical_compare(str_a.view()), content="-1") // "tested" < "testing"
+
+  // Test comparison with special characters
+  inspect("hello!".view().lexical_compare("hello?".view()), content="-1") // '!' < '?'
 }

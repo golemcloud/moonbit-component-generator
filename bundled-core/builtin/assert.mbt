@@ -40,12 +40,13 @@ fn[T : Show] debug_string(t : T) -> String {
 ///   assert_eq(1, 1)
 ///   assert_eq("hello", "hello")
 /// ```
+#callsite(autofill(loc))
 #coverage.skip
 pub fn[T : Eq + Show] assert_eq(
   a : T,
   b : T,
   msg? : String,
-  loc~ : SourceLoc = _
+  loc~ : SourceLoc,
 ) -> Unit raise {
   if a != b {
     let fail_msg = match msg {
@@ -77,14 +78,15 @@ pub fn[T : Eq + Show] assert_eq(
 ///   assert_not_eq(1, 2) // Passes
 ///
 /// ```
+#callsite(autofill(loc))
 #coverage.skip
 pub fn[T : Eq + Show] assert_not_eq(
   a : T,
   b : T,
   msg? : String,
-  loc~ : SourceLoc = _
+  loc~ : SourceLoc,
 ) -> Unit raise {
-  if not(a != b) {
+  if !(a != b) {
     let fail_msg = match msg {
       Some(msg) => msg
       None => "`\{debug_string(a)} == \{debug_string(b)}`"
@@ -111,9 +113,10 @@ pub fn[T : Eq + Show] assert_not_eq(
 /// ```moonbit
 ///   assert_true(true)
 /// ```
+#callsite(autofill(loc))
 #coverage.skip
-pub fn assert_true(x : Bool, msg? : String, loc~ : SourceLoc = _) -> Unit raise {
-  if not(x) {
+pub fn assert_true(x : Bool, msg? : String, loc~ : SourceLoc) -> Unit raise {
+  if !x {
     let fail_msg = match msg {
       Some(msg) => msg
       None => "`\{x}` is not true"
@@ -141,12 +144,9 @@ pub fn assert_true(x : Bool, msg? : String, loc~ : SourceLoc = _) -> Unit raise 
 ///   assert_false(false)
 ///   assert_false(1 > 2)
 /// ```
+#callsite(autofill(loc))
 #coverage.skip
-pub fn assert_false(
-  x : Bool,
-  msg? : String,
-  loc~ : SourceLoc = _
-) -> Unit raise {
+pub fn assert_false(x : Bool, msg? : String, loc~ : SourceLoc) -> Unit raise {
   if x {
     let fail_msg = match msg {
       Some(msg) => msg

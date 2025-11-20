@@ -7,43 +7,44 @@ This package provides utilities for working with sequences of bytes, offering bo
 You can create `Bytes` from various sources including arrays, fixed arrays, and iterators:
 
 ```moonbit
+///|
 test "bytes creation" {
   // Create from array of bytes
   let arr = [b'h', b'e', b'l', b'l', b'o']
-  let bytes1 = @bytes.from_array(arr)
+  let bytes1 = Bytes::from_array(arr)
   inspect(
     bytes1,
-    content=
-      #|b"\x68\x65\x6c\x6c\x6f"
-    ,
+    content=(
+      #|b"hello"
+    ),
   )
 
   // Create from fixed array
   let fixed = FixedArray::make(3, b'a')
-  let bytes2 = @bytes.of(fixed)
+  let bytes2 = Bytes::from_array(fixed)
   inspect(
     bytes2,
-    content=
-      #|b"\x61\x61\x61"
-    ,
+    content=(
+      #|b"aaa"
+    ),
   )
 
   // Create empty bytes
   let empty = @bytes.default()
   inspect(
     empty,
-    content=
+    content=(
       #|b""
-    ,
+    ),
   )
 
   // Create from iterator
-  let iter_bytes = @bytes.from_iter(arr.iter())
+  let iter_bytes = Bytes::from_iter(arr.iter())
   inspect(
     iter_bytes,
-    content=
-      #|b"\x68\x65\x6c\x6c\x6f"
-    ,
+    content=(
+      #|b"hello"
+    ),
   )
 }
 ```
@@ -53,9 +54,10 @@ test "bytes creation" {
 `Bytes` can be converted to and from different formats:
 
 ```moonbit
+///|
 test "bytes conversion" {
   let original = [b'x', b'y', b'z']
-  let bytes = @bytes.from_array(original)
+  let bytes = Bytes::from_array(original)
 
   // Convert to array
   let array = bytes.to_array()
@@ -76,9 +78,10 @@ test "bytes conversion" {
 Views provide a way to work with portions of bytes and interpret them as various numeric types:
 
 ```moonbit
+///|
 test "bytes view operations" {
   // Create bytes with numeric data
-  let num_bytes = @bytes.from_array([0x12, 0x34, 0x56, 0x78])
+  let num_bytes = Bytes::from_array([0x12, 0x34, 0x56, 0x78])
 
   // Create a view
   let view = num_bytes[:]
@@ -103,14 +106,16 @@ test "bytes view operations" {
 Views provide methods to interpret byte sequences as various numeric types in both little-endian and big-endian formats:
 
 ```moonbit
+///|
 test "numeric interpretation" {
   // Create test data
-  let int64_bytes = @bytes.from_array([
+  let int64_bytes = Bytes::from_array([
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x42,
   ])
   let int64_view = int64_bytes[:]
   inspect(int64_view.to_int64_be(), content="66")
-  inspect(int64_view.to_uint64_le(), content="4755801206503243776")
+  guard int64_view is [u64le(x), ..]
+  inspect(x, content="4755801206503243776")
 }
 ```
 
@@ -119,22 +124,23 @@ test "numeric interpretation" {
 Bytes can be concatenated and compared:
 
 ```moonbit
+///|
 test "bytes operations" {
-  let b1 = @bytes.from_array([b'a', b'b'])
-  let b2 = @bytes.from_array([b'c', b'd'])
+  let b1 = Bytes::from_array([b'a', b'b'])
+  let b2 = Bytes::from_array([b'c', b'd'])
 
   // Concatenation
   let combined = b1 + b2
   inspect(
     combined,
-    content=
-      #|b"\x61\x62\x63\x64"
-    ,
+    content=(
+      #|b"abcd"
+    ),
   )
 
   // Comparison
-  let same = @bytes.from_array([b'a', b'b'])
-  let different = @bytes.from_array([b'x', b'y'])
+  let same = Bytes::from_array([b'a', b'b'])
+  let different = Bytes::from_array([b'x', b'y'])
   inspect(b1 == same, content="true")
   inspect(b1 == different, content="false")
   inspect(b1 < b2, content="true")

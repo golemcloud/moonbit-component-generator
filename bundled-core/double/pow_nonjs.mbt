@@ -13,13 +13,13 @@
 // limitations under the License.
 
 ///|
-let pow_bp : FixedArray[Double] = [1.0, 1.5]
+let pow_bp : ReadOnlyArray[Double] = [1.0, 1.5]
 
 ///|
-let pow_dp_h : FixedArray[Double] = [0.0, 5.84962487220764160156e-01]
+let pow_dp_h : ReadOnlyArray[Double] = [0.0, 5.84962487220764160156e-01]
 
 ///|
-let pow_dp_l : FixedArray[Double] = [0.0, 1.35003920212974897128e-08]
+let pow_dp_l : ReadOnlyArray[Double] = [0.0, 1.35003920212974897128e-08]
 
 ///|
 const ZERO = 0.0
@@ -128,8 +128,9 @@ const POW_ivln2_l = 1.92596299112661746887e-08
 ///   inspect(x.pow(0.0), content="1")
 ///   inspect((-1.0).pow(2.0), content="1")
 ///   inspect(0.0.pow(0.0), content="1")
-///   inspect(infinity.pow(-1.0), content="0")
+///   inspect(@double.infinity.pow(-1.0), content="0")
 /// ```
+#as_free_fn
 pub fn Double::pow(self : Double, other : Double) -> Double {
   fn set_low_word(d : Double, v : UInt) -> Double {
     let bits : UInt64 = d.reinterpret_as_uint64()

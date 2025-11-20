@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-type UninitializedArray[T] FixedArray[UnsafeMaybeUninit[T]]
+struct UninitializedArray[T](FixedArray[UnsafeMaybeUninit[T]])
 
 ///|
 /// Creates an uninitialized array of the specified size.
@@ -34,9 +34,10 @@ pub fn[T] UninitializedArray::make(size : Int) -> UninitializedArray[T] = "%fixe
 /// - `index` : The index of the element to retrieve.
 ///
 /// Returns the element at the specified index.
-pub fn[T] UninitializedArray::op_get(
+#alias("_[_]")
+pub fn[T] UninitializedArray::at(
   self : UninitializedArray[T],
-  index : Int
+  index : Int,
 ) -> T = "%fixedarray.get"
 
 ///|
@@ -47,10 +48,11 @@ pub fn[T] UninitializedArray::op_get(
 /// - `array` : The uninitialized array where the value will be set.
 /// - `index` : The position in the array where the value will be set.
 /// - `value` : The value to be set at the specified index.
-pub fn[T] UninitializedArray::op_set(
+#alias("_[_]=_")
+pub fn[T] UninitializedArray::set(
   self : UninitializedArray[T],
   index : Int,
-  value : T
+  value : T,
 ) = "%fixedarray.set"
 
 ///|
@@ -68,10 +70,11 @@ pub fn[T] UninitializedArray::op_set(
 ///
 /// Throws an error if the indices are out of bounds or if `start` is greater
 /// than `end`.
-pub fn[T] UninitializedArray::op_as_view(
+#alias("_[_:_]")
+pub fn[T] UninitializedArray::sub(
   self : UninitializedArray[T],
-  start~ : Int = 0,
-  end? : Int
+  start? : Int = 0,
+  end? : Int,
 ) -> ArrayView[T] {
   let len = self.length()
   let end = match end {
@@ -81,7 +84,7 @@ pub fn[T] UninitializedArray::op_as_view(
   guard start >= 0 && start <= end && end <= len else {
     abort("View start index out of bounds")
   }
-  { buf: self, start, len: end - start }
+  ArrayView::make(self, start, end - start)
 }
 
 ///|
@@ -99,32 +102,47 @@ pub fn[A] UninitializedArray::length(self : UninitializedArray[A]) -> Int {
 
 ///|
 #internal(unsafe, "For internal use only.")
+#doc(hidden)
 pub fn[T] UninitializedArray::unsafe_blit(
   dst : UninitializedArray[T],
   dst_offset : Int,
   src : UninitializedArray[T],
   src_offset : Int,
-  len : Int
+  len : Int,
 ) -> Unit {
-  FixedArray::unsafe_blit(dst.inner(), dst_offset, src.inner(), src_offset, len)
+  FixedArray::unsafe_blit(dst.0, dst_offset, src.0, src_offset, len)
 }
 
 ///|
-test "op_as_view with valid_range" {
+test "as_view with valid_range" {
   let arr : UninitializedArray[Int] = UninitializedArray::make(5)
   let view = arr[1:4]
-  inspect(view.start, content="1")
-  inspect(view.len, content="3")
+  inspect(view.start(), content="1")
+  inspect(view.len(), content="3")
 }
 
 ///|
-test "panic op_as_view with invalid_start" {
+test "panic as_view with invalid_start" {
   let arr : UninitializedArray[Int] = UninitializedArray::make(5)
   ignore(arr[-1:])
 }
 
 ///|
-test "panic op_as_view with invalid_end" {
+test "panic as_view with invalid_end" {
   let arr : UninitializedArray[Int] = UninitializedArray::make(5)
   ignore(arr[2:10])
+}
+
+///|
+#intrinsic("%fixedarray.fill")
+#cfg(not(target="js"))
+fn[T] UninitializedArray::unchecked_fill(
+  self : UninitializedArray[T],
+  start : Int,
+  value : T,
+  len : Int,
+) -> Unit {
+  for i in start..<(start + len) {
+    self[i] = value
+  }
 }

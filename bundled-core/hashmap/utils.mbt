@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-fn[K : Show, V : Show] debug_entries(self : T[K, V]) -> String {
+fn[K : Show, V : Show] HashMap::_debug_entries(self : HashMap[K, V]) -> String {
   for s = "", i = 0; i < self.entries.length(); {
     let s = if i > 0 { s + "," } else { s }
     match self.entries[i] {
@@ -38,12 +38,12 @@ fn[K : Show, V : Show] debug_entries(self : T[K, V]) -> String {
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([("a", 1), ("b", 2)])
+///   let map = @hashmap.from_array([("a", 1), ("b", 2)])
 ///   map.clear()
-///   inspect(map.size(), content="0")
+///   inspect(map.length(), content="0")
 ///   inspect(map.get("a"), content="None")
 /// ```
-pub fn[K, V] clear(self : T[K, V]) -> Unit {
+pub fn[K, V] HashMap::clear(self : HashMap[K, V]) -> Unit {
   self.entries.fill(None)
   self.size = 0
 }
@@ -61,13 +61,13 @@ pub fn[K, V] clear(self : T[K, V]) -> Unit {
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([(1, "one"), (2, "two")])
+///   let map = @hashmap.from_array([(1, "one"), (2, "two")])
 ///   let pairs = map.iter().to_array()
 ///   inspect(pairs.length(), content="2")
 ///   inspect(pairs.contains((1, "one")), content="true")
 ///   inspect(pairs.contains((2, "two")), content="true")
 /// ```
-pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
+pub fn[K, V] HashMap::iter(self : HashMap[K, V]) -> Iter[(K, V)] {
   Iter::new(yield_ => for entry in self.entries {
     if entry is Some({ key, value, .. }) {
       guard yield_((key, value)) is IterContinue else { break IterEnd }
@@ -75,6 +75,55 @@ pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
   } else {
     IterContinue
   })
+}
+
+///|
+/// Returns an iterator over the key-value pairs in the map.
+///
+/// Parameters:
+///
+/// * `map` : The hash map to iterate over.
+///
+/// Returns an iterator that yields tuples of `(key, value)` for each entry in
+/// the map, in unspecified order.
+///
+/// Example:
+///
+/// ```moonbit
+///   let map = @hashmap.from_array([(1, "one"), (2, "two")])
+///   let pairs = map.iterator().to_array()
+///   inspect(pairs.length(), content="2")
+///   inspect(pairs.contains((1, "one")), content="true")
+///   inspect(pairs.contains((2, "two")), content="true")
+/// ```
+pub fn[K, V] HashMap::iterator(self : HashMap[K, V]) -> Iterator[(K, V)] {
+  let mut i = 0
+  let len = self.entries.length()
+  Iterator::new(fn() {
+    while i < len {
+      let entry = self.entries.unsafe_get(i)
+      i += 1
+      if entry is Some({ key, value, .. }) {
+        return Some((key, value))
+      }
+    } else {
+      None
+    }
+  })
+}
+
+///|
+/// Returns an iterator over the key-value pairs in the map.
+///
+/// Parameters:
+///
+/// * `map` : The hash map to iterate over.
+///
+/// Returns an iterator that yields tuples of `(key, value)` for each entry in
+/// the map, in unspecified order.
+/// This is mainly used for `for _, _ in ..` loops.
+pub fn[K, V] HashMap::iterator2(self : HashMap[K, V]) -> Iterator2[K, V] {
+  self.iterator()
 }
 
 ///|
@@ -92,12 +141,12 @@ pub fn[K, V] iter(self : T[K, V]) -> Iter[(K, V)] {
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([(1, "one"), (2, "two")])
+///   let map = @hashmap.from_array([(1, "one"), (2, "two")])
 ///   let mut sum = 0
 ///   map.iter2().each((k, _) => { sum = sum + k })
 ///   inspect(sum, content="3")
 /// ```
-pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
+pub fn[K, V] HashMap::iter2(self : HashMap[K, V]) -> Iter2[K, V] {
   Iter2::new(yield_ => for entry in self.entries {
     if entry is Some({ key, value, .. }) {
       guard yield_(key, value) is IterContinue else { break IterEnd }
@@ -125,7 +174,7 @@ pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
 ///   let arr = [(1, "one"), (2, "two")]
 ///   let iter = Iter::new((yield_) => {
 ///     for pair in arr {
-///       if yield_(pair) == IterEnd {
+///       if yield_(pair) is IterEnd {
 ///         break IterEnd
 ///       }
 ///     } else {
@@ -136,9 +185,43 @@ pub fn[K, V] iter2(self : T[K, V]) -> Iter2[K, V] {
 ///   inspect(map.get(1), content="Some(\"one\")")
 ///   inspect(map.get(2), content="Some(\"two\")")
 /// ```
-pub fn[K : Hash + Eq, V] from_iter(iter : Iter[(K, V)]) -> T[K, V] {
+#as_free_fn
+pub fn[K : Hash + Eq, V] HashMap::from_iter(
+  iter : Iter[(K, V)],
+) -> HashMap[K, V] {
   let m = new()
   iter.each(e => m[e.0] = e.1)
+  m
+}
+
+///|
+/// Creates a new hash map from an iterator of key-value pairs.
+///
+/// Parameters:
+///
+/// * `iter` : An iterator that yields key-value pairs. The key type must
+/// implement both `Hash` and `Eq` traits.
+///
+/// Returns a new hash map containing all key-value pairs from the iterator. If
+/// the iterator yields multiple pairs with the same key, the later value will
+/// overwrite the earlier one.
+///
+/// Example:
+///
+/// ```moonbit
+///   let iter = Iterator::singleton((1, "one")) + Iterator::singleton((2, "two"))
+///   let map = @hashmap.from_iterator(iter)
+///   inspect(map.get(1), content="Some(\"one\")")
+///   inspect(map.get(2), content="Some(\"two\")")
+/// ```
+#as_free_fn
+pub fn[K : Hash + Eq, V] HashMap::from_iterator(
+  iter : Iterator[(K, V)],
+) -> HashMap[K, V] {
+  let m = new()
+  while iter.next() is Some((k, v)) {
+    m[k] = v
+  }
   m
 }
 
@@ -155,13 +238,17 @@ pub fn[K : Hash + Eq, V] from_iter(iter : Iter[(K, V)]) -> T[K, V] {
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([(1, "one"), (2, "two")])
+///   let map = @hashmap.from_array([(1, "one"), (2, "two")])
 ///   let arr = map.to_array()
-///   inspect(arr, content=
-///   #|[(2, "two"), (1, "one")]
-/// )
+///   arr.sort()
+///   inspect(
+///     arr, 
+///     content=(
+///       #|[(1, "one"), (2, "two")]
+///     ),
+///   )
 /// ```
-pub fn[K, V] to_array(self : T[K, V]) -> Array[(K, V)] {
+pub fn[K, V] HashMap::to_array(self : HashMap[K, V]) -> Array[(K, V)] {
   let mut i = 0
   let res = while i < self.capacity {
     if self.entries[i] is Some({ key, value, .. }) {
@@ -172,7 +259,7 @@ pub fn[K, V] to_array(self : T[K, V]) -> Array[(K, V)] {
   } else {
     []
   }
-  if not(res.is_empty()) {
+  if !res.is_empty() {
     let mut res_idx = 1
     while res_idx < res.length() && i < self.capacity {
       if self.entries[i] is Some({ key, value, .. }) {
@@ -197,10 +284,11 @@ pub fn[K, V] to_array(self : T[K, V]) -> Array[(K, V)] {
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([("a", 1), ("b", 2), ("c", 3)])
-///   inspect(map.size(), content="3")
+///   let map = @hashmap.from_array([("a", 1), ("b", 2), ("c", 3)])
+///   inspect(map.length(), content="3")
 /// ```
-pub fn[K, V] size(self : T[K, V]) -> Int {
+#alias(size, deprecated)
+pub fn[K, V] HashMap::length(self : HashMap[K, V]) -> Int {
   self.size
 }
 
@@ -219,10 +307,10 @@ pub fn[K, V] size(self : T[K, V]) -> Int {
 /// Example:
 ///
 /// ```moonbit
-///   let map : @hashmap.T[Int, String] = @hashmap.new(capacity=16)
+///   let map : @hashmap.HashMap[Int, String] = @hashmap.new(capacity=16)
 ///   inspect(map.capacity(), content="16")
 /// ```
-pub fn[K, V] capacity(self : T[K, V]) -> Int {
+pub fn[K, V] HashMap::capacity(self : HashMap[K, V]) -> Int {
   self.capacity
 }
 
@@ -239,12 +327,12 @@ pub fn[K, V] capacity(self : T[K, V]) -> Int {
 /// Example:
 ///
 /// ```moonbit
-///   let map : @hashmap.T[String, Int] = @hashmap.new()
+///   let map : @hashmap.HashMap[String, Int] = @hashmap.new()
 ///   inspect(map.is_empty(), content="true")
 ///   map.set("key", 42)
 ///   inspect(map.is_empty(), content="false")
 /// ```
-pub fn[K, V] is_empty(self : T[K, V]) -> Bool {
+pub fn[K, V] HashMap::is_empty(self : HashMap[K, V]) -> Bool {
   self.size == 0
 }
 
@@ -261,12 +349,19 @@ pub fn[K, V] is_empty(self : T[K, V]) -> Bool {
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([(1, "one"), (2, "two")])
-///   let mut result = ""
-///   map.each((k, v) => { result = result + "\{k}:\{v}," })
-///   inspect(result, content="2:two,1:one,")
+///   let map = @hashmap.from_array([(1, "one"), (2, "two")])
+///   let array = []
+///   map.each((k, v) => { array.push((k, v)) })
+///   array.sort()
+///   inspect(array, content=(
+///   #|[(1, "one"), (2, "two")]
+/// ))
 /// ```
-pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit) -> Unit {
+#locals(f)
+pub fn[K, V] HashMap::each(
+  self : HashMap[K, V],
+  f : (K, V) -> Unit raise?,
+) -> Unit raise? {
   for i in 0..<self.capacity {
     if self.entries[i] is Some({ key, value, .. }) {
       f(key, value)
@@ -278,6 +373,8 @@ pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit) -> Unit {
 /// Iterates over all key-value pairs in the map with their index, applying the
 /// given function to each element. The index starts from 0 and only counts
 /// non-empty entries.
+/// 
+/// Notice that the order of iteration is not guaranteed.
 ///
 /// Parameters:
 ///
@@ -287,16 +384,11 @@ pub fn[K, V] each(self : T[K, V], f : (K, V) -> Unit) -> Unit {
 ///  * The key of the current entry
 ///  * The value of the current entry
 ///
-/// Example:
-///
-/// ```moonbit
-///   let map = @hashmap.of([("a", 1), ("b", 2), ("c", 3)])
-///   let mut result = 0
-///   map.eachi((i, k, _) => { if k == "b" { result = i } })
-///   // "b" is at index 1
-///   inspect(result, content="2")
-/// ```
-pub fn[K, V] eachi(self : T[K, V], f : (Int, K, V) -> Unit) -> Unit {
+#locals(f)
+pub fn[K, V] HashMap::eachi(
+  self : HashMap[K, V],
+  f : (Int, K, V) -> Unit raise?,
+) -> Unit raise? {
   for i = 0, idx = 0; i < self.capacity; {
     match self.entries[i] {
       Some({ key, value, .. }) => {
@@ -310,6 +402,8 @@ pub fn[K, V] eachi(self : T[K, V], f : (Int, K, V) -> Unit) -> Unit {
 
 ///|
 /// Provides string representation for hash maps.
+/// 
+/// Notice that the order of key-value pairs in the output string is not guaranteed
 ///
 /// Parameters:
 ///
@@ -319,13 +413,12 @@ pub fn[K, V] eachi(self : T[K, V], f : (Int, K, V) -> Unit) -> Unit {
 /// Example:
 ///
 /// ```moonbit
-///   let map = @hashmap.of([(1, "one"), (2, "two")])
-///   inspect(map, content=
-///   #|HashMap::of([(2, "two"), (1, "one")])
-/// )
+///   let map = @hashmap.from_array([(1, "one"), (2, "two")])
+///   let array = map.to_array()
+///   assert_eq(map.to_string(), "HashMap::from_array(\{array})")
 /// ```
-pub impl[K : Show, V : Show] Show for T[K, V] with output(self, logger) {
-  logger.write_string("HashMap::of([")
+pub impl[K : Show, V : Show] Show for HashMap[K, V] with output(self, logger) {
+  logger.write_string("HashMap::from_array([")
   self.eachi((i, k, v) => {
     if i > 0 {
       logger.write_string(", ")
@@ -338,4 +431,130 @@ pub impl[K : Show, V : Show] Show for T[K, V] with output(self, logger) {
     ..write_string(")")
   })
   logger.write_string("])")
+}
+
+///|
+/// Returns an iterator over all keys in the hash map.
+///
+/// Parameters:
+///
+/// * `self` : The hash map to iterate over.
+///
+/// Returns an iterator that yields each key in the hash map in unspecified order.
+/// The keys are yielded in the same order as they appear in the internal storage.
+///
+/// Example:
+///
+/// ```moonbit
+///   let map = @hashmap.from_array([(1, "one"), (2, "two"), (3, "three")])
+///   let keys = map.keys().to_array()
+///   inspect(keys.length(), content="3")
+///   inspect(keys.contains(1), content="true")
+///   inspect(keys.contains(2), content="true")
+///   inspect(keys.contains(3), content="true")
+/// ```
+pub fn[K, V] HashMap::keys(self : HashMap[K, V]) -> Iter[K] {
+  Iter::new(yield_ => for entry in self.entries {
+    if entry is Some({ key, .. }) {
+      guard yield_(key) is IterContinue else { break IterEnd }
+    }
+  } else {
+    IterContinue
+  })
+}
+
+///|
+/// Returns an iterator over all values in the hash map.
+///
+/// Parameters:
+///
+/// * `self` : The hash map to iterate over.
+///
+/// Returns an iterator that yields each value in the hash map in unspecified order.
+/// The values are yielded in the same order as they appear in the internal storage.
+///
+/// Example:
+///
+/// ```moonbit
+///   let map = @hashmap.from_array([("a", 1), ("b", 2), ("c", 3)])
+///   let values = map.values().to_array()
+///   inspect(values.length(), content="3")
+///   inspect(values.contains(1), content="true")
+///   inspect(values.contains(2), content="true")
+///   inspect(values.contains(3), content="true")
+/// ```
+pub fn[K, V] HashMap::values(self : HashMap[K, V]) -> Iter[V] {
+  Iter::new(yield_ => for entry in self.entries {
+    if entry is Some({ value, .. }) {
+      guard yield_(value) is IterContinue else { break IterEnd }
+    }
+  } else {
+    IterContinue
+  })
+}
+
+///|
+/// Retains only the key-value pairs that satisfy the given predicate function.
+/// This method modifies the hash map in-place, removing all entries for which
+/// the predicate returns `false`.
+///
+/// Parameters:
+///
+/// * `self` : The hash map to be filtered.
+/// * `predicate` : A function that takes a key and value as arguments and returns
+/// `true` if the key-value pair should be kept, `false` if it should be removed.
+///
+/// Example:
+///
+/// ```moonbit
+///   let map = @hashmap.from_array([("a", 1), ("b", 2), ("c", 3), ("d", 4)])
+///   map.retain((_k, v) => v % 2 == 0)  // Keep only even values
+///   inspect(map.length(), content="2")
+///   inspect(map.get("a"), content="None")
+///   inspect(map.get("b"), content="Some(2)")
+///   inspect(map.get("c"), content="None")
+///   inspect(map.get("d"), content="Some(4)")
+/// ```
+#locals(f)
+pub fn[K, V] HashMap::retain(self : HashMap[K, V], f : (K, V) -> Bool) -> Unit {
+  let size = self.size
+  let mut j = 0
+  for i = 0; j < size; i = i + 1 {
+    while self.entries[i] is Some(entry) {
+      j = j + 1
+      if f(entry.key, entry.value) {
+        break
+      } else {
+        self.shift_back(i)
+        self.size -= 1
+      }
+    }
+  }
+}
+
+///|
+test "retain" {
+  // seed = 1827982181
+  let hashmap : HashMap[String, Int] = {
+    capacity: 8,
+    capacity_mask: 7,
+    size: 4,
+    entries: [
+      Some({ psl: 2, hash: 448974246, key: "c", value: 3 }),
+      Some({ psl: 2, hash: -136509641, key: "d", value: 4 }),
+      None,
+      None,
+      None,
+      None,
+      Some({ psl: 0, hash: 1614946358, key: "a", value: 1 }),
+      Some({ psl: 1, hash: -765931946, key: "b", value: 2 }),
+    ],
+  }
+  hashmap.retain((_k, v) => v % 2 == 0)
+  inspect(
+    hashmap.entries,
+    content=(
+      #|[None, None, None, None, None, None, Some({psl: 0, hash: -765931946, key: "b", value: 2}), Some({psl: 0, hash: -136509641, key: "d", value: 4})]
+    ),
+  )
 }

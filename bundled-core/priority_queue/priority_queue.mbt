@@ -20,8 +20,9 @@
 ///   let queue : @priority_queue.T[Int] = @priority_queue.new()
 ///   assert_eq(queue.length(), 0)
 /// ```
-pub fn[A] new() -> T[A] {
-  { len: 0, top: Nil }
+#as_free_fn
+pub fn[A] T::new() -> T[A] {
+  { len: 0, top: None }
 }
 
 ///|
@@ -29,31 +30,34 @@ pub fn[A] new() -> T[A] {
 ///
 /// # Example
 /// ```mbt
-///   let queue = @priority_queue.of([1, 2, 3, 4, 5])
+///   let queue = @priority_queue.from_array([1, 2, 3, 4, 5])
 ///   assert_eq(queue.length(), 5)
 /// ```
-pub fn[A : Compare] from_array(arr : Array[A]) -> T[A] {
-  // CR: bad formatting
+#as_free_fn
+#alias(of, deprecated="Use from_array instead")
+#as_free_fn(of, deprecated="Use from_array instead")
+pub fn[A : Compare] T::from_array(arr : ArrayView[A]) -> T[A] {
+  guard arr is [a0, ..] else { return new() }
   let len = arr.length()
-  for i = 0, acc = Node::Nil {
+  for i = 1, acc = { content: a0, sibling: None, child: None } {
     if i < len {
-      continue i + 1, meld(acc, Cons(content=arr[i], sibling=Nil, child=Nil))
+      continue i + 1, meld(acc, { content: arr[i], sibling: None, child: None })
     } else {
-      break { len, top: acc }
+      break { len, top: Some(acc) }
     }
   }
 }
 
 ///|
-fn[A] copy_node(x : Node[A]) -> Node[A] {
+fn[A] copy_node(x : Node[A]?) -> Node[A]? {
   match x {
-    Nil => Nil
-    Cons(_) as node =>
-      Cons(
-        content=node.content,
-        sibling=copy_node(node.sibling),
-        child=copy_node(node.child),
-      )
+    None => None
+    Some(node) =>
+      Some({
+        content: node.content,
+        sibling: copy_node(node.sibling),
+        child: copy_node(node.child),
+      })
   }
 }
 
@@ -62,46 +66,51 @@ fn[A] copy_node(x : Node[A]) -> Node[A] {
 ///
 /// # Example
 /// ```mbt
-/// let queue = @priority_queue.of([1, 2, 3, 4])
+/// let queue = @priority_queue.from_array([1, 2, 3, 4])
 /// let queue2 = queue.copy()
 /// inspect(queue2.length(), content="4")
 /// ```
-pub fn[A] copy(self : T[A]) -> T[A] {
+pub fn[A] T::copy(self : T[A]) -> T[A] {
   let new_que : T[A] = { len: self.len, top: copy_node(self.top) }
   new_que
 }
 
 ///|
-pub fn[A : Compare] to_array(self : T[A]) -> Array[A] {
+pub fn[A : Compare] T::to_array(self : T[A]) -> Array[A] {
   let arr = Array::new(capacity=self.len)
-  fn go(x : Node[A]) {
-    match x {
-      Cons(_) as x => {
-        arr.push(x.content)
-        go(x.sibling)
-        go(x.child)
+  let stack : Array[Node[A]?] = [self.top]
+  while stack.pop() is Some(node) {
+    match node {
+      None => ()
+      Some({ content, sibling, child }) => {
+        arr.push(content)
+        stack.push(sibling)
+        stack.push(child)
       }
-      Nil => ()
     }
   }
-
-  go(self.top)
-  arr.sort_by((x, y) => y.compare(x))
+  arr.sort()
+  arr.rev_inplace()
   arr
 }
 
 ///|
-pub fn[A : Compare] iter(self : T[A]) -> Iter[A] {
+pub fn[A : Compare] T::iter(self : T[A]) -> Iter[A] {
   Iter::new(yield_ => {
     let arr = self.to_array()
     for i in 0..<arr.length() {
-      if yield_(arr[i]) == IterEnd {
+      if yield_(arr[i]) is IterEnd {
         break IterEnd
       }
     } else {
       IterContinue
     }
   })
+}
+
+///|
+pub fn[A : Compare] T::iterator(self : T[A]) -> Iterator[A] {
+  self.to_array().iterator()
 }
 
 ///|
@@ -114,45 +123,60 @@ pub impl[A : ToJson + Compare] ToJson for T[A] with to_json(self) {
 }
 
 ///|
-pub fn[K : Compare] from_iter(iter : Iter[K]) -> T[K] {
+#as_free_fn
+pub fn[K : Compare] T::from_iter(iter : Iter[K]) -> T[K] {
   let s = new()
   iter.each(e => s.push(e))
   s
 }
 
 ///|
+#as_free_fn
+pub fn[K : Compare] T::from_iterator(iter : Iterator[K]) -> T[K] {
+  let s = new()
+  while iter.next() is Some(e) {
+    s.push(e)
+  }
+  s
+}
+
+///|
 fn[A : Compare] meld(x : Node[A], y : Node[A]) -> Node[A] {
-  match (x, y) {
-    (Nil, _) => y
-    (_, Nil) => x
-    (Cons(_) as x_top, Cons(_) as y_top) =>
-      if x_top.content > y_top.content {
-        y_top.sibling = x_top.child
-        x_top.child = y
-        x
-      } else {
-        x_top.sibling = y_top.child
-        y_top.child = x
-        y
-      }
+  if x.content > y.content {
+    y.sibling = x.child
+    x.child = Some(y)
+    x
+  } else {
+    x.sibling = y.child
+    y.child = Some(x)
+    y
   }
 }
 
 ///|
-fn[A : Compare] merges(x : Node[A]) -> Node[A] {
-  loop (x, Nil) {
-    (Nil, acc) => acc
-    (Cons(sibling=Nil, ..) as x, acc) => meld(acc, x)
-    (Cons(sibling=Cons(sibling=s2, ..) as s1, ..) as x, acc) => {
-      x.sibling = Nil
-      s1.sibling = Nil
+fn[A : Compare] merges(x : Node[A]?) -> Node[A]? {
+  let (x, acc) = match x {
+    None => return None
+    Some({ sibling: None, .. }) as x => return x
+    Some({ sibling: Some({ sibling: s2, .. } as s1), .. } as x) => {
+      x.sibling = None
+      s1.sibling = None
+      (s2, meld(x, s1))
+    }
+  }
+  loop (x, acc) {
+    (None, acc) => Some(acc)
+    (Some({ sibling: None, .. } as x), acc) => Some(meld(acc, x))
+    (Some({ sibling: Some({ sibling: s2, .. } as s1), .. } as x), acc) => {
+      x.sibling = None
+      s1.sibling = None
       continue (s2, meld(acc, meld(x, s1)))
     }
   }
 }
 
 ///|
-pub fn[A] length(self : T[A]) -> Int {
+pub fn[A] T::length(self : T[A]) -> Int {
   self.len
 }
 
@@ -161,15 +185,16 @@ pub fn[A] length(self : T[A]) -> Int {
 ///
 /// # Example
 /// ```mbt
-/// let queue = @priority_queue.of([1, 2, 3, 4])
+/// let queue = @priority_queue.from_array([1, 2, 3, 4])
 /// queue.unsafe_pop()
 /// inspect(queue.length(), content="3")
 /// ```
 #internal(unsafe, "Panic if the queue is empty.")
-pub fn[A : Compare] unsafe_pop(self : T[A]) -> Unit {
+#doc(hidden)
+pub fn[A : Compare] T::unsafe_pop(self : T[A]) -> Unit {
   self.top = match self.top {
-    Nil => abort("The PriorityQueue is empty!")
-    Cons(child~, ..) => merges(child)
+    None => abort("The PriorityQueue is empty!")
+    Some({ child, .. }) => merges(child)
   }
   self.len -= 1
 }
@@ -179,21 +204,20 @@ pub fn[A : Compare] unsafe_pop(self : T[A]) -> Unit {
 ///
 /// # Example
 /// ```mbt
-/// let queue = @priority_queue.of([1, 2, 3, 4])
+/// let queue = @priority_queue.from_array([1, 2, 3, 4])
 /// let first = queue.pop() // Some(4)
 /// inspect(first, content="Some(4)")
 /// inspect(queue.length(), content="3")
 /// ```
-pub fn[A : Compare] pop(self : T[A]) -> A? {
-  let result = self.peek()
-  self.top = match self.top {
-    Nil => Nil
-    Cons(child~, ..) => {
+pub fn[A : Compare] T::pop(self : T[A]) -> A? {
+  match self.top {
+    None => None
+    Some({ content, child, .. }) => {
       self.len -= 1
-      merges(child)
+      self.top = merges(child)
+      Some(content)
     }
   }
-  result
 }
 
 ///|
@@ -205,8 +229,12 @@ pub fn[A : Compare] pop(self : T[A]) -> A? {
 /// queue.push(1)
 /// assert_eq(queue.length(), 1)
 /// ```
-pub fn[A : Compare] push(self : T[A], value : A) -> Unit {
-  self.top = meld(self.top, Cons(content=value, sibling=Nil, child=Nil))
+pub fn[A : Compare] T::push(self : T[A], value : A) -> Unit {
+  let x = { content: value, sibling: None, child: None }
+  self.top = match self.top {
+    None => Some(x)
+    Some(top) => Some(meld(top, x))
+  }
   self.len += 1
 }
 
@@ -215,14 +243,14 @@ pub fn[A : Compare] push(self : T[A], value : A) -> Unit {
 ///
 /// # Example
 /// ```mbt
-///   let queue = @priority_queue.of([1, 2, 3, 4])
+///   let queue = @priority_queue.from_array([1, 2, 3, 4])
 ///   let first = queue.peek() // Some(4)
 ///   assert_eq(first, Some(4))
 /// ```
-pub fn[A] peek(self : T[A]) -> A? {
+pub fn[A] T::peek(self : T[A]) -> A? {
   match self.top {
-    Nil => None
-    Cons(content~, ..) => Some(content)
+    None => None
+    Some({ content, .. }) => Some(content)
   }
 }
 
@@ -231,12 +259,12 @@ pub fn[A] peek(self : T[A]) -> A? {
 ///
 /// # Example
 /// ```mbt
-/// let queue = @priority_queue.of([1, 2, 3, 4])
+/// let queue = @priority_queue.from_array([1, 2, 3, 4])
 /// queue.clear()
 /// assert_eq(queue.length(), 0)
 /// ```
-pub fn[A] clear(self : T[A]) -> Unit {
-  self.top = Nil
+pub fn[A] T::clear(self : T[A]) -> Unit {
+  self.top = None
   self.len = 0
 }
 
@@ -248,51 +276,32 @@ pub fn[A] clear(self : T[A]) -> Unit {
 ///   let queue : @priority_queue.T[Int] = @priority_queue.new()
 ///   assert_eq(queue.is_empty(), true)
 /// ```
-pub fn[A] is_empty(self : T[A]) -> Bool {
+pub fn[A] T::is_empty(self : T[A]) -> Bool {
   self.len == 0
 }
 
 ///|
-pub fn[A : Compare] of(arr : FixedArray[A]) -> T[A] {
-  // CR: bad formatting
-  let len = arr.length()
-  for i = 0, acc = Node::Nil {
-    if i < len {
-      continue i + 1, meld(acc, Cons(content=arr[i], sibling=Nil, child=Nil))
-    } else {
-      break { len, top: acc }
-    }
-  }
-}
-
-///|
-test "meld_and_merges" {
-  inspect(
-    match meld(Cons(content=1, sibling=Nil, child=Nil), Nil) {
-      Nil => false
-      Cons(..) => true
-    },
-    content="true",
-  )
-}
-
-///|
 pub impl[A : Show + Compare] Show for T[A] with output(self, logger) {
-  logger.write_iter(self.iter(), prefix="@priority_queue.of([", suffix="])")
+  logger.write_iter(
+    self.iter(),
+    prefix="@priority_queue.from_array([",
+    suffix="])",
+  )
 }
 
 ///|
 pub impl[X : @quickcheck.Arbitrary + Compare] @quickcheck.Arbitrary for T[X] with arbitrary(
   size,
-  rs
+  rs,
 ) {
-  let len : Int = if size == 0 { 0 } else { rs.next_positive_int() % size }
-  for i = 0, acc = Node::Nil {
+  let len = if size == 0 { 0 } else { rs.next_positive_int() % size }
+  guard len > 0 else { return new() }
+  for i = 1, acc = { content: X::arbitrary(0, rs), sibling: None, child: None } {
     if i < len {
       continue i + 1,
-        meld(acc, Cons(content=X::arbitrary(i, rs), sibling=Nil, child=Nil))
+        meld(acc, { content: X::arbitrary(i, rs), sibling: None, child: None })
     } else {
-      break { len, top: acc }
+      break { len, top: Some(acc) }
     }
   }
 }
@@ -302,11 +311,11 @@ test "priority queue arbitrary" {
   let samples : Array[T[Int]] = @quickcheck.samples(20)
   inspect(
     samples[5:10],
-    content="[@priority_queue.of([]), @priority_queue.of([]), @priority_queue.of([0]), @priority_queue.of([0, 0]), @priority_queue.of([3, 2, 1, 0, 0, 0, 0])]",
+    content="[@priority_queue.from_array([]), @priority_queue.from_array([]), @priority_queue.from_array([0]), @priority_queue.from_array([0, 0]), @priority_queue.from_array([3, 2, 1, 0, 0, 0, 0])]",
   )
   inspect(
     samples[11:15],
-    content="[@priority_queue.of([0, 0, 0, -1, -2]), @priority_queue.of([8, 4, 0, 0, 0, 0, 0, 0, -2, -5]), @priority_queue.of([2, 0, 0, -1]), @priority_queue.of([0, 0])]",
+    content="[@priority_queue.from_array([0, 0, 0, -1, -2]), @priority_queue.from_array([8, 4, 0, 0, 0, 0, 0, 0, -2, -5]), @priority_queue.from_array([2, 0, 0, -1]), @priority_queue.from_array([0, 0])]",
   )
 }
 

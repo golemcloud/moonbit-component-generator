@@ -36,35 +36,15 @@
 // The algorithm has been adapted and implemented independently in this code.
 
 ///|
-#deprecated("Use @cmp.maximum instead")
-pub fn[T : Compare] maximum(x : T, y : T) -> T {
-  if x > y {
-    x
-  } else {
-    y
-  }
-}
-
-///|
-#deprecated("Use @cmp.minimum instead")
-pub fn[T : Compare] minimum(x : T, y : T) -> T {
-  if x > y {
-    y
-  } else {
-    x
-  }
-}
-
-///|
 /// Calculates the cube root of a number.
 ///
 /// # Examples
 ///
 /// ```mbt
-///   assert_eq(@math.cbrtf(1), 1)
-///   assert_eq(@math.cbrtf(27), 3)
-///   assert_eq(@math.cbrtf(125), 5)
-///   assert_eq(@math.cbrtf(1000), 10)
+///   inspect(@math.cbrtf(1), content="1")
+///   inspect(@math.cbrtf(27), content="3")
+///   inspect(@math.cbrtf(125), content="5")
+///   inspect(@math.cbrtf(1000), content="10")
 /// ```
 pub fn cbrtf(x : Float) -> Float {
   let b1 : UInt = 709958130 // B1 = (127-127.0/3-0.03306235651)*2**23 */
@@ -125,9 +105,9 @@ pub fn cbrtf(x : Float) -> Float {
 /// # Examples
 ///
 /// ```mbt
-///   assert_eq(@math.hypotf(3, 4), 5)
-///   assert_eq(@math.hypotf(5, 12), 13)
-///   assert_eq(@math.hypotf(8, 15), 17)
+///   inspect(@math.hypotf(3, 4), content="5")
+///   inspect(@math.hypotf(5, 12), content="13")
+///   inspect(@math.hypotf(8, 15), content="17")
 /// ```
 pub fn hypotf(x : Float, y : Float) -> Float {
   let epsilon : Float = 1.1920928955078125e-7

@@ -16,9 +16,9 @@
 test "slice" {
   let v = [1, 2, 3, 4, 5]
   let s = v[1:4]
-  assert_eq(s.length(), 3)
-  assert_eq(s[0], 2)
-  assert_eq(s[1], 3)
+  inspect(s.length(), content="3")
+  inspect(s[0], content="2")
+  inspect(s[1], content="3")
 }
 
 ///|
@@ -27,7 +27,7 @@ test "each" {
   let s = v[2:5]
   let mut sum = 0
   s.each(x => sum = sum + x)
-  assert_eq(sum, 12)
+  inspect(sum, content="12")
 }
 
 ///|
@@ -63,7 +63,7 @@ test "contains" {
 }
 
 ///|
-test "op_equal" {
+test "equal" {
   let v1 = [1, 2, 3][:]
   let v2 = [1, 2, 3][:]
   assert_true(v1 == v2)
@@ -147,48 +147,28 @@ test "arrayview_rev_foldi" {
 test "arrayview_map" {
   let arr = [1, 2, 3]
   let mapped = arr[1:].map(x => x * 2)
-  assert_eq(mapped.length(), 2)
-  assert_eq(mapped[0], 4)
-  assert_eq(mapped[1], 6)
+  inspect(mapped.length(), content="2")
+  inspect(mapped[0], content="4")
+  inspect(mapped[1], content="6")
   @json.inspect(([1] : Array[Int])[1:].map(x => x), content=[])
-}
-
-///|
-test "arrayview_map_inplace" {
-  let arr = [1, 2, 3]
-  arr[1:].map_inplace(x => x * 2)
-  assert_eq(arr.length(), 3)
-  assert_eq(arr[0], 1)
-  assert_eq(arr[1], 4)
-  assert_eq(arr[2], 6)
 }
 
 ///|
 test "arrayview_mapi" {
   let arr = [1, 2, 3]
   let mapped = arr[1:].mapi((i, x) => i + x)
-  assert_eq(mapped.length(), 2)
-  assert_eq(mapped[0], 2)
-  assert_eq(mapped[1], 4)
+  inspect(mapped.length(), content="2")
+  inspect(mapped[0], content="2")
+  inspect(mapped[1], content="4")
   inspect(([1] : Array[Int])[1:].mapi((_idx, x) => x), content="[]")
-}
-
-///|
-test "arrayview_mapi_inplace" {
-  let arr = [1, 2, 3]
-  arr[1:].mapi_inplace((i, x) => i + x)
-  assert_eq(arr.length(), 3)
-  assert_eq(arr[0], 1)
-  assert_eq(arr[1], 2)
-  assert_eq(arr[2], 4)
 }
 
 ///|
 test "arrayview_filter" {
   let arr = [1, 2, 3, 4, 5]
   let filtered = arr[2:].filter(x => x % 2 == 0)
-  assert_eq(filtered.length(), 1)
-  assert_eq(filtered[0], 4)
+  inspect(filtered.length(), content="1")
+  inspect(filtered[0], content="4")
 }
 
 ///|
@@ -204,7 +184,7 @@ test "arrayview_to_array" {
 
 ///|
 test "arrayview_arbitrary" {
-  let arr : Array[View[Int]] = @quickcheck.samples(20)
+  let arr : Array[ArrayView[Int]] = @quickcheck.samples(20)
   inspect(arr[5:9], content="[[], [], [0], [0, 0]]")
   inspect(
     arr[10:15],
@@ -214,7 +194,58 @@ test "arrayview_arbitrary" {
 
 ///|
 test "arrayview_hash" {
-  let arr : Array[View[Int]] = @quickcheck.samples(20)
-  inspect(arr[5:9].hash(), content="-966877954")
-  inspect(arr[10:15].hash(), content="-951019668")
+  let arr : Array[ArrayView[Int]] = @quickcheck.samples(20)
+  inspect(
+    Hasher::new(seed=0)..combine(arr[5:9]).finalize(),
+    content="-966877954",
+  )
+  inspect(
+    Hasher::new(seed=0)..combine(arr[10:15]).finalize(),
+    content="-951019668",
+  )
+}
+
+///|
+test "arrayview hash invariant" {
+  let arr : Array[Array[Int]] = @quickcheck.samples(20)
+  for v in arr {
+    let view = v[:]
+    assert_eq(v.hash(), view.hash())
+  }
+}
+
+///|
+test "ArrayView::rev_iterator" {
+  let v = [1, 2, 3, 4, 5]
+  let view = v[1:4]
+  let iter = view.rev_iterator()
+  inspect(iter.to_array(), content="[4, 3, 2]")
+}
+
+///|
+test "ArrayView::rev_iterator empty" {
+  let v = [1, 2, 3]
+  let view = v[1:1]
+  let iter = view.rev_iterator()
+  assert_eq(iter.next(), None)
+}
+
+///|
+test "ArrayView::iterator2" {
+  let v = [10, 20, 30, 40, 50]
+  let view = v[1:4]
+  let iter = view.iterator2()
+  let results = []
+  while iter.next() is Some((i, x)) {
+    results.push((i, x))
+  }
+  inspect(results, content="[(0, 20), (1, 30), (2, 40)]")
+}
+
+///|
+test "ArrayView::iterator2 empty" {
+  let v = [1, 2, 3]
+  let view = v[2:2]
+  let iter = view.iterator2()
+  assert_eq(iter.next(), None)
 }

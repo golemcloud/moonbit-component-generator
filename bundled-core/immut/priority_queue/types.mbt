@@ -13,7 +13,8 @@
 // limitations under the License.
 
 ///|
-struct T[A] {
+#alias(T, deprecated)
+struct PriorityQueue[A] {
   node : Node[A]
   size : Int
 }
@@ -26,7 +27,9 @@ priv enum Node[A] {
 }
 
 ///|
-pub impl[A : ToJson + Compare] ToJson for T[A] with to_json(self : T[A]) {
+pub impl[A : ToJson + Compare] ToJson for PriorityQueue[A] with to_json(
+  self : PriorityQueue[A],
+) {
   // note here iter requires Compare 
   // This requires some investigation 
   // CR: this syntax feels less intuitive

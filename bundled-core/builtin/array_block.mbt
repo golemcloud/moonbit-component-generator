@@ -44,17 +44,18 @@
 /// ```
 ///
 #internal(unsafe, "Panic if the indices or length are out of bounds")
+#doc(hidden)
 pub fn[A] Array::unsafe_blit(
   dst : Array[A],
   dst_offset : Int,
   src : Array[A],
   src_offset : Int,
-  len : Int
+  len : Int,
 ) -> Unit {
   FixedArray::unsafe_blit(
-    dst.buffer().inner(),
+    dst.buffer().0,
     dst_offset,
-    src.buffer().inner(),
+    src.buffer().0,
     src_offset,
     len,
   )
@@ -91,7 +92,7 @@ pub fn[A] Array::unsafe_blit_fixed(
   dst_offset : Int,
   src : FixedArray[A],
   src_offset : Int,
-  len : Int
+  len : Int,
 ) -> Unit {
   UninitializedArray::unsafe_blit_fixed(
     dst.buffer(),
@@ -137,8 +138,8 @@ pub fn[A] Array::blit_to(
   self : Array[A],
   dst : Array[A],
   len~ : Int,
-  src_offset~ : Int = 0,
-  dst_offset~ : Int = 0
+  src_offset? : Int = 0,
+  dst_offset? : Int = 0,
 ) -> Unit {
   guard len >= 0 &&
     dst_offset >= 0 &&
@@ -157,10 +158,6 @@ test "Array::blit_to/basic" {
   let dst = [0, 0, 0, 0, 0]
   Array::blit_to(src, dst, len=3, src_offset=1, dst_offset=2)
   inspect(dst, content="[0, 0, 2, 3, 4]")
-}
-
-///|
-test "Array::blit_to/basic" {
   let src = [1, 2, 3, 4, 5]
   let dst = [0, 0, 0, 0, 0]
   Array::blit_to(src, dst, len=3)
@@ -205,20 +202,7 @@ test "Array::blit_to/edge_cases" {
 }
 
 ///|
-test "Array::blit_to/edge_cases" {
-  let src = [1, 2, 3, 4, 5]
-  let dst = [0, 0, 0, 0, 0]
-  // Test with len equal to 0
-  Array::blit_to(src, dst, len=0, src_offset=0, dst_offset=0)
-  inspect(dst, content="[0, 0, 0, 0, 0]")
-
-  // Test with len equal to the length of src
-  Array::blit_to(src, dst, len=5, src_offset=0, dst_offset=0)
-  inspect(dst, content="[1, 2, 3, 4, 5]")
-}
-
-///|
-test "panic Array::blit_to/boundary_cases" {
+test "panic Array::blit_to/boundary_cases1" {
   let src = [1, 2, 3, 4, 5]
   let dst = [0, 0, 0, 0, 0]
 
@@ -227,7 +211,7 @@ test "panic Array::blit_to/boundary_cases" {
 }
 
 ///|
-test "panic Array::blit_to/boundary_cases" {
+test "panic Array::blit_to/boundary_cases2" {
   let src = [1, 2, 3, 4, 5]
   let dst = [0, 0, 0, 0, 0]
   // Invalid src_offset
@@ -235,7 +219,7 @@ test "panic Array::blit_to/boundary_cases" {
 }
 
 ///|
-test "panic Array::blit_to/boundary_cases" {
+test "panic Array::blit_to/boundary_cases3" {
   let src = [1, 2, 3, 4, 5]
   let dst = [0, 0, 0, 0, 0]
   // len exceeding src length
@@ -243,14 +227,15 @@ test "panic Array::blit_to/boundary_cases" {
 }
 
 ///|
-test "panic Array::blit_to/boundary_cases" {
+test "panic Array::blit_to/boundary_cases4" {
   let src = [1, 2, 3, 4, 5]
   let dst = [0, 0, 0, 0, 0]
   // dst offset exceeding dst length
   ignore(Array::blit_to(src, dst, len=5, dst_offset=6))
 }
 
-///| TODO
+///|
+/// TODO
 /// 1. allow skip
 /// 2. verify test
 /// 3. concurrency test

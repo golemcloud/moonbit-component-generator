@@ -21,9 +21,9 @@ test "bytes literal" {
   let b : Bytes = "你好"
   inspect(
     b + "utf8" + HELLO,
-    content=
-      #|b"\xe4\xbd\xa0\xe5\xa5\xbd\x75\x74\x66\x38\xe4\xbd\xa0\xe5\xa5\xbd"
-    ,
+    content=(
+      #|b"\xe4\xbd\xa0\xe5\xa5\xbdutf8\xe4\xbd\xa0\xe5\xa5\xbd"
+    ),
   )
   // match ("你好,utf8" : Bytes) {
   //   // [_,_,_, .. rest] => inspect(rest, content="utf8")
@@ -32,41 +32,43 @@ test "bytes literal" {
   // }
   inspect(
     b"\x41\x42\x43",
-    content=
-      #|b"\x41\x42\x43"
-    ,
+    content=(
+      #|b"ABC"
+    ),
   )
 }
 
 ///|
 test "from_array" {
-  let b = @bytes.of([b'\x41', b'\x00', b'\x42', b'\x00', b'\x43', b'\x00'])
+  let b = Bytes::from_array([
+    b'\x41', b'\x00', b'\x42', b'\x00', b'\x43', b'\x00',
+  ])
   inspect(
     b,
-    content=
-      #|b"\x41\x00\x42\x00\x43\x00"
-    ,
+    content=(
+      #|b"A\x00B\x00C\x00"
+    ),
   )
 }
 
 ///|
 test "from_array literal" {
-  let b = @bytes.of([65, 0, 66, 0, 67, 0])
+  let b = Bytes::from_array([65, 0, 66, 0, 67, 0])
   inspect(
     b,
-    content=
-      #|b"\x41\x00\x42\x00\x43\x00"
-    ,
+    content=(
+      #|b"A\x00B\x00C\x00"
+    ),
   )
 }
 
 ///|
 test "from array literal" {
-  let b1 = @bytes.of([
+  let b1 = Bytes::from_array([
     b'\x41', b'\x00', b'\x42', b'\x00', b'\x43', b'\x00', b'\x44', b'\x00', b'\x45',
     b'\x00', b'\x46', b'\x00', b'\x47', b'\x00', b'\x48', b'\x00', b'\x49', b'\x00',
   ])
-  let b2 = @bytes.of([
+  let b2 = Bytes::from_array([
     65, 0, 66, 0, 67, 0, 68, 0, 69, 0, 70, 0, 71, 0, 72, 0, 73, 0,
   ])
   assert_eq(b1, b2)
@@ -74,24 +76,24 @@ test "from array literal" {
 
 ///|
 test "hash" {
-  let b1 = @bytes.of([
+  let b1 = Bytes::from_array([
     b'\x41', b'\x00', b'\x42', b'\x00', b'\x43', b'\x00', b'\x44', b'\x00', b'\x45',
     b'\x00', b'\x46', b'\x00', b'\x47', b'\x00', b'\x48', b'\x00', b'\x49', b'\x00',
   ])
-  let b2 = @bytes.of([
+  let b2 = Bytes::from_array([
     b'\x41', b'\x00', b'\x42', b'\x00', b'\x43', b'\x00', b'\x44', b'\x00', b'\x45',
     b'\x00', b'\x46', b'\x00', b'\x47', b'\x00', b'\x48', b'\x00', b'\x4A', b'\x00',
   ])
-  let b3 = @bytes.of([
+  let b3 = Bytes::from_array([
     b'\x80', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
   ])
-  let b4 = @bytes.of([
+  let b4 = Bytes::from_array([
     b'\x7f', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
   ])
-  inspect(b1.hash(), content="273427599")
-  inspect(b2.hash(), content="2013728637")
-  inspect(b3.hash(), content="-983520567")
-  inspect(b4.hash(), content="-1652773543")
+  inspect(Hasher::new(seed=0)..combine(b1).finalize(), content="-892426428")
+  inspect(Hasher::new(seed=0)..combine(b2).finalize(), content="404189")
+  inspect(Hasher::new(seed=0)..combine(b3).finalize(), content="-1666368731")
+  inspect(Hasher::new(seed=0)..combine(b4).finalize(), content="1297183151")
   inspect(b1.hash() == b1.hash(), content="true")
   inspect(b2.hash() == b2.hash(), content="true")
   inspect(b1.hash() == b2.hash(), content="false")
@@ -99,26 +101,47 @@ test "hash" {
 
 ///|
 test "to_array" {
-  let b = @bytes.of([b'A', b'B', b'C'])
+  let b = Bytes::from_array([b'A', b'B', b'C'])
   inspect(b.to_array(), content="[b'\\x41', b'\\x42', b'\\x43']")
 }
 
 ///|
 test "from_iter multiple elements" {
   inspect(
-    @bytes.from_iter([b'\x00', b'\x01', b'\x02'].iter()).to_array(),
+    Bytes::from_iter([b'\x00', b'\x01', b'\x02'].iter()).to_array(),
     content="[b'\\x00', b'\\x01', b'\\x02']",
   )
 }
 
 ///|
 test "from_iter single element" {
-  inspect(@bytes.from_iter([b'\x00'].iter()).to_array(), content="[b'\\x00']")
+  inspect(Bytes::from_iter([b'\x00'].iter()).to_array(), content="[b'\\x00']")
 }
 
 ///|
 test "from_iter empty iterator" {
-  inspect(@bytes.from_iter(Iter::empty()).to_array(), content="[]")
+  inspect(Bytes::from_iter(Iter::empty()).to_array(), content="[]")
+}
+
+///|
+test "from_iterator multiple elements" {
+  inspect(
+    Bytes::from_iterator([b'\x00', b'\x01', b'\x02'].iterator()).to_array(),
+    content="[b'\\x00', b'\\x01', b'\\x02']",
+  )
+}
+
+///|
+test "from_iterator single element" {
+  inspect(
+    Bytes::from_iterator([b'\x00'].iterator()).to_array(),
+    content="[b'\\x00']",
+  )
+}
+
+///|
+test "from_iterator empty iterator" {
+  inspect(Bytes::from_iterator(Iterator::empty()).to_array(), content="[]")
 }
 
 ///|
@@ -146,6 +169,29 @@ test "iter2" {
 }
 
 ///|
+test "iterator" {
+  let buf = StringBuilder::new(size_hint=5)
+  b"abcde".iterator().each(x => buf.write_string(x.to_string()))
+  inspect(buf, content="b'\\x61'b'\\x62'b'\\x63'b'\\x64'b'\\x65'")
+  buf.reset()
+  b"abcde".iterator().take(2).each(x => buf.write_string(x.to_string()))
+  inspect(buf, content="b'\\x61'b'\\x62'")
+}
+
+///|
+test "iterator2" {
+  let buf = StringBuilder::new(size_hint=5)
+  let keys = []
+  let it = b"abcde".iterator2()
+  while it.next() is Some((i, x)) {
+    buf.write_string(x.to_string())
+    keys.push(i)
+  }
+  inspect(buf, content="b'\\x61'b'\\x62'b'\\x63'b'\\x64'b'\\x65'")
+  inspect(keys, content="[0, 1, 2, 3, 4]")
+}
+
+///|
 test "to_fixedarray with no length specified" {
   let bytes = b"hello"
   let arr = bytes.to_fixedarray()
@@ -155,14 +201,14 @@ test "to_fixedarray with no length specified" {
 
 ///|
 test "test empty bytes" {
-  let empty = @bytes.default()
+  let empty = Bytes::default()
   inspect(empty.length(), content="0")
 }
 
 ///|
 test "to_fixedarray with Some length" {
   let bytes = b"hello"
-  let arr = bytes.to_fixedarray(len=3)
+  let arr = bytes[:3].to_fixedarray()
   inspect(arr, content="[b'\\x68', b'\\x65', b'\\x6C']")
   inspect(arr.length(), content="3")
 }
@@ -177,12 +223,12 @@ test "default_empty_bytes" {
 ///|
 test "Bytes::of with different byte values" {
   let arr : FixedArray[Byte] = [b'a', b'b', b'c']
-  let bytes = Bytes::of(arr)
+  let bytes = Bytes::from_array(arr)
   inspect(
     bytes,
-    content=
-      #|b"\x61\x62\x63"
-    ,
+    content=(
+      #|b"abc"
+    ),
   )
 }
 
@@ -192,9 +238,9 @@ test "Bytes::from_iter with multiple elements" {
   let bytes = Bytes::from_iter(iter)
   inspect(
     bytes,
-    content=
-      #|b"\x61\x62\x63"
-    ,
+    content=(
+      #|b"abc"
+    ),
   )
 }
 
@@ -244,4 +290,111 @@ test "Bytes::get out of bounds" {
   let bytes = b"\x01\x02\x03"
   let byte = bytes.get(3)
   inspect(byte, content="None")
+}
+
+///|
+test "Bytes::repeat basic" {
+  inspect(
+    b"a".repeat(5),
+    content=(
+      #|b"aaaaa"
+    ),
+  )
+  inspect(
+    b"ab".repeat(3),
+    content=(
+      #|b"ababab"
+    ),
+  )
+  inspect(
+    b"".repeat(10),
+    content=(
+      #|b""
+    ),
+  )
+  inspect(
+    b"xyz".repeat(0),
+    content=(
+      #|b""
+    ),
+  )
+  inspect(
+    b"xyz".repeat(-2),
+    content=(
+      #|b""
+    ),
+  )
+}
+
+///|
+test "Bytes::repeat large doubling" {
+  // Ensure exponential copy fills correctly
+  let base = b"abc"
+  let r = base.repeat(8) // 24 bytes
+  inspect(
+    r,
+    content=(
+      #|b"abcabcabcabcabcabcabcabc"
+    ),
+  )
+  inspect(r.length(), content="24")
+}
+
+///|
+test "BytesView::to_fixedarray" {
+  let bytes = b"hello world"
+  let view = bytes[0:5]
+  let arr = view.to_fixedarray()
+  inspect(arr, content="[b'\\x68', b'\\x65', b'\\x6C', b'\\x6C', b'\\x6F']")
+  inspect(arr.length(), content="5")
+}
+
+///|
+test "BytesView::to_fixedarray with different ranges" {
+  let bytes = b"abcdefgh"
+  let view1 = bytes[2:6]
+  let arr1 = view1.to_fixedarray()
+  inspect(
+    arr1,
+    content=(
+      #|[b'\x63', b'\x64', b'\x65', b'\x66']
+    ),
+  )
+  let view2 = bytes[0:0]
+  let arr2 = view2.to_fixedarray()
+  inspect(arr2, content="[]")
+  let view3 = bytes[7:]
+  let arr3 = view3.to_fixedarray()
+  inspect(arr3, content="[b'\\x68']")
+}
+
+///|
+test "BytesView::to_array" {
+  let bytes = b"hello"
+  let view = bytes[1:4]
+  let arr = view.to_array()
+  inspect(arr, content="[b'\\x65', b'\\x6C', b'\\x6C']")
+  inspect(arr.length(), content="3")
+}
+
+///|
+test "BytesView::to_array with edge cases" {
+  let bytes = b"testing"
+
+  // Full range
+  let view1 = bytes[:]
+  let arr1 = view1.to_array()
+  inspect(arr1.length(), content="7")
+  inspect(arr1[0], content="b'\\x74'")
+  inspect(arr1[6], content="b'\\x67'")
+
+  // Empty view
+  let view2 = bytes[3:3]
+  let arr2 = view2.to_array()
+  inspect(arr2, content="[]")
+
+  // Single byte
+  let view3 = bytes[2:3]
+  let arr3 = view3.to_array()
+  inspect(arr3, content="[b'\\x73']")
 }

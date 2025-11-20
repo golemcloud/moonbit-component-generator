@@ -13,30 +13,40 @@
 // limitations under the License.
 
 ///|
-#visibility(change_to="readonly", "Use helper functions like `Json::object(...)` instead")
-pub(all) enum Json {
+pub enum Json {
   Null
   True
   False
-  Number(Double)
+  Number(Double, repr~ : String?) // 1.0000000000000000000e100 
   String(String)
   Array(Array[Json])
   Object(Map[String, Json])
-} derive(Eq)
+}
+
+///|
+pub impl Eq for Json with equal(a, b) {
+  match (a, b) {
+    (Null, Null) => true
+    (True, True) => true
+    (False, False) => true
+    (Number(a_num, ..), Number(b_num, ..)) => a_num == b_num
+    (String(a_str), String(b_str)) => a_str == b_str
+    (Array(a_arr), Array(b_arr)) => a_arr == b_arr
+    (Object(a_obj), Object(b_obj)) => a_obj == b_obj
+    _ => false
+  }
+}
 
 ///|
 /// Creates a JSON null value.
 ///
 /// Returns a JSON value representing `null`.
-///
-/// Example:
-///
-/// ```moonbit
-///   inspect(Json::null(), content="Null")
-/// ```
 pub fn Json::null() -> Json {
   return Null
 }
+
+///|
+pub let null : Json = Null
 
 ///|
 /// Creates a JSON number value from a double-precision floating-point number.
@@ -51,10 +61,14 @@ pub fn Json::null() -> Json {
 /// Example:
 ///
 /// ```moonbit
-///   inspect(Json::number(3.14), content="Number(3.14)")
+/// inspect(Json::number(3.14), content="Number(3.14)")
+/// inspect(
+///   Json::number(@double.infinity, repr="1e9999999999999999999999999999999").stringify(), 
+///   content="1e9999999999999999999999999999999"
+/// )
 /// ```
-pub fn Json::number(number : Double) -> Json {
-  return Number(number)
+pub fn Json::number(number : Double, repr? : String) -> Json {
+  return Number(number, repr~)
 }
 
 ///|
@@ -160,12 +174,12 @@ pub impl ToJson for Bool with to_json(self : Bool) -> Json {
 
 ///|
 pub impl ToJson for Byte with to_json(self : Byte) -> Json {
-  Number(self.to_double())
+  Json::number(self.to_double())
 }
 
 ///|
 pub impl ToJson for Int with to_json(self : Int) -> Json {
-  Number(self.to_double())
+  Json::number(self.to_double())
 }
 
 ///|
@@ -175,7 +189,7 @@ pub impl ToJson for Int64 with to_json(self : Int64) -> Json {
 
 ///|
 pub impl ToJson for UInt with to_json(self : UInt) -> Json {
-  Number(self.to_uint64().to_double())
+  Json::number(self.to_uint64().to_double())
 }
 
 ///|
@@ -185,17 +199,15 @@ pub impl ToJson for UInt64 with to_json(self : UInt64) -> Json {
 
 ///|
 pub impl ToJson for Double with to_json(self : Double) -> Json {
-  if self != self ||
-    self > 0x7FEFFFFFFFFFFFFFL.reinterpret_as_double() ||
-    self < 0xFFEFFFFFFFFFFFFFL.reinterpret_as_double() {
-    return Null
+  if self != self {
+    Json::string("NaN")
+  } else if self > 0x7FEFFFFFFFFFFFFFL.reinterpret_as_double() {
+    Json::string("Infinity")
+  } else if self < 0xFFEFFFFFFFFFFFFFL.reinterpret_as_double() {
+    Json::string("-Infinity")
+  } else {
+    Json::number(self)
   }
-  Number(self)
-}
-
-///|
-pub impl ToJson for Float with to_json(self : Float) -> Json {
-  Number(self.to_double())
 }
 
 ///|
@@ -247,22 +259,23 @@ pub impl[K : Show, V : ToJson] ToJson for Map[K, V] with to_json(self) {
 pub impl[T : ToJson] ToJson for T? with to_json(self) {
   match self {
     None => Null
-    Some(value) => [value.to_json()]
+    Some(value) => [value]
   }
 }
 
 ///|
 pub impl[Ok : ToJson, Err : ToJson] ToJson for Result[Ok, Err] with to_json(
-  self : Result[Ok, Err]
+  self : Result[Ok, Err],
 ) -> Json {
   match self {
-    Ok(ok) => { "Ok": ok.to_json() }
-    Err(err) => { "Err": err.to_json() }
+    Ok(ok) => { "Ok": ok }
+    Err(err) => { "Err": err }
   }
 }
 
-///|
 //| unit
+
+///|
 pub impl ToJson for Unit with to_json(_self) {
   Null
 }
@@ -270,4 +283,13 @@ pub impl ToJson for Unit with to_json(_self) {
 ///|
 pub impl Default for Json with default() {
   false
+}
+
+///|
+pub impl[X : ToJson] ToJson for Iter[X] with to_json(self) {
+  let arr = []
+  for x in self {
+    arr.push(ToJson::to_json(x))
+  }
+  Array(arr)
 }

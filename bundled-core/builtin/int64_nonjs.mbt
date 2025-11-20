@@ -32,7 +32,7 @@
 ///   inspect(--42L, content="42")
 ///   inspect(-9223372036854775808L, content="-9223372036854775808") // negating min value
 /// ```
-pub impl Neg for Int64 with op_neg(self : Int64) -> Int64 = "%i64_neg"
+pub impl Neg for Int64 with neg(self : Int64) -> Int64 = "%i64_neg"
 
 ///|
 /// Adds two 64-bit integers together. Performs overflow checking and wrapping
@@ -53,7 +53,7 @@ pub impl Neg for Int64 with op_neg(self : Int64) -> Int64 = "%i64_neg"
 ///   inspect(a + b, content="-9223372036854775808") // Wraps around to minimum value
 ///   inspect(42L + -42L, content="0")
 /// ```
-pub impl Add for Int64 with op_add(self, other) = "%i64_add"
+pub impl Add for Int64 with add(self, other) = "%i64_add"
 
 ///|
 /// Performs subtraction between two 64-bit integers.
@@ -75,7 +75,7 @@ pub impl Add for Int64 with op_add(self, other) = "%i64_add"
 ///   let d = 1L
 ///   inspect(c - d, content="9223372036854775807")
 /// ```
-pub impl Sub for Int64 with op_sub(self, other) = "%i64_sub"
+pub impl Sub for Int64 with sub(self, other) = "%i64_sub"
 
 ///|
 /// Multiplies two 64-bit integers.
@@ -98,7 +98,7 @@ pub impl Sub for Int64 with op_sub(self, other) = "%i64_sub"
 ///   let c = -42L
 ///   inspect(c * b, content="-4200")
 /// ```
-pub impl Mul for Int64 with op_mul(self, other) = "%i64_mul"
+pub impl Mul for Int64 with mul(self, other) = "%i64_mul"
 
 ///|
 /// Performs integer division between two 64-bit integers. Truncates the result
@@ -123,7 +123,7 @@ pub impl Mul for Int64 with op_mul(self, other) = "%i64_mul"
 ///   let d = 5L
 ///   inspect(c / d, content="-8")
 /// ```
-pub impl Div for Int64 with op_div(self, other) = "%i64_div"
+pub impl Div for Int64 with div(self, other) = "%i64_div"
 
 ///|
 /// Calculates the remainder of the division between two 64-bit integers. The
@@ -146,7 +146,7 @@ pub impl Div for Int64 with op_div(self, other) = "%i64_div"
 ///   inspect(-7L % 3L, content="-1")
 ///   inspect(7L % -3L, content="1")
 /// ```
-pub impl Mod for Int64 with op_mod(self, other) = "%i64_mod"
+pub impl Mod for Int64 with mod(self, other) = "%i64_mod"
 
 ///|
 /// Performs a bitwise NOT operation on a 64-bit integer. Each bit in the input
@@ -253,7 +253,7 @@ pub impl BitXOr for Int64 with lxor(self, other) = "%i64_lxor"
 ///   inspect(x << 2, content="4") // Binary: 1 -> 100
 /// ```
 ///
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::lsl(self : Int64, other : Int) -> Int64 = "%i64_shl"
 
@@ -276,7 +276,7 @@ pub fn Int64::lsl(self : Int64, other : Int) -> Int64 = "%i64_shl"
 ///   inspect(x << 3, content="8") // Equivalent to x << 3
 /// ```
 ///
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::shl(self : Int64, other : Int) -> Int64 = "%i64_shl"
 
@@ -301,7 +301,7 @@ pub fn Int64::shl(self : Int64, other : Int) -> Int64 = "%i64_shl"
 ///   inspect(x >> 1, content="9223372036854775806") // Using the recommended operator
 /// ```
 ///
-#deprecated("Use UInt64 type and infix operator `>>` instead")
+#deprecated("Use UInt64 type and infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::lsr(self : Int64, other : Int) -> Int64 = "%u64.shr"
 
@@ -327,7 +327,7 @@ pub fn Int64::lsr(self : Int64, other : Int) -> Int64 = "%u64.shr"
 ///   inspect(x >> 4, content="-15") // 0b1111_1111_1111_0001, using recommended syntax
 /// ```
 ///
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::asr(self : Int64, other : Int) -> Int64 = "%i64_shr"
 
@@ -351,7 +351,7 @@ pub fn Int64::asr(self : Int64, other : Int) -> Int64 = "%i64_shr"
 ///   inspect(n >> 3, content="-128") // Preserves sign bit
 /// ```
 ///
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::shr(self : Int64, other : Int) -> Int64 = "%i64_shr"
 
@@ -377,7 +377,7 @@ pub fn Int64::shr(self : Int64, other : Int) -> Int64 = "%i64_shr"
 ///   let m = -4L
 ///   inspect(m << 2, content="-16") // -4 shifted left by 2 positions becomes -16
 /// ```
-pub impl Shl for Int64 with op_shl(self, other) = "%i64_shl"
+pub impl Shl for Int64 with shl(self, other) = "%i64_shl"
 
 ///|
 /// Performs arithmetic right shift operation on a 64-bit integer value by a
@@ -402,7 +402,7 @@ pub impl Shl for Int64 with op_shl(self, other) = "%i64_shl"
 ///   let p = 1024L
 ///   inspect(p >> 3, content="128") // Regular right shift for positive numbers
 /// ```
-pub impl Shr for Int64 with op_shr(self, other) = "%i64_shr"
+pub impl Shr for Int64 with shr(self, other) = "%i64_shr"
 
 ///|
 /// Returns the number of trailing zero bits in a 64-bit integer. For zero input,
@@ -486,7 +486,7 @@ pub fn Int64::popcnt(self : Int64) -> Int = "%i64_popcnt"
 ///   inspect(a == b, content="true")
 ///   inspect(a == c, content="false")
 /// ```
-pub impl Eq for Int64 with op_equal(self : Int64, other : Int64) -> Bool = "%i64_eq"
+pub impl Eq for Int64 with equal(self : Int64, other : Int64) -> Bool = "%i64_eq"
 
 ///|
 /// Compares two 64-bit integers and returns their relative order.
@@ -514,6 +514,18 @@ pub impl Eq for Int64 with op_equal(self : Int64, other : Int64) -> Bool = "%i64
 ///   inspect(a.compare(a), content="0") // 42 = 42
 /// ```
 pub impl Compare for Int64 with compare(self, other) = "%i64_compare"
+
+///|
+pub impl Compare for Int64 with op_lt(x, y) = "%i64.lt"
+
+///|
+pub impl Compare for Int64 with op_le(x, y) = "%i64.le"
+
+///|
+pub impl Compare for Int64 with op_gt(x, y) = "%i64.gt"
+
+///|
+pub impl Compare for Int64 with op_ge(x, y) = "%i64.ge"
 
 ///|
 /// Returns the default value for `Int64` type, which is zero (0L).
@@ -807,7 +819,7 @@ pub fn UInt16::to_int64(self : UInt16) -> Int64 = "%u16_to_i64"
 ///   inspect(d.reinterpret_as_int64(), content="4607182418800017408")
 /// ```
 ///
-#deprecated("Use `reinterpret_as_int64` instead")
+#deprecated("Use `reinterpret_as_int64` instead", skip_current_package=false)
 #coverage.skip
 pub fn Double::reinterpret_as_i64(self : Double) -> Int64 = "%f64_to_i64_reinterpret"
 
@@ -855,7 +867,7 @@ pub fn Double::reinterpret_as_int64(self : Double) -> Int64 = "%f64_to_i64_reint
 ///   inspect(positive.reinterpret_as_uint64(), content="4607182418800017408")
 /// ```
 ///
-#deprecated("Use `reinterpret_as_uint64` instead")
+#deprecated("Use `reinterpret_as_uint64` instead", skip_current_package=false)
 #coverage.skip
 pub fn Double::reinterpret_as_u64(self : Double) -> UInt64 = "%f64_to_i64_reinterpret"
 
@@ -923,7 +935,7 @@ pub fn Double::convert_uint64(val : UInt64) -> Double = "%u64.to_f64"
 ///   inspect(neg.reinterpret_as_uint64(), content="18446744073709551615") // 2^64 - 1
 /// ```
 ///
-#deprecated("Use `reinterpret_as_uint64` instead")
+#deprecated("Use `reinterpret_as_uint64` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::to_uint64(self : Int64) -> UInt64 = "%i64.to_u64_reinterpret"
 
@@ -967,7 +979,7 @@ pub fn Int64::reinterpret_as_uint64(self : Int64) -> UInt64 = "%i64.to_u64_reint
 ///   inspect(max.reinterpret_as_int64(), content="-1")
 /// ```
 ///
-#deprecated("Use `reinterpret_as_int64` instead")
+#deprecated("Use `reinterpret_as_int64` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::to_int64(self : UInt64) -> Int64 = "%u64.to_i64_reinterpret"
 
@@ -991,6 +1003,28 @@ pub fn UInt64::to_int64(self : UInt64) -> Int64 = "%u64.to_i64_reinterpret"
 ///   inspect(max.reinterpret_as_int64(), content="-1") // All bits set to 1 represents -1 in two's complement
 /// ```
 pub fn UInt64::reinterpret_as_int64(self : UInt64) -> Int64 = "%u64.to_i64_reinterpret"
+
+///|
+/// Converts a 64-bit unsigned integer to a 16-bit unsigned integer by truncating
+/// the value to fit within the range of UInt16 (0 to 65535).
+///
+/// Parameters:
+///
+/// * `value` : The 64-bit unsigned integer to be converted to UInt16.
+///
+/// Returns a 16-bit unsigned integer representing the lower 16 bits of the input
+/// value.
+///
+/// Example:
+///
+/// ```moonbit
+///   inspect(42UL.to_uint16(), content="42")
+///   inspect(18446744073709551615UL.to_uint16(), content="65535") // Wraps around to maximum UInt16 value
+///   inspect(70000UL.to_uint16(), content="4464") // Value is truncated
+/// ```
+pub fn UInt64::to_uint16(self : UInt64) -> UInt16 {
+  self.reinterpret_as_int64().to_uint16()
+}
 
 ///|
 /// Converts a 64-bit unsigned integer to a 32-bit unsigned integer by truncating
@@ -1083,7 +1117,7 @@ pub fn UInt64::to_double(self : UInt64) -> Double = "%u64.to_f64"
 ///   let max = 18446744073709551615UL
 ///   inspect(max + 1UL, content="0")
 /// ```
-pub impl Add for UInt64 with op_add(self, other) = "%u64.add"
+pub impl Add for UInt64 with add(self, other) = "%u64.add"
 
 ///|
 /// Performs subtraction between two unsigned 64-bit integers. When the result
@@ -1107,7 +1141,7 @@ pub impl Add for UInt64 with op_add(self, other) = "%u64.add"
 ///   let d = 5UL
 ///   inspect(c - d, content="18446744073709551614") // wraps around to 2^64 - 2
 /// ```
-pub impl Sub for UInt64 with op_sub(self, other) = "%u64.sub"
+pub impl Sub for UInt64 with sub(self, other) = "%u64.sub"
 
 ///|
 /// Performs multiplication between two unsigned 64-bit integers.
@@ -1131,7 +1165,7 @@ pub impl Sub for UInt64 with op_sub(self, other) = "%u64.sub"
 ///   let max = 18446744073709551615UL
 ///   inspect(max * 2UL, content="18446744073709551614") // Wraps around to max - 1
 /// ```
-pub impl Mul for UInt64 with op_mul(self, other) = "%u64.mul"
+pub impl Mul for UInt64 with mul(self, other) = "%u64.mul"
 
 ///|
 /// Performs division operation between two unsigned 64-bit integers.
@@ -1152,7 +1186,7 @@ pub impl Mul for UInt64 with op_mul(self, other) = "%u64.mul"
 ///   let b = 20UL
 ///   inspect(a / b, content="5") // Using infix operator
 /// ```
-pub impl Div for UInt64 with op_div(self, other) = "%u64.div"
+pub impl Div for UInt64 with div(self, other) = "%u64.div"
 
 ///|
 /// Calculates the remainder of dividing one unsigned 64-bit integer by another.
@@ -1174,7 +1208,7 @@ pub impl Div for UInt64 with op_div(self, other) = "%u64.div"
 ///   inspect(a % b, content="2") // 17 divided by 5 gives quotient 3 and remainder 2
 ///   inspect(7UL % 4UL, content="3")
 /// ```
-pub impl Mod for UInt64 with op_mod(self, other) = "%u64.mod"
+pub impl Mod for UInt64 with mod(self, other) = "%u64.mod"
 
 ///|
 /// Compares two unsigned 64-bit integers and determines their relative order.
@@ -1202,6 +1236,18 @@ pub impl Mod for UInt64 with op_mod(self, other) = "%u64.mod"
 pub impl Compare for UInt64 with compare(self, other) = "%u64.compare"
 
 ///|
+pub impl Compare for UInt64 with op_lt(x, y) = "%u64.lt"
+
+///|
+pub impl Compare for UInt64 with op_le(x, y) = "%u64.le"
+
+///|
+pub impl Compare for UInt64 with op_gt(x, y) = "%u64.gt"
+
+///|
+pub impl Compare for UInt64 with op_ge(x, y) = "%u64.ge"
+
+///|
 /// Compares two unsigned 64-bit integers for equality.
 ///
 /// Parameters:
@@ -1220,7 +1266,7 @@ pub impl Compare for UInt64 with compare(self, other) = "%u64.compare"
 ///   inspect(a == b, content="true")
 ///   inspect(a == c, content="false")
 /// ```
-pub impl Eq for UInt64 with op_equal(self : UInt64, other : UInt64) -> Bool = "%u64.eq"
+pub impl Eq for UInt64 with equal(self : UInt64, other : UInt64) -> Bool = "%u64.eq"
 
 ///|
 /// Performs a bitwise AND operation between two unsigned 64-bit integers.
@@ -1323,7 +1369,7 @@ pub fn UInt64::lnot(self : UInt64) -> UInt64 = "%u64.bitnot"
 ///   inspect(x << 4, content="16") // 1 << 4 = 16
 /// ```
 ///
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::lsl(self : UInt64, shift : Int) -> UInt64 = "%u64.shl"
 
@@ -1347,7 +1393,7 @@ pub fn UInt64::lsl(self : UInt64, shift : Int) -> UInt64 = "%u64.shl"
 ///   inspect(x << 2, content="4") // 1 << 2 = 4
 /// ```
 ///
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::shl(self : UInt64, shift : Int) -> UInt64 = "%u64.shl"
 
@@ -1369,7 +1415,7 @@ pub fn UInt64::shl(self : UInt64, shift : Int) -> UInt64 = "%u64.shl"
 ///   inspect(x >> 8, content="71776119061217280")
 /// ```
 ///
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::shr(self : UInt64, shift : Int) -> UInt64 = "%u64.shr"
 
@@ -1394,7 +1440,7 @@ pub fn UInt64::shr(self : UInt64, shift : Int) -> UInt64 = "%u64.shr"
 ///   inspect(x >> 4, content="1080863910568919040") // 0x0F00000000000000
 /// ```
 ///
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::lsr(self : UInt64, shift : Int) -> UInt64 = "%u64.shr"
 
@@ -1419,7 +1465,7 @@ pub fn UInt64::lsr(self : UInt64, shift : Int) -> UInt64 = "%u64.shr"
 ///   inspect(x << 3, content="8") // 1 shifted left by 3 positions becomes 8
 ///   inspect(x << 63, content="9223372036854775808") // 1 shifted left by 63 positions
 /// ```
-pub impl Shl for UInt64 with op_shl(self, shift) = "%u64.shl"
+pub impl Shl for UInt64 with shl(self, shift) = "%u64.shl"
 
 ///|
 /// Performs a logical right shift operation on a 64-bit unsigned integer by a
@@ -1443,7 +1489,7 @@ pub impl Shl for UInt64 with op_shl(self, shift) = "%u64.shl"
 ///   inspect(x >> 8, content="71777214294589695") // Shifted right by 8 bits
 ///   inspect(x >> 64, content="18374966859414961920") // Equivalent to x >> 0 due to masking
 /// ```
-pub impl Shr for UInt64 with op_shr(self, shift) = "%u64.shr"
+pub impl Shr for UInt64 with shr(self, shift) = "%u64.shr"
 
 ///|
 /// Counts the number of leading zero bits in a 64-bit unsigned integer, starting

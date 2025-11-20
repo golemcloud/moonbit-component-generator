@@ -13,32 +13,38 @@
 // limitations under the License.
 
 ///|
-#deprecated("use try? instead")
-#coverage.skip
-pub fn[T, E : Error] wrap0(f~ : () -> T raise E) -> Result[T, E] {
-  try f() |> Ok catch {
-    e => Err(e)
-  }
+#deprecated("Use `Ok(value)` instead", skip_current_package=false)
+pub fn[T, E] ok(value : T) -> Result[T, E] {
+  Ok(value)
 }
 
 ///|
-#deprecated("use try? instead")
-#coverage.skip
-pub fn[T, A, E : Error] wrap1(f~ : (A) -> T raise E, a : A) -> Result[T, E] {
-  try f(a) |> Ok catch {
-    e => Err(e)
-  }
+#deprecated("Use `Err(value)` instead", skip_current_package=false)
+pub fn[T, E] err(value : E) -> Result[T, E] {
+  Err(value)
 }
 
 ///|
-#deprecated("use try? instead")
-#coverage.skip
-pub fn[T, A, B, E : Error] wrap2(
-  f~ : (A, B) -> T raise E,
-  a : A,
-  b : B
-) -> Result[T, E] {
-  try f(a, b) |> Ok catch {
-    e => Err(e)
+#deprecated("use `x is Ok(_)` instead", skip_current_package=false)
+pub fn[T, E] Result::is_ok(self : Result[T, E]) -> Bool {
+  self is Ok(_)
+}
+
+///|
+#deprecated("use `x is Err(_)` instead", skip_current_package=false)
+pub fn[T, E] Result::is_err(self : Result[T, E]) -> Bool {
+  self is Err(_)
+}
+
+///|
+#deprecated("use `match result { Ok(value) => ok(value); Err(error) => err(error) }` instead", skip_current_package=false)
+pub fn[T, E, V] Result::fold(
+  self : Result[T, E],
+  ok : (T) -> V,
+  err : (E) -> V,
+) -> V {
+  match self {
+    Ok(value) => ok(value)
+    Err(error) => err(error)
   }
 }

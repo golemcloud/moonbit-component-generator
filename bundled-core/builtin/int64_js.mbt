@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///|
 //region MyInt64
+
+///|
 priv struct MyInt64 {
   hi : Int
   lo : Int
@@ -26,7 +27,7 @@ fn MyInt64::to_int64(self : MyInt64) -> Int64 = "%identity"
 fn MyInt64::from_int64(value : Int64) -> MyInt64 = "%identity"
 
 ///|
-impl Neg for MyInt64 with op_neg(self : MyInt64) -> MyInt64 {
+impl Neg for MyInt64 with neg(self : MyInt64) -> MyInt64 {
   if self.lo == 0 {
     { hi: self.hi.lnot() + 1, lo: 0 }
   } else {
@@ -47,12 +48,12 @@ fn MyInt64::add_hi_lo(self : MyInt64, bhi : Int, blo : Int) -> MyInt64 {
 }
 
 ///|
-impl Add for MyInt64 with op_add(self : MyInt64, other : MyInt64) -> MyInt64 {
+impl Add for MyInt64 with add(self : MyInt64, other : MyInt64) -> MyInt64 {
   self.add_hi_lo(other.hi, other.lo)
 }
 
 ///|
-impl Sub for MyInt64 with op_sub(self : MyInt64, other : MyInt64) -> MyInt64 {
+impl Sub for MyInt64 with sub(self : MyInt64, other : MyInt64) -> MyInt64 {
   if other.lo == 0 {
     { hi: self.hi - other.hi, lo: self.lo }
   } else {
@@ -61,7 +62,7 @@ impl Sub for MyInt64 with op_sub(self : MyInt64, other : MyInt64) -> MyInt64 {
 }
 
 ///|
-impl Mul for MyInt64 with op_mul(self : MyInt64, other : MyInt64) -> MyInt64 {
+impl Mul for MyInt64 with mul(self : MyInt64, other : MyInt64) -> MyInt64 {
   let { hi: ahi, lo: alo } = self
   let { hi: bhi, lo: blo } = other
   let ahi = ahi.reinterpret_as_uint()
@@ -119,7 +120,8 @@ extern "js" fn get_int64_wasm_helper() -> Int64WasmHelper =
   #|}
 
 ///|
-impl Div for MyInt64 with op_div(self : MyInt64, other : MyInt64) -> MyInt64 {
+impl Div for MyInt64 with div(self : MyInt64, other : MyInt64) -> MyInt64 {
+  guard not(other.hi == 0 && other.lo == 0) else { panic() }
   let exports = get_int64_wasm_helper()
   let { hi: ahi, lo: alo } = self
   let { hi: bhi, lo: blo } = other
@@ -130,6 +132,7 @@ impl Div for MyInt64 with op_div(self : MyInt64, other : MyInt64) -> MyInt64 {
 
 ///|
 fn MyInt64::div_u(self : MyInt64, other : MyInt64) -> MyInt64 {
+  guard not(other.hi == 0 && other.lo == 0) else { panic() }
   let exports = get_int64_wasm_helper()
   let { hi: ahi, lo: alo } = self
   let { hi: bhi, lo: blo } = other
@@ -139,7 +142,8 @@ fn MyInt64::div_u(self : MyInt64, other : MyInt64) -> MyInt64 {
 }
 
 ///|
-impl Mod for MyInt64 with op_mod(self : MyInt64, other : MyInt64) -> MyInt64 {
+impl Mod for MyInt64 with mod(self : MyInt64, other : MyInt64) -> MyInt64 {
+  guard not(other.hi == 0 && other.lo == 0) else { panic() }
   let exports = get_int64_wasm_helper()
   let { hi: ahi, lo: alo } = self
   let { hi: bhi, lo: blo } = other
@@ -150,6 +154,7 @@ impl Mod for MyInt64 with op_mod(self : MyInt64, other : MyInt64) -> MyInt64 {
 
 ///|
 fn MyInt64::mod_u(self : MyInt64, other : MyInt64) -> MyInt64 {
+  guard not(other.hi == 0 && other.lo == 0) else { panic() }
   let exports = get_int64_wasm_helper()
   let { hi: ahi, lo: alo } = self
   let { hi: bhi, lo: blo } = other
@@ -254,7 +259,7 @@ fn MyInt64::popcnt(self : MyInt64) -> Int {
 }
 
 ///|
-impl Eq for MyInt64 with op_equal(self : MyInt64, other : MyInt64) -> Bool {
+impl Eq for MyInt64 with equal(self : MyInt64, other : MyInt64) -> Bool {
   self.hi == other.hi && self.lo == other.lo
 }
 
@@ -354,7 +359,7 @@ extern "js" fn MyInt64::reinterpret_double(value : Double) -> MyInt64 =
 extern "js" fn MyInt64::trunc_double_u(value : Double) -> MyInt64 =
   #|(a) => {
   #|  let hi = (a * (1 / 0x100000000)) | 0;
-  #|  let lo = a >>> 0;
+  #|  let lo = a | 0;
   #|  return { hi, lo };
   #|}
 
@@ -368,33 +373,33 @@ extern "js" fn MyInt64::convert_to_double(self : MyInt64) -> Double =
 //endregion
 
 ///|
-pub impl Neg for Int64 with op_neg(self : Int64) -> Int64 {
+pub impl Neg for Int64 with neg(self : Int64) -> Int64 {
   (-MyInt64::from_int64(self)).to_int64()
 }
 
 ///|
-pub impl Add for Int64 with op_add(self : Int64, other : Int64) -> Int64 {
-  MyInt64::from_int64(self).op_add(MyInt64::from_int64(other)).to_int64()
+pub impl Add for Int64 with add(self : Int64, other : Int64) -> Int64 {
+  MyInt64::from_int64(self).add(MyInt64::from_int64(other)).to_int64()
 }
 
 ///|
-pub impl Sub for Int64 with op_sub(self : Int64, other : Int64) -> Int64 {
-  MyInt64::from_int64(self).op_sub(MyInt64::from_int64(other)).to_int64()
+pub impl Sub for Int64 with sub(self : Int64, other : Int64) -> Int64 {
+  MyInt64::from_int64(self).sub(MyInt64::from_int64(other)).to_int64()
 }
 
 ///|
-pub impl Mul for Int64 with op_mul(self : Int64, other : Int64) -> Int64 {
-  MyInt64::from_int64(self).op_mul(MyInt64::from_int64(other)).to_int64()
+pub impl Mul for Int64 with mul(self : Int64, other : Int64) -> Int64 {
+  MyInt64::from_int64(self).mul(MyInt64::from_int64(other)).to_int64()
 }
 
 ///|
-pub impl Div for Int64 with op_div(self : Int64, other : Int64) -> Int64 {
-  MyInt64::from_int64(self).op_div(MyInt64::from_int64(other)).to_int64()
+pub impl Div for Int64 with div(self : Int64, other : Int64) -> Int64 {
+  MyInt64::from_int64(self).div(MyInt64::from_int64(other)).to_int64()
 }
 
 ///|
-pub impl Mod for Int64 with op_mod(self : Int64, other : Int64) -> Int64 {
-  MyInt64::from_int64(self).op_mod(MyInt64::from_int64(other)).to_int64()
+pub impl Mod for Int64 with mod(self : Int64, other : Int64) -> Int64 {
+  MyInt64::from_int64(self).mod(MyInt64::from_int64(other)).to_int64()
 }
 
 ///|
@@ -418,47 +423,47 @@ pub impl BitXOr for Int64 with lxor(self : Int64, other : Int64) -> Int64 {
 }
 
 ///|
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::lsl(self : Int64, other : Int) -> Int64 {
   MyInt64::from_int64(self).lsl(other).to_int64()
 }
 
 ///|
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::shl(self : Int64, other : Int) -> Int64 {
   MyInt64::from_int64(self).lsl(other).to_int64()
 }
 
 ///|
-#deprecated("Use UInt64 type and infix operator `>>` instead")
+#deprecated("Use UInt64 type and infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::lsr(self : Int64, other : Int) -> Int64 {
   MyInt64::from_int64(self).lsr(other).to_int64()
 }
 
 ///|
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::shr(self : Int64, other : Int) -> Int64 {
   MyInt64::from_int64(self).asr(other).to_int64()
 }
 
 ///|
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::asr(self : Int64, other : Int) -> Int64 {
   MyInt64::from_int64(self).asr(other).to_int64()
 }
 
 ///|
-pub impl Shr for Int64 with op_shr(self : Int64, other : Int) -> Int64 {
+pub impl Shr for Int64 with shr(self : Int64, other : Int) -> Int64 {
   MyInt64::from_int64(self).asr(other).to_int64()
 }
 
 ///|
-pub impl Shl for Int64 with op_shl(self : Int64, other : Int) -> Int64 {
+pub impl Shl for Int64 with shl(self : Int64, other : Int) -> Int64 {
   MyInt64::from_int64(self).lsl(other).to_int64()
 }
 
@@ -478,7 +483,7 @@ pub fn Int64::popcnt(self : Int64) -> Int {
 }
 
 ///|
-pub impl Eq for Int64 with op_equal(self : Int64, other : Int64) -> Bool {
+pub impl Eq for Int64 with equal(self : Int64, other : Int64) -> Bool {
   MyInt64::from_int64(self) == MyInt64::from_int64(other)
 }
 
@@ -548,7 +553,7 @@ pub fn UInt16::to_int64(self : UInt16) -> Int64 {
 }
 
 ///|
-#deprecated("Use `reinterpret_as_int64` instead")
+#deprecated("Use `reinterpret_as_int64` instead", skip_current_package=false)
 #coverage.skip
 pub fn Double::reinterpret_as_i64(self : Double) -> Int64 {
   MyInt64::reinterpret_double(self).to_int64()
@@ -560,7 +565,7 @@ pub fn Double::reinterpret_as_int64(self : Double) -> Int64 {
 }
 
 ///|
-#deprecated("Use `reinterpret_as_uint64` instead")
+#deprecated("Use `reinterpret_as_uint64` instead", skip_current_package=false)
 #coverage.skip
 pub fn Double::reinterpret_as_u64(self : Double) -> UInt64 {
   MyInt64::reinterpret_double(self).to_uint64()
@@ -588,7 +593,7 @@ fn MyInt64::to_uint64(self : MyInt64) -> UInt64 = "%identity"
 fn MyInt64::from_uint64(value : UInt64) -> MyInt64 = "%identity"
 
 ///|
-#deprecated("Use `reinterpret_as_uint64` instead")
+#deprecated("Use `reinterpret_as_uint64` instead", skip_current_package=false)
 #coverage.skip
 pub fn Int64::to_uint64(self : Int64) -> UInt64 = "%identity"
 
@@ -596,32 +601,32 @@ pub fn Int64::to_uint64(self : Int64) -> UInt64 = "%identity"
 pub fn Int64::reinterpret_as_uint64(self : Int64) -> UInt64 = "%identity"
 
 ///|
-pub impl Add for UInt64 with op_add(self : UInt64, other : UInt64) -> UInt64 {
-  MyInt64::from_uint64(self).op_add(MyInt64::from_uint64(other)).to_uint64()
+pub impl Add for UInt64 with add(self : UInt64, other : UInt64) -> UInt64 {
+  MyInt64::from_uint64(self).add(MyInt64::from_uint64(other)).to_uint64()
 }
 
 ///|
-pub impl Sub for UInt64 with op_sub(self : UInt64, other : UInt64) -> UInt64 {
-  MyInt64::from_uint64(self).op_sub(MyInt64::from_uint64(other)).to_uint64()
+pub impl Sub for UInt64 with sub(self : UInt64, other : UInt64) -> UInt64 {
+  MyInt64::from_uint64(self).sub(MyInt64::from_uint64(other)).to_uint64()
 }
 
 ///|
-pub impl Mul for UInt64 with op_mul(self : UInt64, other : UInt64) -> UInt64 {
-  MyInt64::from_uint64(self).op_mul(MyInt64::from_uint64(other)).to_uint64()
+pub impl Mul for UInt64 with mul(self : UInt64, other : UInt64) -> UInt64 {
+  MyInt64::from_uint64(self).mul(MyInt64::from_uint64(other)).to_uint64()
 }
 
 ///|
-pub impl Div for UInt64 with op_div(self : UInt64, other : UInt64) -> UInt64 {
+pub impl Div for UInt64 with div(self : UInt64, other : UInt64) -> UInt64 {
   MyInt64::from_uint64(self).div_u(MyInt64::from_uint64(other)).to_uint64()
 }
 
 ///|
-pub impl Mod for UInt64 with op_mod(self : UInt64, other : UInt64) -> UInt64 {
+pub impl Mod for UInt64 with mod(self : UInt64, other : UInt64) -> UInt64 {
   MyInt64::from_uint64(self).mod_u(MyInt64::from_uint64(other)).to_uint64()
 }
 
 ///|
-#deprecated("Use reinterpret_as_int64 instead")
+#deprecated("Use reinterpret_as_int64 instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::to_int64(self : UInt64) -> Int64 = "%identity"
 
@@ -631,6 +636,28 @@ pub fn UInt64::reinterpret_as_int64(self : UInt64) -> Int64 = "%identity"
 ///|
 pub fn UInt64::to_uint(self : UInt64) -> UInt {
   MyInt64::from_uint64(self).to_uint()
+}
+
+///|
+/// Converts a 64-bit unsigned integer to a 16-bit unsigned integer by truncating
+/// the value to fit within the range of UInt16 (0 to 65535).
+///
+/// Parameters:
+///
+/// * `value` : The 64-bit unsigned integer to be converted to UInt16.
+///
+/// Returns a 16-bit unsigned integer representing the lower 16 bits of the input
+/// value.
+///
+/// Example:
+///
+/// ```moonbit
+///   inspect(42UL.to_uint16(), content="42")
+///   inspect(18446744073709551615UL.to_uint16(), content="65535") // Wraps around to maximum UInt16 value
+///   inspect(70000UL.to_uint16(), content="4464") // Value is truncated
+/// ```
+pub fn UInt64::to_uint16(self : UInt64) -> UInt16 {
+  self.reinterpret_as_int64().to_uint16()
 }
 
 ///|
@@ -649,8 +676,8 @@ pub impl Compare for UInt64 with compare(self : UInt64, other : UInt64) -> Int {
 }
 
 ///|
-pub impl Eq for UInt64 with op_equal(self : UInt64, other : UInt64) -> Bool {
-  MyInt64::from_uint64(self).op_equal(MyInt64::from_uint64(other))
+pub impl Eq for UInt64 with equal(self : UInt64, other : UInt64) -> Bool {
+  MyInt64::from_uint64(self).equal(MyInt64::from_uint64(other))
 }
 
 ///|
@@ -679,40 +706,40 @@ pub fn UInt64::lnot(self : UInt64) -> UInt64 {
 }
 
 ///|
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::lsl(self : UInt64, shift : Int) -> UInt64 {
   MyInt64::lsl(MyInt64::from_uint64(self), shift).to_uint64()
 }
 
 ///|
-#deprecated("Use infix operator `<<` instead")
+#deprecated("Use infix operator `<<` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::lsr(self : UInt64, shift : Int) -> UInt64 {
   MyInt64::lsr(MyInt64::from_uint64(self), shift).to_uint64()
 }
 
 ///|
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::shl(self : UInt64, shift : Int) -> UInt64 {
   MyInt64::lsl(MyInt64::from_uint64(self), shift).to_uint64()
 }
 
 ///|
-#deprecated("Use infix operator `>>` instead")
+#deprecated("Use infix operator `>>` instead", skip_current_package=false)
 #coverage.skip
 pub fn UInt64::shr(self : UInt64, shift : Int) -> UInt64 {
   MyInt64::lsr(MyInt64::from_uint64(self), shift).to_uint64()
 }
 
 ///|
-pub impl Shl for UInt64 with op_shl(self : UInt64, shift : Int) -> UInt64 {
+pub impl Shl for UInt64 with shl(self : UInt64, shift : Int) -> UInt64 {
   MyInt64::lsl(MyInt64::from_uint64(self), shift).to_uint64()
 }
 
 ///|
-pub impl Shr for UInt64 with op_shr(self : UInt64, shift : Int) -> UInt64 {
+pub impl Shr for UInt64 with shr(self : UInt64, shift : Int) -> UInt64 {
   MyInt64::lsr(MyInt64::from_uint64(self), shift).to_uint64()
 }
 

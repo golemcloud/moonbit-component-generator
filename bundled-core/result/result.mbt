@@ -22,7 +22,7 @@
 ///   let y = x.map((v : Int) => { v * 7 })
 ///   assert_eq(y, Ok(42))
 /// ```
-pub fn[T, E, U] map(self : Result[T, E], f : (T) -> U) -> Result[U, E] {
+pub fn[T, E, U] Result::map(self : Result[T, E], f : (T) -> U) -> Result[U, E] {
   match self {
     Ok(value) => Ok(f(value))
     Err(err) => Err(err)
@@ -49,7 +49,10 @@ test "map" {
 ///   let y = x.map_err((v : String) => { v + "!" })
 ///   assert_eq(y, Err("error!"))
 /// ```
-pub fn[T, E, F] map_err(self : Result[T, E], f : (E) -> F) -> Result[T, F] {
+pub fn[T, E, F] Result::map_err(
+  self : Result[T, E],
+  f : (E) -> F,
+) -> Result[T, F] {
   match self {
     Ok(value) => Ok(value)
     Err(err) => Err(f(err))
@@ -67,72 +70,6 @@ test "map_err" {
 }
 
 ///|
-/// Create an `Err` of type `E`.
-///
-/// # Example
-///
-/// ```mbt
-///   let x: Result[Int, String] = Err("error")
-///   assert_eq(x, Err("error"))
-/// ```
-pub fn[T, E] err(value : E) -> Result[T, E] {
-  Err(value)
-}
-
-///|
-test "err" {
-  let x : Result[Int, String] = err("error")
-  assert_eq(x, Err("error"))
-}
-
-///|
-/// Create an `Ok` of type `T`.
-///
-/// # Example
-///
-/// ```mbt
-///   let x: Result[String, Unit] = Ok("yes")
-///   assert_true(x.is_ok())
-/// ```
-pub fn[T, E] ok(value : T) -> Result[T, E] {
-  Ok(value)
-}
-
-///|
-test "ok" {
-  let x : Result[String, Unit] = ok("yes")
-  assert_eq(x, Ok("yes"))
-}
-
-///|
-/// Check if a `Result` is an `Ok`.
-pub fn[T, E] is_ok(self : Result[T, E]) -> Bool {
-  self is Ok(_)
-}
-
-///|
-test "is_ok" {
-  let x : Result[Int, String] = Ok(6)
-  let y : Result[Int, String] = Err("error")
-  assert_eq(x.is_ok(), true)
-  assert_eq(y.is_ok(), false)
-}
-
-///|
-/// Check if a `Result` is an `Err`.
-pub fn[T, E] is_err(self : Result[T, E]) -> Bool {
-  self is Err(_)
-}
-
-///|
-test "is_err" {
-  let x : Result[Int, String] = Ok(6)
-  let y : Result[Int, String] = Err("error")
-  assert_eq(x.is_err(), false)
-  assert_eq(y.is_err(), true)
-}
-
-///|
 /// Return the inner `Ok` value, if it exists, otherwise return the provided default.
 ///
 /// # Example
@@ -142,7 +79,7 @@ test "is_err" {
 ///   let y = x.or(0)
 ///   assert_eq(y, 6)
 /// ```
-pub fn[T, E] or(self : Result[T, E], default : T) -> T {
+pub fn[T, E] Result::or(self : Result[T, E], default : T) -> T {
   match self {
     Ok(value) => value
     Err(_) => default
@@ -170,7 +107,7 @@ test "or" {
 ///   let y = x.or_else(() => { 0 })
 ///   assert_eq(y, 6)
 /// ```
-pub fn[T, E] or_else(self : Result[T, E], default : () -> T) -> T {
+pub fn[T, E] Result::or_else(self : Result[T, E], default : () -> T) -> T {
   match self {
     Ok(value) => value
     Err(_) => default()
@@ -199,7 +136,7 @@ test "or_else" {
 ///   let y = x.flatten()
 ///   assert_eq(y, Ok(6))
 /// ```
-pub fn[T, E] flatten(self : Result[Result[T, E], E]) -> Result[T, E] {
+pub fn[T, E] Result::flatten(self : Result[Result[T, E], E]) -> Result[T, E] {
   match self {
     Ok(value) => value
     Err(err) => Err(err)
@@ -226,9 +163,9 @@ test "flatten" {
 ///   let y = x.bind((v : Int) => { Ok(v * 7) })
 ///   assert_eq(y, Ok(42))
 /// ```
-pub fn[T, E, U] bind(
+pub fn[T, E, U] Result::bind(
   self : Result[T, E],
-  g : (T) -> Result[U, E]
+  g : (T) -> Result[U, E],
 ) -> Result[U, E] {
   match self {
     Ok(value) => g(value)
@@ -244,34 +181,6 @@ test "bind" {
 }
 
 ///|
-/// Folds a `Result` into a single value.
-///
-/// If the `Result` is an `Ok`, the `ok` function is applied to the value. If the `Result` is an `Err`, the `err` function is applied to the value.
-/// # Example
-///
-/// ```mbt
-///   let x = Ok(6)
-///   let y = x.fold((v : Int) => { v * 7 }, (_e : String) => { 0 })
-///   assert_eq(y, 42)
-/// ```
-pub fn[T, E, V] fold(self : Result[T, E], ok : (T) -> V, err : (E) -> V) -> V {
-  match self {
-    Ok(value) => ok(value)
-    Err(error) => err(error)
-  }
-}
-
-///|
-test "fold" {
-  let x : Result[Int, String] = Ok(6)
-  let y = x.fold((v : Int) => v * 7, (_e : String) => 0)
-  let z : Result[Int, String] = Err("error")
-  let w = z.fold((v : Int) => v * 7, (_e : String) => 0)
-  assert_eq(y, 42)
-  assert_eq(w, 0)
-}
-
-///|
 /// Converts a `Result` to an `Option`.
 ///
 /// Converts `Ok` to `Some` and `Err` to `None`.
@@ -283,7 +192,7 @@ test "fold" {
 ///   let y = x.to_option()
 ///   assert_eq(y, Some(6))
 /// ```
-pub fn[T, E] to_option(self : Result[T, E]) -> T? {
+pub fn[T, E] Result::to_option(self : Result[T, E]) -> T? {
   match self {
     Ok(value) => Some(value)
     Err(_) => None
@@ -303,7 +212,7 @@ test "to_option" {
 ///|
 pub impl[T : Compare, E : Compare] Compare for Result[T, E] with compare(
   self : Result[T, E],
-  other : Result[T, E]
+  other : Result[T, E],
 ) -> Int {
   match (self, other) {
     (Ok(x), Ok(y)) => x.compare(y)
@@ -330,7 +239,7 @@ test "compare" {
 }
 
 ///|
-pub fn[T, E] unwrap(self : Result[T, E]) -> T {
+pub fn[T, E] Result::unwrap(self : Result[T, E]) -> T {
   match self {
     Ok(x) => x
     Err(_) => abort("called `Result::unwrap()` on an `Err` value")
@@ -353,7 +262,7 @@ pub fn[T, E] unwrap(self : Result[T, E]) -> T {
 ///   let err : Result[Int, String] = Err("error message")
 ///   inspect(err.unwrap_err(), content="error message")
 /// ```
-pub fn[T, E] unwrap_err(self : Result[T, E]) -> E {
+pub fn[T, E] Result::unwrap_err(self : Result[T, E]) -> E {
   match self {
     Ok(_) => abort("called `Result::unwrap_err()` on an `Ok` value")
     Err(e) => e
@@ -365,21 +274,77 @@ test "show" {
   let ok : Result[_, String] = Ok("hello")
   inspect(
     ok,
-    content=
+    content=(
       #|Ok("hello")
-    ,
+    ),
   )
   let err : Result[String, _] = Err("world")
   inspect(
     err,
-    content=
+    content=(
       #|Err("world")
-    ,
+    ),
   )
 }
 
 ///|
-pub fn[T, E : Error] unwrap_or_error(self : Result[T, E]) -> T raise E {
+/// Return the contained `Ok` value or the provided default.
+pub fn[T, E] Result::unwrap_or(self : Result[T, E], default : T) -> T {
+  match self {
+    Ok(value) => value
+    Err(_) => default
+  }
+}
+
+///|
+test "unwrap_or" {
+  let x : Result[Int, String] = Ok(3)
+  let y : Result[Int, String] = Err("error")
+  assert_eq(x.unwrap_or(5), 3)
+  assert_eq(y.unwrap_or(5), 5)
+}
+
+///|
+/// Return the contained `Ok` value or the provided default.
+///
+/// Default is lazily evaluated
+pub fn[T, E] Result::unwrap_or_else(
+  self : Result[T, E],
+  default : () -> T raise?,
+) -> T raise? {
+  match self {
+    Ok(value) => value
+    Err(_) => default()
+  }
+}
+
+///|
+test "unwrap_or_else" {
+  let x : Result[Int, String] = Ok(3)
+  let y : Result[Int, String] = Err("error")
+  assert_eq(x.unwrap_or_else(() => 5), 3)
+  assert_eq(y.unwrap_or_else(() => 5), 5)
+}
+
+///|
+/// Return the contained `Ok` value or the result of the `T::default()`.
+pub fn[T : Default, E] Result::unwrap_or_default(self : Result[T, E]) -> T {
+  match self {
+    Ok(value) => value
+    Err(_) => T::default()
+  }
+}
+
+///|
+test "unwrap_or_default" {
+  let x : Result[Int, String] = Ok(3)
+  let y : Result[Int, String] = Err("error")
+  assert_eq(x.unwrap_or_default(), 3)
+  assert_eq(y.unwrap_or_default(), 0)
+}
+
+///|
+pub fn[T, E : Error] Result::unwrap_or_error(self : Result[T, E]) -> T raise E {
   match self {
     Ok(x) => x
     Err(e) => raise e
@@ -395,13 +360,11 @@ test "unwrap exn" {
     Failure(msg) => Err(msg)
   })
   |> inspect(
-    content=
+    content=(
       #|Err("This is serious")
-    ,
+    ),
   )
 }
-
-///|
 
 ///|
 pub impl[T : @quickcheck.Arbitrary, E : @quickcheck.Arbitrary] @quickcheck.Arbitrary for Result[

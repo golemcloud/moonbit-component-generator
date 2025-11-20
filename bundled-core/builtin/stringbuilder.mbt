@@ -16,7 +16,7 @@
 /// Writes the string representation of a object to the StringBuilder.
 pub fn[T : Show] StringBuilder::write_object(
   self : StringBuilder,
-  obj : T
+  obj : T,
 ) -> Unit {
   obj.output(self)
 }
@@ -39,9 +39,38 @@ pub fn[T : Show] StringBuilder::write_object(
 /// ```
 pub fn StringBuilder::write_iter(
   self : StringBuilder,
-  iter : Iter[Char]
+  iter : Iter[Char],
 ) -> Unit {
   for ch in iter {
     self.write_char(ch)
   }
+}
+
+///|
+/// Writes a StringView to the StringBuilder.
+/// 
+/// This is more efficient than converting the StringView to a String first,
+/// as it directly writes the viewed portion without creating intermediate strings.
+/// 
+/// Parameters:
+///
+/// * `self` : The StringBuilder to write to.
+/// * `view` : The StringView to write.
+///
+/// Example:
+///
+/// ```moonbit
+///   let sb = StringBuilder::new()
+///   let str = "Hello, world!"
+///   let view = str[7:12]  // "world"
+///   sb.write_stringview(view)
+///   assert_eq(sb.to_string(), "world")
+/// ```
+pub fn StringBuilder::write_stringview(
+  self : StringBuilder,
+  view : StringView,
+) -> Unit {
+  let start = view.start()
+  let end = view.end()
+  self.write_substring(view.str(), start, end - start)
 }

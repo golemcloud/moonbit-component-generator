@@ -14,7 +14,7 @@
 
 ///|
 test "get as null" {
-  inspect(Json::null().as_null(), content="Some(())")
+  inspect(null.as_null(), content="Some(())")
   inspect(Json::boolean(true).as_null(), content="None")
   inspect(Json::boolean(false).as_null(), content="None")
   inspect(Json::number(1.0).as_null(), content="None")
@@ -28,7 +28,7 @@ test "get as null" {
 
 ///|
 test "get as bool" {
-  inspect(Json::null().as_bool(), content="None")
+  inspect(null.as_bool(), content="None")
   inspect(Json::boolean(true).as_bool(), content="Some(true)")
   inspect(Json::boolean(false).as_bool(), content="Some(false)")
   inspect(Json::number(1.0).as_bool(), content="None")
@@ -49,7 +49,7 @@ fn _check2(x : String) -> Json raise @json.ParseError {
 
 ///|
 test "get as number" {
-  inspect(Json::null().as_number(), content="None")
+  inspect(null.as_number(), content="None")
   inspect(Json::boolean(false).as_number(), content="None")
   inspect(Json::boolean(true).as_number(), content="None")
   inspect(Json::number(1.0).as_number(), content="Some(1)")
@@ -60,7 +60,10 @@ test "get as number" {
   )
   inspect(
     Json::object(
-      Map::of([("key", Json::string("key")), ("value", Json::number(100.0))]),
+      Map::from_array([
+        ("key", Json::string("key")),
+        ("value", Json::number(100.0)),
+      ]),
     ).as_number(),
     content="None",
   )
@@ -68,15 +71,15 @@ test "get as number" {
 
 ///|
 test "get as string" {
-  inspect(Json::null().as_string(), content="None")
+  inspect(null.as_string(), content="None")
   inspect(Json::boolean(true).as_string(), content="None")
   inspect(Json::boolean(false).as_string(), content="None")
   inspect(Json::number(1.0).as_string(), content="None")
   inspect(
     Json::string("Hello World").as_string(),
-    content=
+    content=(
       #|Some("Hello World")
-    ,
+    ),
   )
   inspect(
     Json::array([Json::string("Hello World")]).as_string(),
@@ -84,7 +87,10 @@ test "get as string" {
   )
   inspect(
     Json::object(
-      Map::of([("key", Json::string("key")), ("value", Json::number(100.0))]),
+      Map::from_array([
+        ("key", Json::string("key")),
+        ("value", Json::number(100.0)),
+      ]),
     ).as_string(),
     content="None",
   )
@@ -92,22 +98,22 @@ test "get as string" {
 
 ///|
 test "get as array" {
-  inspect(Json::null().as_array(), content="None")
+  inspect(null.as_array(), content="None")
   inspect(Json::boolean(true).as_array(), content="None")
   inspect(Json::boolean(false).as_array(), content="None")
   inspect(Json::number(1.0).as_array(), content="None")
   inspect(Json::string("Hello World").as_array(), content="None")
   inspect(
     Json::array([Json::string("Hello World")]).as_array(),
-    content=
+    content=(
       #|Some([String("Hello World")])
-    ,
+    ),
   )
   inspect(
     Json::array([Json::string("Hello World")]).item(0).bind(Json::as_string),
-    content=
+    content=(
       #|Some("Hello World")
-    ,
+    ),
   )
   inspect(
     Json::array([Json::string("Hello World")]).item(1).bind(Json::as_string),
@@ -119,7 +125,10 @@ test "get as array" {
   )
   inspect(
     Json::object(
-      Map::of([("key", Json::string("key")), ("value", Json::number(100.0))]),
+      Map::from_array([
+        ("key", Json::string("key")),
+        ("value", Json::number(100.0)),
+      ]),
     ).as_array(),
     content="None",
   )
@@ -127,7 +136,7 @@ test "get as array" {
 
 ///|
 test "get as object" {
-  inspect(Json::null().as_object().map(_.to_array()), content="None")
+  inspect(null.as_object().map(_.to_array()), content="None")
   inspect(Json::boolean(true).as_object().map(_.to_array()), content="None")
   inspect(Json::boolean(false).as_object().map(_.to_array()), content="None")
   inspect(Json::number(1.0).as_object().map(_.to_array()), content="None")
@@ -141,27 +150,36 @@ test "get as object" {
   )
   inspect(
     Json::object(
-      Map::of([("key", Json::string("key")), ("value", Json::number(100.0))]),
+      Map::from_array([
+        ("key", Json::string("key")),
+        ("value", Json::number(100.0)),
+      ]),
     )
     .as_object()
     .map(_.to_array()),
-    content=
+    content=(
       #|Some([("key", String("key")), ("value", Number(100))])
-    ,
+    ),
   )
   inspect(
     Json::object(
-      Map::of([("key", Json::string("key")), ("value", Json::number(100.0))]),
+      Map::from_array([
+        ("key", Json::string("key")),
+        ("value", Json::number(100.0)),
+      ]),
     )
     .value("key")
     .bind(_.as_string()),
-    content=
+    content=(
       #|Some("key")
-    ,
+    ),
   )
   inspect(
     Json::object(
-      Map::of([("key", Json::string("key")), ("value", Json::number(100.0))]),
+      Map::from_array([
+        ("key", Json::string("key")),
+        ("value", Json::number(100.0)),
+      ]),
     )
     .value("value")
     .bind(_.as_number()),
@@ -169,7 +187,10 @@ test "get as object" {
   )
   inspect(
     Json::object(
-      Map::of([("key", Json::string("key")), ("value", Json::number(100.0))]),
+      Map::from_array([
+        ("key", Json::string("key")),
+        ("value", Json::number(100.0)),
+      ]),
     )
     .value("key")
     .bind(_.as_number()),
@@ -177,7 +198,10 @@ test "get as object" {
   )
   inspect(
     Json::object(
-      Map::of([("key", Json::string("key")), ("value", Json::number(100.0))]),
+      Map::from_array([
+        ("key", Json::string("key")),
+        ("value", Json::number(100.0)),
+      ]),
     )
     .value("asdf")
     .bind(_.as_number()),
@@ -188,10 +212,10 @@ test "get as object" {
 ///|
 test "deep access" {
   let json : Json = {
-    "key": [1.0, true, Json::null(), [], { "key": "value", "value": 100.0 }],
+    "key": [1.0, true, null, [], { "key": "value", "value": 100.0 }],
     "int": 12345,
     "double": 123.45,
-    "null": Json::null(),
+    "null": null,
     "bool": false,
     "obj": {},
   }
@@ -207,9 +231,9 @@ test "deep access" {
   )
   inspect(
     json.value("key").bind(_.as_array()),
-    content=
+    content=(
       #|Some([Number(1), True, Null, Array([]), Object({"key": String("value"), "value": Number(100)})])
-    ,
+    ),
   )
   inspect(
     json.value("key").bind(_.item(3)).bind(_.as_array()),
@@ -217,9 +241,9 @@ test "deep access" {
   )
   inspect(
     json.value("key").bind(_.item(4)).bind(_.as_object()).map(_.to_array()),
-    content=
+    content=(
       #|Some([("key", String("value")), ("value", Number(100))])
-    ,
+    ),
   )
   inspect(
     json.value("obj").bind(_.as_object()).map(_.to_array()),
@@ -230,29 +254,99 @@ test "deep access" {
 ///|
 test "stringify" {
   let json : Json = {
-    "key": [1.0, true, Json::null(), [], { "key": "value", "value": 100.0 }],
+    "key": [1.0, true, null, [], { "key": "value", "value": 100.0 }],
     "int": 12345,
     "double": 123.45,
-    "null": Json::null(),
+    "null": null,
     "bool": false,
     "obj": {},
   }
   inspect(
     json.stringify(),
-    content=
+    content=(
       #|{"key":[1,true,null,[],{"key":"value","value":100}],"int":12345,"double":123.45,"null":null,"bool":false,"obj":{}}
-    ,
+    ),
   )
 
   // not mut once we have `try except else` syntax
   // we do come across issues like ParseError not unified with String
   let newjson = @json.parse(json.stringify())
   match json {
-    { "key": [_, _, _, _, { "value": Number(i), .. }, ..], .. } =>
+    { "key": [_, _, _, _, { "value": Number(i, ..), .. }, ..], .. } =>
       inspect(i, content="100")
     _ => fail("Failed to match the JSON")
   }
   assert_eq(newjson, json)
+}
+
+///|
+test "stringify with replacer" {
+  let json : Json = { "a": 1.0, "b": 2.0, "c": 3.0, "d": 4.0 }
+
+  // keep
+  let replacer = @json.Replacer::keep(["a", "c", "e"])
+  inspect(
+    json.stringify(replacer~),
+    content=(
+      #|{"a":1,"c":3}
+    ),
+  )
+  // exclude
+  let replacer = @json.Replacer::exclude(["b", "d"])
+  inspect(
+    json.stringify(replacer~),
+    content=(
+      #|{"a":1,"c":3}
+    ),
+  )
+  // custom logic
+  let replacer = @json.Replacer::new((idx, value) => match idx {
+    "b" => None
+    "d" => None
+    _ => Some(value)
+  })
+  inspect(
+    json.stringify(replacer~),
+    content=(
+      #|{"a":1,"c":3}
+    ),
+  )
+}
+
+///|
+test "stringify with replace recursively" {
+  let json : Json = {
+    "a": 1.0,
+    "b": { "a": 2.0, "b": 3.0 },
+    "c": [{ "a": 4.0, "b": 5.0 }, { "a": 6.0, "b": 7.0 }],
+  }
+  // keep
+  let replacer = @json.Replacer::keep(["a"])
+  inspect(
+    json.stringify(replacer~),
+    content=(
+      #|{"a":1}
+    ),
+  )
+  // exclude
+  let replacer = @json.Replacer::exclude(["b"])
+  inspect(
+    json.stringify(replacer~),
+    content=(
+      #|{"a":1,"c":[{"a":4},{"a":6}]}
+    ),
+  )
+  // custom logic
+  let replacer = @json.Replacer::new((idx, value) => match idx {
+    "b" => None
+    _ => Some(value)
+  })
+  inspect(
+    json.stringify(replacer~),
+    content=(
+      #|{"a":1,"c":[{"a":4},{"a":6}]}
+    ),
+  )
 }
 
 ///|
@@ -270,9 +364,9 @@ let json : Json = {
 test "stringify escape 1 " {
   inspect(
     json.stringify(),
-    content=
+    content=(
       #|{"\b":"\"hello\"","\n":"\n\r\t\f","\\":"/","\u001f":"\u0001","actual":"a,\"b\",c","escape":"\u0000"}
-    ,
+    ),
   )
 }
 
@@ -280,9 +374,9 @@ test "stringify escape 1 " {
 test "stringify escape 2" {
   inspect(
     json.stringify(escape_slash=true),
-    content=
+    content=(
       #|{"\b":"\"hello\"","\n":"\n\r\t\f","\\":"\/","\u001f":"\u0001","actual":"a,\"b\",c","escape":"\u0000"}
-    ,
+    ),
   )
 }
 
@@ -290,7 +384,7 @@ test "stringify escape 2" {
 test "stringify escape 3" {
   inspect(
     json.stringify(escape_slash=false, indent=2),
-    content=
+    content=(
       #|{
       #|  "\b": "\"hello\"",
       #|  "\n": "\n\r\t\f",
@@ -299,7 +393,7 @@ test "stringify escape 3" {
       #|  "actual": "a,\"b\",c",
       #|  "escape": "\u0000"
       #|}
-    ,
+    ),
   )
 }
 
@@ -307,9 +401,9 @@ test "stringify escape 3" {
 test "stringify escape 4" {
   inspect(
     json.stringify(escape_slash=false),
-    content=
+    content=(
       #|{"\b":"\"hello\"","\n":"\n\r\t\f","\\":"/","\u001f":"\u0001","actual":"a,\"b\",c","escape":"\u0000"}
-    ,
+    ),
   )
 }
 
@@ -340,15 +434,15 @@ test "escape" {
   let s = "http://example.com/"
   inspect(
     Json::string(s).stringify(escape_slash=true),
-    content=
+    content=(
       #|"http:\/\/example.com\/"
-    ,
+    ),
   )
   inspect(
     Json::string(s).stringify(),
-    content=
+    content=(
       #|"http://example.com/"
-    ,
+    ),
   )
 }
 
@@ -379,14 +473,40 @@ test "stringify number" {
   inspect(nums[7].stringify(), content="9.999999999992234e+29")
   inspect(nums[8].stringify(), content="-1.7976931348623157e+308")
   inspect(nums[9].stringify(), content="1.7976931348623157e+308")
-  inspect(nums[10].stringify(), content="null")
-  inspect(nums[11].stringify(), content="null")
-  inspect(nums[12].stringify(), content="null")
+  inspect(
+    nums[10].stringify(),
+    content=(
+      #|"NaN"
+    ),
+  )
+  inspect(
+    nums[11].stringify(),
+    content=(
+      #|"Infinity"
+    ),
+  )
+  inspect(
+    nums[12].stringify(),
+    content=(
+      #|"-Infinity"
+    ),
+  )
   let err : Array[String] = []
   for json in nums {
-    match (try? @json.parse(json.stringify())) {
-      Err(e) => err.push(e.to_string())
-      Ok(newjson) => assert_eq(newjson, json)
+    let json = @json.parse(json.stringify()) catch {
+      e => {
+        err.push(e.to_string())
+        continue
+      }
+    }
+    match json {
+      Number(_, repr~) as newjson =>
+        if repr is Some(_) {
+          assert_eq(newjson.stringify(), json.stringify())
+        } else {
+          assert_eq(newjson, json)
+        }
+      newjson => assert_eq(newjson, json)
     }
   }
   inspect(err, content="[]")
@@ -395,22 +515,22 @@ test "stringify number" {
 ///|
 test "stringify with indent" {
   let json : Json = {
-    "key": [1.0, true, Json::null(), [], { "key": "value", "value": 100.0 }],
+    "key": [1.0, true, null, [], { "key": "value", "value": 100.0 }],
     "int": 12345,
     "double": 123.45,
-    "null": Json::null(),
+    "null": null,
     "bool": false,
     "obj": {},
   }
   inspect(
     json.stringify(indent=0),
-    content=
+    content=(
       #|{"key":[1,true,null,[],{"key":"value","value":100}],"int":12345,"double":123.45,"null":null,"bool":false,"obj":{}}
-    ,
+    ),
   )
   inspect(
     json.stringify(indent=1),
-    content=
+    content=(
       #|{
       #| "key": [
       #|  1,
@@ -428,11 +548,11 @@ test "stringify with indent" {
       #| "bool": false,
       #| "obj": {}
       #|}
-    ,
+    ),
   )
   inspect(
     json.stringify(indent=2),
-    content=
+    content=(
       #|{
       #|  "key": [
       #|    1,
@@ -450,11 +570,11 @@ test "stringify with indent" {
       #|  "bool": false,
       #|  "obj": {}
       #|}
-    ,
+    ),
   )
   inspect(
     json.stringify(indent=4),
-    content=
+    content=(
       #|{
       #|    "key": [
       #|        1,
@@ -472,7 +592,7 @@ test "stringify with indent" {
       #|    "bool": false,
       #|    "obj": {}
       #|}
-    ,
+    ),
   )
 }
 
@@ -499,4 +619,100 @@ test "nested json" {
       "key3": { "subkey1": 3, "subkey2": { "w": 3 }, "subkey3": [1, 2, 3] },
     },
   })
+}
+
+///|
+test "call stack overflow" {
+  let depth = 50000
+  let json_string = StringBuilder::new()
+  for _ in 0..=depth {
+    json_string.write_char('[')
+  }
+  for _ in 0..=depth {
+    json_string.write_char(']')
+  }
+  let _ = @json.parse(json_string.to_string()) catch { _ => null }
+  let depth = 1500
+  let json_string = StringBuilder::new()
+  for _ in 0..=depth {
+    json_string.write_char('[')
+  }
+  for _ in 0..=depth {
+    json_string.write_char(']')
+  }
+  let _ = @json.parse(json_string.to_string(), max_nesting_depth=2000) catch {
+    _ => null
+  }
+
+}
+
+///|
+test "stringify deep nested array" {
+  // Build a deeply nested JSON array like [[[[[]]]]] with depth = 6000
+  let depth = 6000
+  let mut j : Json = []
+  for _ in 1..=depth {
+    j = [j]
+  }
+  let s = j.stringify()
+  let expected = depth * 2 + 2 // each [ and ] plus the outermost []
+  assert_eq(s.length(), expected)
+}
+
+///|
+test "stringify deep nested object" {
+  // Build a deeply nested object like {"a":{"a":{ ... {"a":null}}}} with depth = 6000
+  let depth = 6000
+  let mut j : Json = null
+  for _ in 1..=depth {
+    j = { "a": j }
+  }
+  let s = j.stringify()
+  let expected = depth * 6 + 4 // each {"a": } plus the outermost null
+  assert_eq(s.length(), expected)
+}
+
+///|
+test "transformer" {
+  // custom function
+  let json : Json = { "a": 1.0, "b": { "c": 2.0, "d": [3.0, 4.0] } }
+  let newjson = json.transform(
+    @json.Replacer::new((_, value) => match value {
+      Number(n, ..) => Some(Json::number(n * 10))
+      other => Some(other)
+    }),
+  )
+  @json.inspect(newjson, content={ "a": 10, "b": { "c": 20, "d": [3, 4] } })
+
+  // keep
+  let newjson2 = json.transform(@json.Replacer::keep(["a", "b", "c"]))
+  @json.inspect(newjson2, content={ "a": 1, "b": { "c": 2 } })
+
+  // exclude
+  let newjson3 = json.transform(@json.Replacer::exclude(["a", "d"]))
+  @json.inspect(newjson3, content={ "b": { "c": 2 } })
+}
+
+///|
+test "transformer with array" {
+  let json : Json = [1.0, { "a": 2.0 }, [3.0, 4.0]]
+  let newjson = json.transform(
+    @json.Replacer::new((_, value) => match value {
+      Number(n, ..) => Some(Json::number(n + 1))
+      other => Some(other)
+    }),
+  )
+  @json.inspect(newjson, content=[1, { "a": 3 }, [3, 4]])
+
+  // keep
+  let newjson2 = json.transform(@json.Replacer::keep(["a"]))
+  @json.inspect(newjson2, content=[1, { "a": 2 }, [3, 4]])
+
+  // exclude
+  let newjson3 = json.transform(@json.Replacer::exclude(["a"]))
+  @json.inspect(newjson3, content=[1, {}, [3, 4]])
+  let newjson4 : Json = [{ "a": [{ "b": [{ "c": [{ "d": 1 }] }] }] }]
+  @json.inspect(newjson4.transform(@json.Replacer::exclude(["d"])), content=[
+    { "a": [{ "b": [{ "c": [{}] }] }] },
+  ])
 }

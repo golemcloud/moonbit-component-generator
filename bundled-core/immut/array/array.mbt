@@ -18,13 +18,15 @@
 
 ///|
 /// Return a new empty array
-pub fn[A] new() -> T[A] {
+#as_free_fn
+pub fn[A] T::new() -> T[A] {
   { tree: Tree::empty(), size: 0, shift: 0 }
 }
 
 ///|
 /// Create a persistent array with a given length and value.
-pub fn[A] make(len : Int, value : A) -> T[A] {
+#as_free_fn
+pub fn[A] T::make(len : Int, value : A) -> T[A] {
   let quot = len / branching_factor
   let rem = len % branching_factor
   let leaves = if rem == 0 {
@@ -45,7 +47,8 @@ pub fn[A] make(len : Int, value : A) -> T[A] {
 
 ///|
 /// Create a persistent array with a given length and a function to generate values.
-pub fn[A] makei(len : Int, f : (Int) -> A raise?) -> T[A] raise? {
+#as_free_fn
+pub fn[A] T::makei(len : Int, f : (Int) -> A raise?) -> T[A] raise? {
   let quot = len / branching_factor
   let rem = len % branching_factor
   let leaves = if rem == 0 {
@@ -69,51 +72,23 @@ pub fn[A] makei(len : Int, f : (Int) -> A raise?) -> T[A] raise? {
 }
 
 ///|
-/// Convert a FixedArray to an @immut/array.
-pub fn[A] of(arr : FixedArray[A]) -> T[A] {
-  makei(arr.length(), i => arr[i])
-}
-
-///|
-/// Physically copy the array.
-/// Since it is an immutable data structure,
-/// it is rarely the case that you would need this function.
-/// 
-#deprecated("We don't copy immutable array")
-#coverage.skip
-pub fn[A] copy(self : T[A]) -> T[A] {
-  fn copy(t : Tree[A]) -> Tree[A] {
-    match t {
-      Leaf(l) => Leaf(l.copy())
-      Empty => Empty
-      Node(node, sizes) =>
-        Node(
-          FixedArray::makei(node.length(), i => copy(node[i])),
-          match sizes {
-            Some(sizes) => Some(FixedArray::copy(sizes))
-            None => None
-          },
-        )
-    }
-  }
-
-  { tree: copy(self.tree), size: self.size, shift: self.shift }
-}
-
-///|
 /// Create a persistent array from an array.
 /// 
 /// # Example
 /// ```mbt
-///   let v = @array.of([1, 2, 3])
+///   let v = @array.from_array([1, 2, 3])
 ///   assert_eq(v, @array.from_array([1, 2, 3]))
 /// ```
-pub fn[A] from_array(arr : Array[A]) -> T[A] {
+#as_free_fn
+#alias(of, deprecated="Use from_array instead")
+#as_free_fn(of, deprecated="Use from_array instead")
+pub fn[A] T::from_array(arr : ArrayView[A]) -> T[A] {
   makei(arr.length(), i => arr[i])
 }
 
 ///|
-pub fn[A] from_iter(iter : Iter[A]) -> T[A] {
+#as_free_fn
+pub fn[A] T::from_iter(iter : Iter[A]) -> T[A] {
   let mut buf : FixedArray[A] = []
   let mut index = 0
   let leaves = []
@@ -141,12 +116,44 @@ pub fn[A] from_iter(iter : Iter[A]) -> T[A] {
   { shift, tree, size }
 }
 
+///|
+#as_free_fn
+pub fn[A] T::from_iterator(iter : Iterator[A]) -> T[A] {
+  let mut buf : FixedArray[A] = []
+  let mut index = 0
+  let leaves = []
+  while iter.next() is Some(x) {
+    if index == 0 {
+      buf = FixedArray::make(branching_factor, x)
+      index += 1
+    } else if index < branching_factor {
+      buf[index] = x
+      index += 1
+    } else {
+      leaves.push(buf)
+      index = 1
+      buf = FixedArray::make(branching_factor, x)
+    }
+  }
+  if index == branching_factor {
+    leaves.push(buf)
+  } else if index > 0 {
+    let res = FixedArray::make(index, buf[0])
+    buf.blit_to(res, len=index)
+    leaves.push(res)
+  }
+  let size = leaves.fold(init=0, (acc, xs) => acc + xs.length())
+  let (shift, cap) = shift_cap_of_size(size)
+  let tree = if size == 0 { Empty } else { from_leaves(leaves[:], cap) }
+  { shift, tree, size }
+}
+
 //-----------------------------------------------------------------------------
 // Converter (convert T to other types)
 //-----------------------------------------------------------------------------
 
 ///|
-pub fn[A] to_array(self : T[A]) -> Array[A] {
+pub fn[A] T::to_array(self : T[A]) -> Array[A] {
   if self.is_empty() {
     []
   } else {
@@ -161,12 +168,12 @@ pub fn[A] to_array(self : T[A]) -> Array[A] {
 //-----------------------------------------------------------------------------
 
 ///|
-pub fn[A] is_empty(self : T[A]) -> Bool {
+pub fn[A] T::is_empty(self : T[A]) -> Bool {
   self.size == 0
 }
 
 ///|
-pub fn[A] length(self : T[A]) -> Int {
+pub fn[A] T::length(self : T[A]) -> Int {
   self.size
 }
 
@@ -179,10 +186,11 @@ pub fn[A] length(self : T[A]) -> Int {
 ///
 /// # Examples
 /// ```mbt
-///   let v = @array.of([1, 2, 3, 4, 5])
-///   assert_eq(v[0], 1)
+///   let v = @array.from_array([1, 2, 3, 4, 5])
+///   inspect(v[0], content="1")
 /// ```
-pub fn[A] op_get(self : T[A], index : Int) -> A {
+#alias("_[_]")
+pub fn[A] T::at(self : T[A], index : Int) -> A {
   if index == 0 {
     self.tree.get_first()
   } else if index == self.size - 1 {
@@ -207,12 +215,12 @@ pub fn[A] op_get(self : T[A], index : Int) -> A {
 /// Example:
 ///
 /// ```moonbit
-///   let v = @array.of([1, 2, 3])
+///   let v = @array.from_array([1, 2, 3])
 ///   inspect(v.get(1), content="Some(2)")
 ///   inspect(v.get(-1), content="None")
 ///   inspect(v.get(3), content="None")
 /// ```
-pub fn[A] get(self : T[A], index : Int) -> A? {
+pub fn[A] T::get(self : T[A], index : Int) -> A? {
   guard 0 <= index && index < self.size else { None }
   Some(self[index])
 }
@@ -226,10 +234,10 @@ pub fn[A] get(self : T[A], index : Int) -> A? {
 ///
 /// # Example
 /// ```mbt
-///   let v = @array.of([1, 2, 3, 4, 5])
-///   assert_eq(v.set(1, 10), @array.of([1, 10, 3, 4, 5]))
+///   let v = @array.from_array([1, 2, 3, 4, 5])
+///   assert_eq(v.set(1, 10), @array.from_array([1, 10, 3, 4, 5]))
 /// ```
-pub fn[A] set(self : T[A], index : Int, value : A) -> T[A] {
+pub fn[A] T::set(self : T[A], index : Int, value : A) -> T[A] {
   {
     tree: self.tree.set(index, self.shift, value),
     size: self.size,
@@ -242,17 +250,17 @@ pub fn[A] set(self : T[A], index : Int, value : A) -> T[A] {
 ///
 /// # Example
 /// ```mbt
-///   let v = @array.of([1, 2, 3])
-///   assert_eq(v.push(4), @array.of([1, 2, 3, 4]))
+///   let v = @array.from_array([1, 2, 3])
+///   assert_eq(v.push(4), @array.from_array([1, 2, 3, 4]))
 /// ```
-pub fn[A] push(self : T[A], value : A) -> T[A] {
+pub fn[A] T::push(self : T[A], value : A) -> T[A] {
   let (tree, shift) = self.tree.push_end(self.shift, value)
   { tree, size: self.size + 1, shift }
 }
 
 ///|
 /// Given two trees, concatenate them into a new tree.
-pub fn[A] concat(self : T[A], other : T[A]) -> T[A] {
+pub fn[A] T::concat(self : T[A], other : T[A]) -> T[A] {
   if self.is_empty() {
     return other
   }
@@ -271,7 +279,7 @@ pub fn[A] concat(self : T[A], other : T[A]) -> T[A] {
 
 ///|
 /// Concat two arrays.
-pub impl[A] Add for T[A] with op_add(self, other) {
+pub impl[A] Add for T[A] with add(self, other) {
   self.concat(other)
 }
 
@@ -281,8 +289,14 @@ pub impl[A] Add for T[A] with op_add(self, other) {
 
 ///|
 /// Return an iterator over the array.
-pub fn[A] iter(self : T[A]) -> Iter[A] {
+pub fn[A] T::iter(self : T[A]) -> Iter[A] {
   self.tree.iter()
+}
+
+///|
+/// Return an iterator over the array.
+pub fn[A] T::iterator(self : T[A]) -> Iterator[A] {
+  self.tree.iterator()
 }
 
 ///|
@@ -291,11 +305,11 @@ pub fn[A] iter(self : T[A]) -> Iter[A] {
 /// # Example
 /// ```mbt
 ///   let arr = []
-///   let v = @array.of([1, 2, 3, 4, 5])
+///   let v = @array.from_array([1, 2, 3, 4, 5])
 ///   v.each((e) => { arr.push(e) })
 ///   assert_eq(arr, [1, 2, 3, 4, 5])
 /// ```
-pub fn[A] each(self : T[A], f : (A) -> Unit raise?) -> Unit raise? {
+pub fn[A] T::each(self : T[A], f : (A) -> Unit raise?) -> Unit raise? {
   self.tree.each(f)
 }
 
@@ -305,11 +319,11 @@ pub fn[A] each(self : T[A], f : (A) -> Unit raise?) -> Unit raise? {
 /// # Example
 /// ```mbt
 ///   let arr = []
-///   let v = @array.of([1, 2, 3, 4, 5])
+///   let v = @array.from_array([1, 2, 3, 4, 5])
 ///   v.eachi((i, e) => { arr.push(i * e) })
 ///   assert_eq(arr, [0, 2, 6, 12, 20])
 /// ```
-pub fn[A] eachi(self : T[A], f : (Int, A) -> Unit raise?) -> Unit raise? {
+pub fn[A] T::eachi(self : T[A], f : (Int, A) -> Unit raise?) -> Unit raise? {
   self.tree.eachi(f, self.shift, 0)
 }
 
@@ -318,10 +332,15 @@ pub fn[A] eachi(self : T[A], f : (Int, A) -> Unit raise?) -> Unit raise? {
 ///
 /// # Example
 /// ```mbt
-///   let v = @array.of([1, 2, 3, 4, 5])
+///   let v = @array.from_array([1, 2, 3, 4, 5])
 ///   assert_eq(v.fold((a, b) => { a + b }, init=0), 15)
 /// ```
-pub fn[A, B] fold(self : T[A], init~ : B, f : (B, A) -> B raise?) -> B raise? {
+#alias(fold_left, deprecated)
+pub fn[A, B] T::fold(
+  self : T[A],
+  init~ : B,
+  f : (B, A) -> B raise?,
+) -> B raise? {
   self.tree.fold(init, f)
 }
 
@@ -330,47 +349,16 @@ pub fn[A, B] fold(self : T[A], init~ : B, f : (B, A) -> B raise?) -> B raise? {
 ///
 /// # Example
 /// ```mbt
-///   let v = @array.of([1, 2, 3, 4, 5])
+///   let v = @array.from_array([1, 2, 3, 4, 5])
 ///   assert_eq(v.rev_fold((a, b) => { a + b }, init=0), 15)
 /// ```
-pub fn[A, B] rev_fold(
+#alias(fold_right, deprecated)
+pub fn[A, B] T::rev_fold(
   self : T[A],
   init~ : B,
-  f : (B, A) -> B raise?
+  f : (B, A) -> B raise?,
 ) -> B raise? {
   self.tree.rev_fold(init, f)
-}
-
-///|
-/// Fold the array from left to right.
-///
-/// # Example
-/// ```mbt
-///   let v = @array.of([1, 2, 3, 4, 5])
-///   assert_eq(v.fold((a, b) => { a + b }, init=0), 15)
-/// ```
-#deprecated("Use `fold` instead")
-#coverage.skip
-pub fn[A] fold_left(self : T[A], f : (A, A) -> A raise?, init~ : A) -> A raise? {
-  self.fold(init~, f)
-}
-
-///|
-/// Fold the array from right to left.
-///
-/// # Example
-/// ```mbt
-///   let v = @array.of([1, 2, 3, 4, 5])
-///   assert_eq(v.rev_fold((a, b) => { a + b }, init=0), 15)
-/// ```
-#deprecated("Use `rev_fold` instead")
-#coverage.skip
-pub fn[A] fold_right(
-  self : T[A],
-  f : (A, A) -> A raise?,
-  init~ : A
-) -> A raise? {
-  self.rev_fold(init~, f)
 }
 
 ///|
@@ -378,10 +366,10 @@ pub fn[A] fold_right(
 ///
 /// # Example
 /// ```mbt
-///   let v = @array.of([1, 2, 3, 4, 5])
-///   assert_eq(v.map((e) => { e * 2 }), @array.of([2, 4, 6, 8, 10]))
+///   let v = @array.from_array([1, 2, 3, 4, 5])
+///   assert_eq(v.map((e) => { e * 2 }), @array.from_array([2, 4, 6, 8, 10]))
 /// ```
-pub fn[A, B] map(self : T[A], f : (A) -> B raise?) -> T[B] raise? {
+pub fn[A, B] T::map(self : T[A], f : (A) -> B raise?) -> T[B] raise? {
   { tree: self.tree.map(f), size: self.size, shift: self.shift }
 }
 
@@ -392,7 +380,7 @@ pub fn[A, B] map(self : T[A], f : (A) -> B raise?) -> T[B] raise? {
 ///|
 pub impl[X : @quickcheck.Arbitrary] @quickcheck.Arbitrary for T[X] with arbitrary(
   size,
-  rs
+  rs,
 ) {
   @quickcheck.Arbitrary::arbitrary(size, rs) |> from_array
 }
@@ -405,17 +393,21 @@ pub impl[A : Hash] Hash for T[A] with hash_combine(self, hasher) {
 }
 
 ///|
-pub impl[A : Eq] Eq for T[A] with op_equal(self, other) {
+pub impl[A : Eq] Eq for T[A] with equal(self, other) {
   self.size == other.size && self.tree == other.tree
 }
 
 ///|
 pub impl[A : Show] Show for T[A] with output(self, logger) {
-  logger.write_iter(self.iter(), prefix="@immut/array.of([", suffix="])")
+  logger.write_iter(
+    self.iter(),
+    prefix="@immut/array.from_array([",
+    suffix="])",
+  )
 }
 
 ///|
-/// Compares two arrays lexicographically.
+/// Compares two arrays based on shortlex order.
 ///
 /// First compares the lengths of the arrays. If they differ, returns -1 if the
 /// first array is shorter, 1 if it's longer. If the lengths are equal, compares
@@ -436,13 +428,13 @@ pub impl[A : Show] Show for T[A] with output(self, logger) {
 /// Example:
 ///
 /// ```moonbit
-///   let arr1 = @array.of([1, 2, 3])
-///   let arr2 = @array.of([1, 2, 4])
-///   let arr3 = @array.of([1, 2])
-///   assert_eq(arr1.compare(arr2), -1) // arr1 < arr2
-///   assert_eq(arr1.compare(arr3), 1) // arr2 > arr1
-///   assert_eq(arr3.compare(arr1), -1) // arr1 > arr3 (longer)
-///   assert_eq(arr1.compare(arr1), 0) // arr1 = arr1
+///   let arr1 = @array.from_array([1, 2, 3])
+///   let arr2 = @array.from_array([1, 2, 4])
+///   let arr3 = @array.from_array([1, 2])
+///   inspect(arr1.compare(arr2), content="-1") // arr1 < arr2
+///   inspect(arr1.compare(arr3), content="1") // arr2 > arr1
+///   inspect(arr3.compare(arr1), content="-1") // arr1 > arr3 (longer)
+///   inspect(arr1.compare(arr1), content="0") // arr1 = arr1
 /// ```
 pub impl[A : Compare] Compare for T[A] with compare(self, other) {
   let len_self = self.length()
@@ -462,10 +454,7 @@ pub impl[A : Compare] Compare for T[A] with compare(self, other) {
 //-----------------------------------------------------------------------------
 
 ///|
-fn[A] from_leaves(
-  leaves : @core/array.View[FixedArray[A]],
-  cap : Int
-) -> Tree[A] {
+fn[A] from_leaves(leaves : ArrayView[FixedArray[A]], cap : Int) -> Tree[A] {
   if cap == branching_factor {
     Leaf(leaves[0])
   } else if leaves.length() <= branching_factor {

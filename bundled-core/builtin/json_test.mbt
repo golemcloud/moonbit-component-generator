@@ -34,7 +34,26 @@ test "UInt to_json" {
 ///|
 test "double to json with positive infinity" {
   let pos_inf = 1.0 / 0.0
-  inspect(pos_inf.to_json(), content="Null")
+  inspect(
+    pos_inf.to_json(),
+    content=(
+      #|String("Infinity")
+    ),
+  )
+  @json.inspect(pos_inf, content="Infinity")
+}
+
+///|
+test "double to json with negative infinity" {
+  let neg_inf = -1.0 / 0.0
+  inspect(
+    neg_inf.to_json(),
+    content=(
+      #|String("-Infinity")
+    ),
+  )
+  @json.inspect(neg_inf, content="-Infinity")
+  @json.inspect(0.0 / 0.0, content="NaN")
 }
 
 ///|
@@ -98,9 +117,9 @@ test "escape control characters" {
   let json = str.to_json()
   inspect(
     json,
-    content=
+    content=(
       #|String("abc\u{01}def")
-    ,
+    ),
   )
 }
 
@@ -110,9 +129,9 @@ test "test carriage return and backspace" {
   let json = test_string.to_json()
   inspect(
     json,
-    content=
+    content=(
       #|String("CR\rBS\b")
-    ,
+    ),
   )
 }
 
@@ -122,9 +141,9 @@ test "test form feed" {
   let json = test_string.to_json()
   inspect(
     json,
-    content=
+    content=(
       #|String("Form\u{0c}Feed")
-    ,
+    ),
   )
 }
 
@@ -165,4 +184,10 @@ test "Byte::to_json" {
   inspect(b'\x00'.to_json(), content="Number(0)")
   inspect(b'\xff'.to_json(), content="Number(255)")
   inspect(b'\x42'.to_json(), content="Number(66)")
+}
+
+///|
+test "Iter[X] to_json" {
+  let v = "a b c d".split(" ")
+  @json.inspect(v, content=["a", "b", "c", "d"])
 }

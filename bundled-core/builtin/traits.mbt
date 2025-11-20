@@ -15,7 +15,9 @@
 ///|
 /// Trait for types whose elements can test for equality
 pub(open) trait Eq {
-  op_equal(Self, Self) -> Bool
+  equal(Self, Self) -> Bool = _
+  #deprecated("use `equal` instead")
+  op_equal(Self, Self) -> Bool = _
 }
 
 ///|
@@ -27,10 +29,43 @@ pub(open) trait Eq {
 /// - positive, if the first argument is greater
 pub(open) trait Compare: Eq {
   compare(Self, Self) -> Int
+  op_lt(Self, Self) -> Bool = _
+  op_gt(Self, Self) -> Bool = _
+  op_le(Self, Self) -> Bool = _
+  op_ge(Self, Self) -> Bool = _
+}
+
+///|
+impl Compare with op_lt(x, y) {
+  x.compare(y).is_neg()
+}
+
+///|
+impl Compare with op_gt(x, y) {
+  x.compare(y).is_pos()
+}
+
+///|
+impl Compare with op_le(x, y) {
+  x.compare(y).is_non_pos()
+}
+
+///|
+impl Compare with op_ge(x, y) {
+  x.compare(y).is_non_neg()
 }
 
 ///|
 /// Trait for types that can be hashed
+/// 
+/// The `hash` method should return a hash value for the type, which is used in hash tables and other data structures.
+/// The `hash_combine` method is used to combine the hash of the current value with another hash value,
+/// typically used to hash composite types.
+/// 
+/// When two values are equal according to the `Eq` trait, they should produce the same hash value.
+/// 
+/// The `hash` method does not need to be implemented if `hash_combine` is implemented,
+/// When implemented separately, `hash` **does not need** to produce a hash value that is consistent with `hash_combine`.
 pub(open) trait Hash {
   hash_combine(Self, Hasher) -> Unit
   hash(Self) -> Int = _
@@ -76,8 +111,9 @@ pub(open) trait Show {
   to_string(Self) -> String = _
 }
 
-///|
 // Default implementation for `Show::to_string`, uses a `Buffer`
+
+///|
 impl Show with to_string(self) {
   let logger = StringBuilder::new()
   self.output(logger)
@@ -93,10 +129,10 @@ pub fn[Obj : Show] &Logger::write_object(self : &Logger, obj : Obj) -> Unit {
 pub fn[T : Show] &Logger::write_iter(
   self : &Logger,
   iter : Iter[T],
-  prefix~ : String = "[",
-  suffix~ : String = "]",
-  sep~ : String = ", ",
-  trailing~ : Bool = false
+  prefix? : String = "[",
+  suffix? : String = "]",
+  sep? : String = ", ",
+  trailing? : Bool = false,
 ) -> Unit {
   self.write_string(prefix)
   if trailing {
@@ -125,4 +161,15 @@ pub fn[T : Show] repr(t : T) -> String {
   let logger = StringBuilder::new()
   t.output(logger)
   logger.to_string()
+}
+
+///|
+#deprecated("replace `impl op_equal` with `impl equal`")
+impl Eq with equal(self, other) {
+  Eq::op_equal(self, other)
+}
+
+///|
+impl Eq with op_equal(self, other) {
+  Eq::equal(self, other)
 }

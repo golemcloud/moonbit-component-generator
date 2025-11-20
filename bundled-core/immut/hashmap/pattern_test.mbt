@@ -14,7 +14,7 @@
 
 ///|
 test "pattern" {
-  let m = @hashmap.of([
+  let m = @hashmap.from_array([
     ("name", "John Doe"),
     ("age", "43"),
     ("is_human", "true"),
@@ -22,8 +22,8 @@ test "pattern" {
   let { "name"? : name, "age"? : age, "is_human"? : is_human, .. } = m
   inspect(
     (name, age, is_human),
-    content=
+    content=(
       #|(Some("John Doe"), Some("43"), Some("true"))
-    ,
+    ),
   )
 }

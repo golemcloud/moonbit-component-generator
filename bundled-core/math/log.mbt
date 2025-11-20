@@ -39,10 +39,10 @@ let logf_n : UInt = 1U << logf_table_bits
 
 ///|
 priv struct LogfData {
-  invc : Array[Double]
-  logc : Array[Double]
+  invc : FixedArray[Double]
+  logc : FixedArray[Double]
   ln2 : Double
-  poly : Array[Double]
+  poly : FixedArray[Double]
 }
 
 ///|
@@ -82,12 +82,12 @@ let logf_data : LogfData = {
 /// Example:
 ///
 /// ```moonbit
-///   inspect(lnf(1), content="0")
-///   inspect(lnf(2.718281828459045), content="0.9999999403953552")
-///   inspect(lnf(0), content="-Infinity")
+///   inspect(@math.lnf(1), content="0")
+///   inspect(@math.lnf(2.718281828459045), content="0.9999999403953552")
+///   inspect(@math.lnf(0), content="-Infinity")
 /// ```
 pub fn lnf(x : Float) -> Float {
-  let mut ix : UInt = x.reinterpret_as_int().reinterpret_as_uint()
+  let mut ix : UInt = x.reinterpret_as_uint()
   if ix == 0x3f800000U {
     return 0.0
   }
@@ -101,7 +101,7 @@ pub fn lnf(x : Float) -> Float {
     if (ix & 0x80000000U) != 0 || ix * 2 >= 0xff000000U {
       return @float.not_a_number
     }
-    ix = (x * 0x1.0p23).reinterpret_as_int().reinterpret_as_uint()
+    ix = (x * 0x1.0p23).reinterpret_as_uint()
     ix -= (23 << 23).reinterpret_as_uint()
   }
   let tmp = ix - logf_off
@@ -110,7 +110,7 @@ pub fn lnf(x : Float) -> Float {
   let iz = ix - (tmp & 0xff800000U)
   let invc = logf_data.invc[i]
   let logc = logf_data.logc[i]
-  let z = iz.reinterpret_as_int().reinterpret_as_float().to_double()
+  let z = iz.reinterpret_as_float().to_double()
   let r = z * invc - 1
   let y0 = logc + k.to_double() * logf_data.ln2
   let r2 = r * r
@@ -138,13 +138,13 @@ pub fn lnf(x : Float) -> Float {
 /// Example:
 ///
 /// ```moonbit
-///   inspect(ln_1pf(0), content="0")
-///   inspect(ln_1pf(1), content="0.6931471824645996")
-///   inspect(ln_1pf(-1), content="-Infinity")
-///   inspect(ln_1pf(-2), content="NaN")
-///   inspect(ln_1pf(@float.not_a_number), content="NaN")
-///   inspect(ln_1pf(@float.infinity), content="Infinity")
-///   inspect(ln_1pf(@float.neg_infinity), content="NaN")
+///   inspect(@math.ln_1pf(0), content="0")
+///   inspect(@math.ln_1pf(1), content="0.6931471824645996")
+///   inspect(@math.ln_1pf(-1), content="-Infinity")
+///   inspect(@math.ln_1pf(-2), content="NaN")
+///   inspect(@math.ln_1pf(@float.not_a_number), content="NaN")
+///   inspect(@math.ln_1pf(@float.infinity), content="Infinity")
+///   inspect(@math.ln_1pf(@float.neg_infinity), content="NaN")
 /// ```
 pub fn ln_1pf(x : Float) -> Float {
   let lg1_f : Float = 0.66666662693

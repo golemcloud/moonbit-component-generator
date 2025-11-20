@@ -13,13 +13,14 @@
 // limitations under the License.
 
 ///|
-#visibility(change_to="abstract")
-pub(all) struct T {
+#alias(T, deprecated)
+struct Test {
   name : String
   buffer : StringBuilder
 }
 
 ///|
-pub fn new(name : String) -> T {
+#as_free_fn
+pub fn Test::new(name : String) -> Test {
   { name, buffer: StringBuilder::new() }
 }

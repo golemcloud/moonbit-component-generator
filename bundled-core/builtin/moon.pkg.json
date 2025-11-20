@@ -13,8 +13,11 @@
     "moonbitlang/core/int64",
     "moonbitlang/core/uint",
     "moonbitlang/core/json",
-    "moonbitlang/core/bigint"
+    "moonbitlang/core/bigint",
+    "moonbitlang/core/ref",
+    "moonbitlang/core/float"
   ],
+  "alert-list": "-test_import_all",
   "targets": {
     "int64_js.mbt": ["js"],
     "int64_nonjs.mbt": ["not", "js"],
