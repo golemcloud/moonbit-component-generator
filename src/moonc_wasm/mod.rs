@@ -58,8 +58,3 @@ pub fn initialize_v8() -> anyhow::Result<()> {
     v8::V8::initialize();
     Ok(())
 }
-
-pub fn run_moonc(argv: Vec<String>) -> anyhow::Result<()> {
-    initialize_v8()?;
-    run_wasmoo(argv)
-}
