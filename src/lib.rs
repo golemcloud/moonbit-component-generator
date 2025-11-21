@@ -1001,14 +1001,14 @@ pub fn to_moonbit_ident(name: impl AsRef<str>) -> String {
         // Reserved keywords
         | "module" | "move" | "ref" | "static" | "super" | "unsafe" | "use" | "where" | "await"
         | "dyn" | "abstract" | "do" | "final" | "macro" | "override" | "typeof" | "virtual" | "yield"
-        | "local" | "method" | "alias" | "assert" | "recur" | "isnot" | "define" | "downcast"
+        | "local" | "method" | "alias" | "assert" | "package" | "recur" | "isnot" | "define" | "downcast"
         | "inherit" | "member" | "namespace" | "upcast" | "void" | "lazy" | "include" | "mixin"
         | "protected" | "sealed" | "constructor" | "atomic" | "volatile" | "anyframe" | "anytype"
         | "asm" | "comptime" | "errdefer" | "export" | "opaque" | "orelse" | "resume" | "threadlocal"
         | "unreachable" | "dynclass" | "dynobj" | "dynrec" | "var" | "finally" | "noasync" => {
-            format ! ("{name}_")
+            format!("{name}_")
         }
-        _ => name.to_snake_case(),
+        _ => name.strip_prefix("[async]").unwrap_or(name).to_snake_case(),
     }
 }
 
