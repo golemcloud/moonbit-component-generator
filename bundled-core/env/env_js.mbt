@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-extern "js" fn get_cli_args_internal() -> Array[String] =
+extern "js" fn get_cli_args_internal_ffi() -> FixedArray[String] =
   #| function() {
   #|  if (typeof process !== "undefined" && typeof process.argv !== "undefined") {
   #|    return process.argv;
@@ -21,6 +21,10 @@ extern "js" fn get_cli_args_internal() -> Array[String] =
   #|    return [];
   #|  }
   #| }
+
+fn get_cli_args_internal() -> Array[String] {
+  Array::from_fixed_array(get_cli_args_internal_ffi())
+}
 
 ///|
 extern "js" fn now_internal() -> UInt64 =
